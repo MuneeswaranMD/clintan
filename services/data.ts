@@ -1,9 +1,9 @@
 import { Invoice, Product, InvoiceStatus, User } from '../types';
 
 const STORAGE_KEYS = {
-  INVOICES: 'invoiceflow_invoices',
-  PRODUCTS: 'invoiceflow_products',
-  USER: 'invoiceflow_user',
+  INVOICES: 'Gragavathigraphics_invoices',
+  PRODUCTS: 'Gragavathigraphics_products',
+  USER: 'Gragavathigraphics_user',
 };
 
 // Safe Storage Wrapper for environments where localStorage is restricted (e.g. sandboxed iframes)
@@ -45,22 +45,22 @@ const generateMockProducts = (): Product[] => [
 const generateMockInvoices = (): Invoice[] => {
   const now = new Date();
   const invoices: Invoice[] = [];
-  
+
   // Generate data for the last 6 months
   for (let i = 0; i < 15; i++) {
     const date = new Date(now);
     date.setDate(date.getDate() - (i * 12)); // Spread out dates
-    
+
     invoices.push({
-      id: `inv_${i}`,
-      invoiceNumber: `INV-${2024001 + i}`,
+      id: `inv_₹{i}`,
+      invoiceNumber: `INV-₹{2024001 + i}`,
       customerName: [`Acme Corp`, `Globex`, `Soylent Corp`, `Initech`, `Umbrella Corp`][i % 5],
       customerEmail: `billing@example.com`,
       date: date.toISOString(),
       dueDate: new Date(date.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString(),
       status: i % 3 === 0 ? InvoiceStatus.Paid : (i % 4 === 0 ? InvoiceStatus.Overdue : InvoiceStatus.Pending),
       items: [
-        { id: `item_${i}_1`, productId: '1', productName: 'Web Design Service', quantity: 1, price: 1500, total: 1500 }
+        { id: `item_₹{i}_1`, productId: '1', productName: 'Web Design Service', quantity: 1, price: 1500, total: 1500 }
       ],
       subtotal: 1500,
       tax: 150,

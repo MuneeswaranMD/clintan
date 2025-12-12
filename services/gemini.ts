@@ -19,9 +19,9 @@ export const GeminiService = {
     const totalSales = invoices.reduce((sum, inv) => sum + inv.total, 0);
     const paidInvoices = invoices.filter(i => i.status === 'Paid').length;
     const pendingInvoices = invoices.filter(i => i.status === 'Pending').length;
-    
+
     // Group sales by month for trend analysis
-    const salesByMonth: {[key: string]: number} = {};
+    const salesByMonth: { [key: string]: number } = {};
     invoices.forEach(inv => {
       const month = new Date(inv.date).toLocaleString('default', { month: 'short', year: 'numeric' });
       salesByMonth[month] = (salesByMonth[month] || 0) + inv.total;
@@ -31,10 +31,10 @@ export const GeminiService = {
       Analyze the following business sales data and provide a brief, professional executive summary (max 3 sentences) highlighting trends, health, and one actionable tip.
       
       Data:
-      - Total Revenue: $${totalSales.toFixed(2)}
-      - Paid Invoices: ${paidInvoices}
-      - Pending Invoices: ${pendingInvoices}
-      - Monthly Breakdown: ${JSON.stringify(salesByMonth)}
+      - Total Revenue: ₹{totalSales.toFixed(2)}
+      - Paid Invoices: ₹{paidInvoices}
+      - Pending Invoices: ₹{pendingInvoices}
+      - Monthly Breakdown: ₹{JSON.stringify(salesByMonth)}
     `;
 
     try {

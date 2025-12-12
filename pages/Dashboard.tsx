@@ -1,22 +1,22 @@
 import React, { useEffect, useState } from 'react';
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
   LineChart,
   Line
 } from 'recharts';
-import { 
-  DollarSign, 
-  FileText, 
-  Clock, 
-  CheckCircle, 
-  Sparkles, 
-  ArrowUpRight 
+import {
+  DollarSign,
+  FileText,
+  Clock,
+  CheckCircle,
+  Sparkles,
+  ArrowUpRight
 } from 'lucide-react';
 import { DataService } from '../services/data';
 import { GeminiService } from '../services/gemini';
@@ -73,7 +73,7 @@ export const Dashboard: React.FC = () => {
           <p className="text-slate-500">Business overview and performance metrics.</p>
         </div>
         <div className="flex items-center gap-2">
-           <select 
+          <select
             value={dateRange}
             onChange={(e) => setDateRange(e.target.value as any)}
             className="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -82,7 +82,7 @@ export const Dashboard: React.FC = () => {
             <option value="90">Last 90 Days</option>
             <option value="30">Last 30 Days</option>
           </select>
-          <button 
+          <button
             onClick={handleAnalyze}
             disabled={analyzing}
             className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
@@ -110,28 +110,28 @@ export const Dashboard: React.FC = () => {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard 
-          title="Total Sales" 
-          value={`$${stats.totalSales.toLocaleString()}`} 
-          icon={DollarSign} 
+        <StatCard
+          title="Total Sales"
+          value={`₹{stats.totalSales.toLocaleString()}`}
+          icon={DollarSign}
           color="bg-emerald-500"
         />
-        <StatCard 
-          title="Total Invoices" 
-          value={stats.count.toString()} 
-          icon={FileText} 
+        <StatCard
+          title="Total Invoices"
+          value={stats.count.toString()}
+          icon={FileText}
           color="bg-blue-500"
         />
-        <StatCard 
-          title="Pending Amount" 
-          value={`$${stats.pendingAmount.toLocaleString()}`} 
-          icon={Clock} 
+        <StatCard
+          title="Pending Amount"
+          value={`₹{stats.pendingAmount.toLocaleString()}`}
+          icon={Clock}
           color="bg-amber-500"
         />
-        <StatCard 
-          title="Paid Invoices" 
-          value={stats.paidCount.toString()} 
-          icon={CheckCircle} 
+        <StatCard
+          title="Paid Invoices"
+          value={stats.paidCount.toString()}
+          icon={CheckCircle}
           color="bg-purple-500"
         />
       </div>
@@ -144,20 +144,20 @@ export const Dashboard: React.FC = () => {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                <XAxis 
-                  dataKey="name" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fill: '#64748b', fontSize: 12 }} 
+                <XAxis
+                  dataKey="name"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: '#64748b', fontSize: 12 }}
                   dy={10}
                 />
-                <YAxis 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fill: '#64748b', fontSize: 12 }} 
-                  tickFormatter={(value) => `$${value}`}
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: '#64748b', fontSize: 12 }}
+                  tickFormatter={(value) => `₹{value}`}
                 />
-                <Tooltip 
+                <Tooltip
                   cursor={{ fill: '#f1f5f9' }}
                   contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                 />
@@ -184,8 +184,8 @@ export const Dashboard: React.FC = () => {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold text-slate-800 text-sm">${inv.total.toLocaleString()}</p>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                    <p className="font-semibold text-slate-800 text-sm">₹{inv.total.toLocaleString()}</p>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ₹{
                       inv.status === InvoiceStatus.Paid ? 'bg-emerald-100 text-emerald-700' :
                       inv.status === InvoiceStatus.Pending ? 'bg-amber-100 text-amber-700' :
                       'bg-red-100 text-red-700'
@@ -215,7 +215,7 @@ const StatCard = ({ title, value, icon: Icon, color }: any) => (
       <p className="text-sm font-medium text-slate-500 mb-1">{title}</p>
       <h3 className="text-2xl font-bold text-slate-800">{value}</h3>
     </div>
-    <div className={`p-3 rounded-lg text-white ${color} shadow-lg shadow-${color}/30`}>
+    <div className={`p-3 rounded-lg text-white ₹{color} shadow-lg shadow-₹{color}/30`}>
       <Icon size={20} />
     </div>
   </div>

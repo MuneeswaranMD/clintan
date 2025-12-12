@@ -8,7 +8,7 @@ export const Invoices: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [view, setView] = useState<'list' | 'create' | 'edit' | 'view'>('list');
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
-  
+
   // Create/Edit Form State
   const [formData, setFormData] = useState<Partial<Invoice>>({
     customerName: '',
@@ -69,7 +69,7 @@ export const Invoices: React.FC = () => {
     const { subtotal, tax, total } = calculateTotals(formData.items || []);
     const invoice: Invoice = {
       id: view === 'edit' && formData.id ? formData.id : Date.now().toString(),
-      invoiceNumber: formData.invoiceNumber || `INV-${Math.floor(Math.random() * 10000)}`,
+      invoiceNumber: formData.invoiceNumber || `INV-₹{Math.floor(Math.random() * 10000)}`,
       customerName: formData.customerName!,
       customerEmail: formData.customerEmail!,
       date: formData.date!,
@@ -123,7 +123,7 @@ export const Invoices: React.FC = () => {
             <X size={20} /> Close
           </button>
           <div className="flex gap-3">
-            <button 
+            <button
               onClick={() => window.print()}
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
             >
@@ -140,7 +140,7 @@ export const Invoices: React.FC = () => {
               <p className="text-slate-500 text-lg">#{selectedInvoice.invoiceNumber}</p>
             </div>
             <div className="text-right">
-              <div className="font-bold text-xl text-slate-800">InvoiceFlow Inc.</div>
+              <div className="font-bold text-xl text-slate-800">Gragavathigraphics Inc.</div>
               <p className="text-slate-500">123 Business Rd</p>
               <p className="text-slate-500">Tech City, TC 90210</p>
             </div>
@@ -161,12 +161,12 @@ export const Invoices: React.FC = () => {
                 <span className="text-slate-400 text-sm font-semibold mr-4">Due Date:</span>
                 <span className="text-slate-800 font-medium">{new Date(selectedInvoice.dueDate).toLocaleDateString()}</span>
               </div>
-               <div className="mt-4">
-                 <span className={`px-4 py-1 rounded-full text-sm font-bold ${
+              <div className="mt-4">
+                <span className={`px-4 py-1 rounded-full text-sm font-bold ₹{
                     selectedInvoice.status === 'Paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
                  }`}>
-                   {selectedInvoice.status.toUpperCase()}
-                 </span>
+                  {selectedInvoice.status.toUpperCase()}
+                </span>
               </div>
             </div>
           </div>
@@ -185,8 +185,8 @@ export const Invoices: React.FC = () => {
                 <tr key={item.id} className="border-b border-slate-100">
                   <td className="py-4 text-slate-800">{item.productName}</td>
                   <td className="py-4 text-center text-slate-600">{item.quantity}</td>
-                  <td className="py-4 text-right text-slate-600">${item.price.toFixed(2)}</td>
-                  <td className="py-4 text-right font-medium text-slate-800">${item.total.toFixed(2)}</td>
+                  <td className="py-4 text-right text-slate-600">₹{item.price.toFixed(2)}</td>
+                  <td className="py-4 text-right font-medium text-slate-800">₹{item.total.toFixed(2)}</td>
                 </tr>
               ))}
             </tbody>
@@ -196,19 +196,19 @@ export const Invoices: React.FC = () => {
             <div className="w-64 space-y-3">
               <div className="flex justify-between text-slate-600">
                 <span>Subtotal</span>
-                <span>${selectedInvoice.subtotal.toFixed(2)}</span>
+                <span>₹{selectedInvoice.subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-slate-600">
                 <span>Tax (10%)</span>
-                <span>${selectedInvoice.tax.toFixed(2)}</span>
+                <span>₹{selectedInvoice.tax.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-xl font-bold text-slate-900 border-t border-slate-200 pt-3">
                 <span>Total</span>
-                <span>${selectedInvoice.total.toFixed(2)}</span>
+                <span>₹{selectedInvoice.total.toFixed(2)}</span>
               </div>
             </div>
           </div>
-          
+
           <div className="mt-12 text-center text-slate-400 text-sm">
             <p>Thank you for your business!</p>
           </div>
@@ -219,7 +219,7 @@ export const Invoices: React.FC = () => {
 
   if (view === 'create' || view === 'edit') {
     const { subtotal, tax, total } = calculateTotals(formData.items || []);
-    
+
     return (
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center gap-4 mb-6">
@@ -233,50 +233,50 @@ export const Invoices: React.FC = () => {
           <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Customer Name</label>
-              <input 
+              <input
                 required
-                type="text" 
+                type="text"
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                 value={formData.customerName}
-                onChange={e => setFormData({...formData, customerName: e.target.value})}
+                onChange={e => setFormData({ ...formData, customerName: e.target.value })}
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Customer Email</label>
-              <input 
+              <input
                 required
-                type="email" 
+                type="email"
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                 value={formData.customerEmail}
-                onChange={e => setFormData({...formData, customerEmail: e.target.value})}
+                onChange={e => setFormData({ ...formData, customerEmail: e.target.value })}
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Date</label>
-              <input 
+              <input
                 required
-                type="date" 
+                type="date"
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                 value={formData.date}
-                onChange={e => setFormData({...formData, date: e.target.value})}
+                onChange={e => setFormData({ ...formData, date: e.target.value })}
               />
             </div>
-             <div>
+            <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Due Date</label>
-              <input 
+              <input
                 required
-                type="date" 
+                type="date"
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                 value={formData.dueDate}
-                onChange={e => setFormData({...formData, dueDate: e.target.value})}
+                onChange={e => setFormData({ ...formData, dueDate: e.target.value })}
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
-              <select 
+              <select
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                 value={formData.status}
-                onChange={e => setFormData({...formData, status: e.target.value as InvoiceStatus})}
+                onChange={e => setFormData({ ...formData, status: e.target.value as InvoiceStatus })}
               >
                 {Object.values(InvoiceStatus).map(s => <option key={s} value={s}>{s}</option>)}
               </select>
@@ -288,16 +288,16 @@ export const Invoices: React.FC = () => {
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-slate-800">Order Items</h3>
               <div className="flex items-center gap-2">
-                 <select 
-                   className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none"
-                   onChange={(e) => {
-                     addItem(e.target.value);
-                     e.target.value = '';
-                   }}
-                 >
-                   <option value="">+ Add Product</option>
-                   {products.map(p => <option key={p.id} value={p.id}>{p.name} (${p.price})</option>)}
-                 </select>
+                <select
+                  className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none"
+                  onChange={(e) => {
+                    addItem(e.target.value);
+                    e.target.value = '';
+                  }}
+                >
+                  <option value="">+ Add Product</option>
+                  {products.map(p => <option key={p.id} value={p.id}>{p.name} (₹{p.price})</option>)}
+                </select>
               </div>
             </div>
 
@@ -316,24 +316,24 @@ export const Invoices: React.FC = () => {
                   {formData.items?.map((item, idx) => (
                     <tr key={idx}>
                       <td className="px-4 py-3">
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           className="w-full bg-transparent outline-none font-medium text-slate-800"
                           value={item.productName}
                           onChange={(e) => updateItem(idx, 'productName', e.target.value)}
                         />
                       </td>
                       <td className="px-4 py-3">
-                         <input 
-                          type="number" 
+                        <input
+                          type="number"
                           className="w-full bg-transparent outline-none text-slate-600"
                           value={item.price}
                           onChange={(e) => updateItem(idx, 'price', parseFloat(e.target.value))}
                         />
                       </td>
                       <td className="px-4 py-3">
-                         <input 
-                          type="number" 
+                        <input
+                          type="number"
                           min="1"
                           className="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-center outline-none focus:border-blue-500"
                           value={item.quantity}
@@ -341,11 +341,11 @@ export const Invoices: React.FC = () => {
                         />
                       </td>
                       <td className="px-4 py-3 text-slate-800 font-medium">
-                        ${item.total.toFixed(2)}
+                        ₹{item.total.toFixed(2)}
                       </td>
                       <td className="px-4 py-3 text-center">
-                        <button 
-                          type="button" 
+                        <button
+                          type="button"
                           onClick={() => removeItem(idx)}
                           className="text-slate-400 hover:text-red-500 transition-colors"
                         >
@@ -367,31 +367,31 @@ export const Invoices: React.FC = () => {
 
             <div className="flex justify-end mt-6">
               <div className="w-64 space-y-2">
-                 <div className="flex justify-between text-slate-600">
-                    <span>Subtotal:</span>
-                    <span>${subtotal.toFixed(2)}</span>
-                 </div>
-                 <div className="flex justify-between text-slate-600">
-                    <span>Tax (10%):</span>
-                    <span>${tax.toFixed(2)}</span>
-                 </div>
-                 <div className="flex justify-between text-lg font-bold text-slate-900 border-t border-slate-200 pt-2">
-                    <span>Total:</span>
-                    <span>${total.toFixed(2)}</span>
-                 </div>
+                <div className="flex justify-between text-slate-600">
+                  <span>Subtotal:</span>
+                  <span>₹{subtotal.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-slate-600">
+                  <span>Tax (10%):</span>
+                  <span>₹{tax.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-lg font-bold text-slate-900 border-t border-slate-200 pt-2">
+                  <span>Total:</span>
+                  <span>₹{total.toFixed(2)}</span>
+                </div>
               </div>
             </div>
           </div>
 
           <div className="flex justify-end gap-3">
-            <button 
+            <button
               type="button"
               onClick={() => setView('list')}
               className="px-6 py-2 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-50 transition-colors"
             >
               Cancel
             </button>
-             <button 
+            <button
               type="submit"
               className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/20"
             >
@@ -408,7 +408,7 @@ export const Invoices: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 className="text-3xl font-bold text-slate-800">Invoices</h1>
-        <button 
+        <button
           onClick={handleCreate}
           className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
         >
@@ -419,9 +419,9 @@ export const Invoices: React.FC = () => {
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="p-4 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
           <Search size={20} className="text-slate-400" />
-          <input 
-            type="text" 
-            placeholder="Search invoices..." 
+          <input
+            type="text"
+            placeholder="Search invoices..."
             className="bg-transparent outline-none w-full text-sm text-slate-700 placeholder:text-slate-400"
           />
         </div>
@@ -446,9 +446,9 @@ export const Invoices: React.FC = () => {
                     <div className="text-xs text-slate-400">{inv.customerEmail}</div>
                   </td>
                   <td className="px-6 py-4 text-slate-600">{new Date(inv.date).toLocaleDateString()}</td>
-                  <td className="px-6 py-4 font-medium text-slate-800">${inv.total.toLocaleString()}</td>
+                  <td className="px-6 py-4 font-medium text-slate-800">₹{inv.total.toLocaleString()}</td>
                   <td className="px-6 py-4">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ₹{
                       inv.status === InvoiceStatus.Paid ? 'bg-emerald-100 text-emerald-800' :
                       inv.status === InvoiceStatus.Pending ? 'bg-amber-100 text-amber-800' :
                       'bg-red-100 text-red-800'
@@ -464,7 +464,7 @@ export const Invoices: React.FC = () => {
                       <button onClick={() => handleEdit(inv)} className="p-2 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors">
                         <Edit2 size={18} />
                       </button>
-                       <button onClick={() => handleDelete(inv.id)} className="p-2 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors">
+                      <button onClick={() => handleDelete(inv.id)} className="p-2 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors">
                         <Trash2 size={18} />
                       </button>
                     </div>
@@ -472,11 +472,11 @@ export const Invoices: React.FC = () => {
                 </tr>
               ))}
               {invoices.length === 0 && (
-                 <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
-                      No invoices found. Create one to get started.
-                    </td>
-                 </tr>
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
+                    No invoices found. Create one to get started.
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>
