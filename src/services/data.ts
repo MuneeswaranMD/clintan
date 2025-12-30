@@ -1,9 +1,9 @@
 import { Invoice, Product, InvoiceStatus, User } from '../types';
 
 const STORAGE_KEYS = {
-  INVOICES: 'Gragavathigraphics_invoices',
-  PRODUCTS: 'Gragavathigraphics_products',
-  USER: 'Gragavathigraphics_user',
+  INVOICES: 'Sivajoy Creatives_invoices',
+  PRODUCTS: 'Sivajoy Creatives_products',
+  USER: 'Sivajoy Creatives_user',
 };
 
 // Safe Storage Wrapper for environments where localStorage is restricted (e.g. sandboxed iframes)

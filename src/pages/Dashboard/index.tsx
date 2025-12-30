@@ -91,8 +91,8 @@ export const Dashboard: React.FC = () => {
     <div className="space-y-8 animate-fade-in pb-10">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">Business Overview</h1>
-          <p className="text-gray-400">Real-time performance metrics</p>
+          <h1 className="text-2xl font-bold text-white tracking-tight">Business Overview</h1>
+          <p className="text-gray-400 text-xs">Real-time performance metrics</p>
         </div>
         <div className="flex gap-3">
           <button onClick={() => navigate('/invoices')} className="bg-[#2C3035] p-2 rounded-xl text-gray-400 hover:text-white border border-gray-700 transition-colors"><TrendingUp size={20} /></button>
@@ -101,14 +101,14 @@ export const Dashboard: React.FC = () => {
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <button onClick={() => navigate('/invoices')} className="flex items-center gap-3 bg-[#8FFF00]/10 hover:bg-[#8FFF00]/20 text-[#8FFF00] p-4 rounded-2xl border border-[#8FFF00]/20 transition-all font-bold">
-          <Plus size={20} /> New Invoice
+        <button onClick={() => navigate('/invoices')} className="flex items-center gap-3 bg-[#8FFF00]/10 hover:bg-[#8FFF00]/20 text-[#8FFF00] p-3 rounded-xl border border-[#8FFF00]/20 transition-all font-bold text-xs">
+          <Plus size={16} /> New Invoice
         </button>
-        <button onClick={() => navigate('/estimates')} className="flex items-center gap-3 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 p-4 rounded-2xl border border-blue-500/20 transition-all font-bold">
-          <Plus size={20} /> New Estimate
+        <button onClick={() => navigate('/estimates')} className="flex items-center gap-3 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 p-3 rounded-xl border border-blue-500/20 transition-all font-bold text-xs">
+          <Plus size={16} /> New Estimate
         </button>
-        <button onClick={() => navigate('/customers')} className="flex items-center gap-3 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 p-4 rounded-2xl border border-purple-500/20 transition-all font-bold">
-          <Plus size={20} /> Add Customer
+        <button onClick={() => navigate('/customers')} className="flex items-center gap-3 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 p-3 rounded-xl border border-purple-500/20 transition-all font-bold text-xs">
+          <Plus size={16} /> Add Customer
         </button>
       </div>
 
@@ -123,32 +123,32 @@ export const Dashboard: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Revenue Chart */}
-        <div className="lg:col-span-2 bg-[#24282D] p-8 rounded-[40px] border border-gray-800 flex flex-col min-h-[450px]">
-          <h3 className="text-xl font-bold mb-6 flex items-center gap-2">Monthly Revenue <ArrowUpRight size={18} className="text-[#8FFF00]" /></h3>
-          <div className="flex-1 min-h-[300px]">
+        <div className="lg:col-span-2 bg-[#24282D] p-6 rounded-3xl border border-gray-800 flex flex-col min-h-[400px]">
+          <h3 className="text-lg font-bold mb-6 flex items-center gap-2">Monthly Revenue <ArrowUpRight size={16} className="text-[#8FFF00]" /></h3>
+          <div className="flex-1 min-h-[250px]">
             <ResponsiveContainer width="95%" height="100%">
               <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#374151" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#9CA3AF' }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#9CA3AF' }} />
-                <Tooltip cursor={{ fill: 'rgba(255,255,255,0.05)' }} contentStyle={{ backgroundColor: '#1D2125', border: '1px solid #374151', borderRadius: '12px' }} />
-                <Bar dataKey="revenue" fill="#8FFF00" radius={[6, 6, 0, 0]} />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#9CA3AF', fontSize: 10 }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#9CA3AF', fontSize: 10 }} />
+                <Tooltip cursor={{ fill: 'rgba(255,255,255,0.05)' }} contentStyle={{ backgroundColor: '#1D2125', border: '1px solid #374151', borderRadius: '12px', fontSize: 10 }} />
+                <Bar dataKey="revenue" fill="#8FFF00" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         {/* Status Breakdown */}
-        <div className="bg-[#24282D] p-8 rounded-[40px] border border-gray-800 flex flex-col min-h-[450px]">
-          <h3 className="text-xl font-bold mb-6">Invoice Status</h3>
-          <div className="flex-1 min-h-[300px]">
+        <div className="bg-[#24282D] p-6 rounded-3xl border border-gray-800 flex flex-col min-h-[400px]">
+          <h3 className="text-lg font-bold mb-6">Invoice Status</h3>
+          <div className="flex-1 min-h-[250px]">
             <ResponsiveContainer width="95%" height="100%">
               <PieChart>
-                <Pie data={statusData} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
+                <Pie data={statusData} innerRadius={50} outerRadius={70} paddingAngle={5} dataKey="value">
                   {statusData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
                 </Pie>
-                <Tooltip />
-                <Legend verticalAlign="bottom" height={36} />
+                <Tooltip contentStyle={{ fontSize: 10 }} />
+                <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: 10 }} />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -157,11 +157,11 @@ export const Dashboard: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Payment Methods */}
-        <div className="bg-[#24282D] p-8 rounded-[40px] border border-gray-800">
-          <h3 className="text-xl font-bold mb-6 flex items-center gap-2"><CreditCard size={20} className="text-[#8FFF00]" /> Payment Methods Breakdown</h3>
-          <div className="space-y-4">
+        <div className="bg-[#24282D] p-6 rounded-3xl border border-gray-800">
+          <h3 className="text-lg font-bold mb-6 flex items-center gap-2"><CreditCard size={18} className="text-[#8FFF00]" /> Payment Methods</h3>
+          <div className="space-y-3">
             {methodData.length > 0 ? methodData.map((m, idx) => (
-              <div key={m.name} className="flex items-center justify-between p-4 bg-[#1D2125] rounded-2xl border border-gray-800">
+              <div key={m.name} className="flex items-center justify-between p-3 bg-[#1D2125] rounded-xl border border-gray-800">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-lg bg-gray-800 text-gray-400">
                     {m.name.toLowerCase().includes('bank') ? <Banknote size={18} /> :
@@ -179,8 +179,8 @@ export const Dashboard: React.FC = () => {
         </div>
 
         {/* Recent Activity */}
-        <div className="bg-[#24282D] p-8 rounded-[40px] border border-gray-800">
-          <h3 className="text-xl font-bold mb-6">Recent Activity</h3>
+        <div className="bg-[#24282D] p-6 rounded-3xl border border-gray-800">
+          <h3 className="text-lg font-bold mb-6">Recent Activity</h3>
           <div className="space-y-4">
             {invoices.slice(0, 4).map(inv => (
               <div key={inv.id} className="flex items-center justify-between p-4 rounded-2xl hover:bg-white/5 transition-colors cursor-pointer group">
@@ -207,14 +207,14 @@ export const Dashboard: React.FC = () => {
 };
 
 const DashboardStatCard = ({ title, value, icon: Icon, color }: any) => (
-  <div className="bg-[#24282D] p-6 rounded-[32px] border border-gray-800 hover:border-gray-700 transition-all group overflow-hidden relative">
-    <div className={`absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity`}>
-      <Icon size={80} className={color} />
+  <div className="bg-[#24282D] p-4 rounded-2xl border border-gray-800 hover:border-gray-700 transition-all group overflow-hidden relative">
+    <div className={`absolute top-0 right-0 p-3 opacity-5 group-hover:opacity-10 transition-opacity`}>
+      <Icon size={64} className={color} />
     </div>
-    <div className={`w-12 h-12 rounded-2xl bg-gray-800 flex items-center justify-center mb-4 transition-transform group-hover:scale-110`}>
-      <Icon size={24} className={color} />
+    <div className={`w-10 h-10 rounded-xl bg-gray-800 flex items-center justify-center mb-3 transition-transform group-hover:scale-110`}>
+      <Icon size={20} className={color} />
     </div>
-    <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">{title}</p>
-    <h4 className="text-xl font-bold text-white">{value}</h4>
+    <p className="text-gray-500 text-[10px] font-black uppercase tracking-wider mb-1">{title}</p>
+    <h4 className="text-lg font-bold text-white">{value}</h4>
   </div>
 );

@@ -16,24 +16,23 @@ export const generateInvoicePDF = async (invoice: Invoice) => {
         <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 40px; border-bottom: 2px solid #8FFF00; padding-bottom: 20px;">
             <div>
                 <h1 style="margin: 0; color: #1D2125; font-size: 48px; font-weight: 900; letter-spacing: -2px;">INVOICE</h1>
-                <p style="margin: 5px 0; color: #999; font-size: 14px; font-weight: bold;"># ${invoice.invoiceNumber}</p>
             </div>
             <div style="text-align: right;">
-                <h2 style="margin: 0; font-size: 28px; font-weight: 900; color: #1D2125;">Gragavathigraphics</h2>
-                <p style="margin: 5px 0; color: #666; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Premium Business Systems</p>
+                <h2 style="margin: 0; font-size: 28px; font-weight: 900; color: #1D2125;">Sivajoy Creatives</h2>
+                <p style="margin: 5px 0; color: #666; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Giving your brand a visual voice </p>
             </div>
         </div>
 
         <div style="display: flex; justify-content: space-between; margin-bottom: 40px;">
             <div>
                 <p style="text-transform: uppercase; font-size: 10px; font-weight: bold; color: #999; margin-bottom: 5px;">Billed To</p>
-                <h3 style="margin: 0;">${invoice.customerName}</h3>
-                <p style="margin: 5px 0; color: #666;">${invoice.customerEmail}</p>
+                <h3 style="margin: 0; font-size: 18px; color: #1D2125; text-transform: uppercase;">${invoice.customerName}</h3>
+                <p style="margin: 8px 0; color: #666; font-size: 11px; line-height: 1.5; max-width: 280px; text-transform: uppercase;">${invoice.customerAddress || ''}</p>
             </div>
             <div style="text-align: right;">
                 <p style="text-transform: uppercase; font-size: 10px; font-weight: bold; color: #999; margin-bottom: 5px;">Invoice Details</p>
                 <p style="margin: 0;"><strong>Date:</strong> ${new Date(invoice.date).toLocaleDateString()}</p>
-                <p style="margin: 5px 0;"><strong>Due:</strong> ${new Date(invoice.dueDate).toLocaleDateString()}</p>
+                <p style="margin: 5px 0;"><strong>Invoice:</strong> # ${invoice.invoiceNumber}</p>
             </div>
         </div>
 
@@ -89,16 +88,33 @@ export const generateInvoicePDF = async (invoice: Invoice) => {
             </div>
         </div>
 
-        <div style="margin-top: 80px; text-align: center; color: #999; font-size: 12px;">
-            <p>Gragavathigraphics Solutions • 123 Business Park, Tech City</p>
-            <p>www.Gragavathigraphics.com • contact@Gragavathigraphics.com</p>
+        <div style="margin-top: 60px; text-align: center; border-top: 1px dashed #eee; pt-20px;">
+            <p style="text-transform: uppercase; font-size: 10px; font-weight: bold; color: #999; margin-bottom: 15px; letter-spacing: 2px;">Accepting Digital Payments</p>
+            <div style="display: flex; justify-content: center; align-items: center; gap: 30px; margin-bottom: 12px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <img src="https://img.icons8.com/color/48/google-pay.png" style="width: 24px; height: 24px;" crossorigin="anonymous" />
+                    <span style="font-weight: 800; color: #444; font-size: 14px;">Google Pay</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <img src="https://img.icons8.com/color/48/phone-pe.png" style="width: 24px; height: 24px;" crossorigin="anonymous" />
+                    <span style="font-weight: 800; color: #444; font-size: 14px;">PhonePe</span>
+                </div>
+            </div>
+            <p style="font-size: 20px; font-weight: 900; color: #1D2125; letter-spacing: 1px; margin: 0;">8300648155</p>
+            <p style="font-size: 10px; color: #999; margin-top: 5px; font-weight: bold;">Sivajoy Creatives</p>
+            
         </div>
     `;
 
     document.body.appendChild(element);
 
     try {
-        const canvas = await html2canvas(element, { scale: 2 });
+        const canvas = await html2canvas(element, {
+            scale: 2,
+            useCORS: true,
+            allowTaint: false,
+            logging: false
+        });
         const imgData = canvas.toDataURL('image/png');
         const pdf = new jsPDF('p', 'mm', 'a4');
         const imgProps = pdf.getImageProperties(imgData);

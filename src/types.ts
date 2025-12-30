@@ -37,7 +37,6 @@ export interface Invoice {
   id: string;
   invoiceNumber: string;
   customerName: string;
-  customerEmail: string;
   date: string; // ISO Date string
   dueDate: string; // ISO Date string
   status: InvoiceStatus;
@@ -46,6 +45,7 @@ export interface Invoice {
   tax: number;
   total: number;
   paidAmount?: number;
+  customerAddress?: string;
   notes?: string;
 }
 
@@ -65,7 +65,6 @@ export interface Estimate {
   id: string;
   estimateNumber: string;
   customerName: string;
-  customerEmail?: string;
   date: string;
   amount: number;
   status: 'Draft' | 'Sent' | 'Accepted' | 'Rejected' | 'Expired';
@@ -74,6 +73,7 @@ export interface Estimate {
   discount?: number;
   tax?: number;
   items?: InvoiceItem[];
+  customerAddress?: string;
   userId: string;
 }
 
@@ -115,7 +115,6 @@ export interface CheckoutLink {
 export interface Customer {
   id: string;
   name: string;
-  email: string;
   phone: string;
   address: string;
   company?: string;

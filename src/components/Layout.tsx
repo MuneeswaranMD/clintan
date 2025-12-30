@@ -59,7 +59,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
         <div className="flex flex-col h-full">
           <div className="p-8">
             <h1 className="text-2xl font-bold text-white tracking-tight">
-              Gragavathigraphics<span className="text-[#8FFF00]">.</span>
+              Sivajoy Creatives<span className="text-[#8FFF00]">.</span>
             </h1>
             <p className="text-xs text-gray-500 mt-1 uppercase tracking-wider">Workspace</p>
           </div>
@@ -118,12 +118,12 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
           >
             <Menu size={24} />
           </button>
-          <span className="font-bold text-white">Gragavathigraphics</span>
+          <span className="font-bold text-white">Sivajoy Creatives</span>
           <div className="w-8" /> {/* Spacer */}
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto bg-[#1D2125] p-4 lg:p-8 scroll-smooth">
+        <main className="flex-1 overflow-y-auto bg-[#1D2125] p-4 lg:p-6 scroll-smooth">
           <div className="max-w-[1600px] mx-auto">
             {children}
           </div>

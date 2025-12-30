@@ -1,5 +1,5 @@
 /**
- * Mail Configuration for Gragavathigraphics Billing System
+ * Mail Configuration for Sivajoy Creatives Billing System
  * 
  * To enable professional automated emails, you can use services like:
  * 1. EmailJS (No backend required)
@@ -9,8 +9,8 @@
 
 export const mailConfig = {
     // Basic Sender Info
-    fromName: 'Gragavathigraphics Billing',
-    fromEmail: 'billing@Gragavathigraphics.com',
+    fromName: 'Sivajoy Creatives Billing',
+    fromEmail: 'billing@Sivajoy Creatives.com',
 
     // Service Configuration (Optional - Fill this if using a service like EmailJS)
     serviceId: import.meta.env.VITE_EMAILJS_SERVICE_ID || 'service_id_here',
@@ -20,8 +20,8 @@ export const mailConfig = {
     // Email Templates
     templates: {
         invoice: {
-            subject: 'New Invoice from Gragavathigraphics: {invoiceNumber}',
-            body: 'Hi {customerName},\n\nPlease find your invoice {invoiceNumber} for ₹{total} attached. \n\nRegards,\nGragavathigraphics Team'
+            subject: 'New Invoice from Sivajoy Creatives: {invoiceNumber}',
+            body: 'Hi {customerName},\n\nPlease find your invoice {invoiceNumber} for ₹{total} attached. \n\nRegards,\nSivajoy Creatives Team'
         }
     }
 };
@@ -34,7 +34,7 @@ export const sendInvoiceEmail = async (invoice: any) => {
         .replace('{invoiceNumber}', invoice.invoiceNumber)
         .replace('{total}', invoice.total.toLocaleString());
 
-    const mailtoUrl = `mailto:${invoice.customerEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
     window.location.href = mailtoUrl;
     return true;
