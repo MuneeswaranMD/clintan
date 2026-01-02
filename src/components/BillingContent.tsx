@@ -58,7 +58,7 @@ export const BillingContent: React.FC<BillingContentProps> = ({ initialTab = 'In
         if (!user) return;
 
         const unsubInvoices = invoiceService.subscribeToInvoices(user.id, setInvoices);
-        const unsubProducts = productService.subscribeToProducts(setProducts);
+        const unsubProducts = productService.subscribeToProducts(user.id, setProducts);
         const unsubEstimates = estimateService.subscribeToEstimates(user.id, setEstimates);
         const unsubPayments = paymentService.subscribeToPayments(user.id, setPayments);
         const unsubRecurring = recurringInvoiceService.subscribeToRecurring(user.id, setRecurringInvoices);

@@ -135,9 +135,13 @@ export const invoiceService = {
 // ========== PRODUCT OPERATIONS ==========
 
 export const productService = {
-    // Get all products
-    getProducts: async (): Promise<Product[]> => {
-        const snapshot = await getDocs(collection(db, PRODUCTS_COLLECTION));
+    // Get all products for a user
+    getProducts: async (userId: string): Promise<Product[]> => {
+        const q = query(
+            collection(db, PRODUCTS_COLLECTION),
+            where('userId', '==', userId)
+        );
+        const snapshot = await getDocs(q);
         const products: Product[] = [];
         snapshot.forEach((doc) => {
             products.push({ id: doc.id, ...doc.data() } as Product);
@@ -146,9 +150,14 @@ export const productService = {
     },
 
     // Subscribe to products with real-time updates
-    subscribeToProducts: (callback: (products: Product[]) => void) => {
-        return onSnapshot(
+    subscribeToProducts: (userId: string, callback: (products: Product[]) => void) => {
+        const q = query(
             collection(db, PRODUCTS_COLLECTION),
+            where('userId', '==', userId)
+        );
+
+        return onSnapshot(
+            q,
             (snapshot) => {
                 const products: Product[] = [];
                 snapshot.forEach((doc) => {
@@ -173,9 +182,10 @@ export const productService = {
     },
 
     // Create a new product
-    createProduct: async (product: Omit<Product, 'id'>): Promise<string> => {
+    createProduct: async (userId: string, product: Omit<Product, 'id' | 'userId'>): Promise<string> => {
         const docRef = await addDoc(collection(db, PRODUCTS_COLLECTION), {
             ...product,
+            userId,
             createdAt: Timestamp.now()
         });
         return docRef.id;

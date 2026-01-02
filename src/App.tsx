@@ -11,6 +11,7 @@ import { Checkouts } from './pages/Checkouts';
 import { Overdue } from './pages/Overdue';
 import { Customers } from './pages/Customers';
 import { Products } from './pages/Products';
+import { Companies } from './pages/Companies';
 import { authService } from './services/authService';
 import { User } from './types';
 
@@ -69,6 +70,7 @@ function App() {
                   <Route path="/overdue" element={<Overdue />} />
                   <Route path="/customers" element={<Customers />} />
                   <Route path="/products" element={<Products />} />
+                  <Route path="/companies" element={<Companies />} />
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
               </Layout>

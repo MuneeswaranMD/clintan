@@ -56,6 +56,8 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
 
         <div className="w-full p-8 md:p-12">
           <div className="mb-8 text-center">
+            <div className="flex justify-center mb-6">
+            </div>
             <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">
               {isLogin ? 'Welcome Back' : 'Create Account'}
             </h1>

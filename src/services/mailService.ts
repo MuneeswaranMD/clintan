@@ -26,10 +26,19 @@ export const mailConfig = {
     }
 };
 
-export const sendInvoiceEmail = async (invoice: any) => {
+export const sendInvoiceEmail = async (invoice: any, companyName: string = 'Sivajoy Creatives') => {
     // For now, we use a professional mailto generator as a default fallback
-    const subject = mailConfig.templates.invoice.subject.replace('{invoiceNumber}', invoice.invoiceNumber);
-    const body = mailConfig.templates.invoice.body
+    // Replace placeholder in template if it exists, or just append
+    const subjTemplate = mailConfig.templates.invoice.subject.includes('Sivajoy Creatives')
+        ? mailConfig.templates.invoice.subject.replace('Sivajoy Creatives', companyName)
+        : mailConfig.templates.invoice.subject;
+
+    const bodyTemplate = mailConfig.templates.invoice.body.includes('Sivajoy Creatives')
+        ? mailConfig.templates.invoice.body.replace(/Sivajoy Creatives/g, companyName)
+        : mailConfig.templates.invoice.body;
+
+    const subject = subjTemplate.replace('{invoiceNumber}', invoice.invoiceNumber);
+    const body = bodyTemplate
         .replace('{customerName}', invoice.customerName)
         .replace('{invoiceNumber}', invoice.invoiceNumber)
         .replace('{total}', invoice.total.toLocaleString());

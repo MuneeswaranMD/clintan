@@ -33,16 +33,34 @@ export const Estimates: React.FC = () => {
         items: []
     });
 
+    const [currentUser, setCurrentUser] = useState<any>(null);
+
+    const [companyDetails, setCompanyDetails] = useState<any>(null);
+
     useEffect(() => {
         const user = authService.getCurrentUser();
+        if (user) setCurrentUser(user);
         if (!user) return;
+
+        // Fetch company details
+        const fetchCompany = async () => {
+            try {
+                // @ts-ignore
+                const { companyService } = await import('../../services/companyService');
+                const details = await companyService.getCompanyByUserId(user.id);
+                if (details) setCompanyDetails(details);
+            } catch (error) {
+                console.error("Error fetching company details:", error);
+            }
+        };
+        fetchCompany();
 
         const unsubEstimates = estimateService.subscribeToEstimates(user.id, (data) => {
             setEstimates(data);
             setLoading(false);
         });
         const unsubCustomers = customerService.subscribeToCustomers(user.id, setCustomers);
-        const unsubProducts = productService.subscribeToProducts(setProducts);
+        const unsubProducts = productService.subscribeToProducts(user.id, setProducts);
 
         return () => {
             unsubEstimates();
@@ -50,6 +68,10 @@ export const Estimates: React.FC = () => {
             unsubProducts();
         };
     }, []);
+
+    const companyName = currentUser?.email === 'muneeswaran@averqon.in' ? 'Averqon' : (companyDetails?.name || currentUser?.name);
+    const companyPhone = currentUser?.email === 'muneeswaran@averqon.in' ? '8300864083' : (companyDetails?.phone);
+    const companyLogo = companyDetails?.logoUrl || currentUser?.logoUrl || currentUser?.photoURL;
 
     const filtered = estimates.filter(e =>
         e.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -151,11 +173,11 @@ export const Estimates: React.FC = () => {
                     <div className="flex gap-3">
                         <button onClick={() => {
                             const { customerEmail, ...rest } = mockInvoice;
-                            sendInvoiceEmail(rest);
+                            sendInvoiceEmail(rest, companyName);
                         }} className="bg-white text-black px-4 py-2 rounded-xl font-black flex items-center gap-2 hover:bg-[#8FFF00] transition-all shadow-lg uppercase text-[10px]">
                             <Send size={14} /> Send Quote
                         </button>
-                        <button onClick={() => generateInvoicePDF(mockInvoice)} className="bg-gray-800 text-white px-4 py-2 rounded-xl font-black flex items-center gap-2 hover:bg-gray-700 transition-all shadow-lg uppercase text-[10px]">
+                        <button onClick={() => generateInvoicePDF(mockInvoice, companyName, companyPhone, companyLogo)} className="bg-gray-800 text-white px-4 py-2 rounded-xl font-black flex items-center gap-2 hover:bg-gray-700 transition-all shadow-lg uppercase text-[10px]">
                             <Download size={14} /> Save PDF
                         </button>
                         {est.status !== 'Accepted' && (
@@ -173,7 +195,7 @@ export const Estimates: React.FC = () => {
                             <p className="text-base font-bold text-gray-400 mt-2 uppercase tracking-[0.3em]"># {est.estimateNumber}</p>
                         </div>
                         <div className="text-right pb-1">
-                            <h2 className="text-2xl font-black tracking-tighter">Sivajoy Creatives<span className="text-blue-500">.</span></h2>
+                            <h2 className="text-2xl font-black tracking-tighter">{companyName}<span className="text-blue-500">.</span></h2>
                             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Premium Business Systems</p>
                         </div>
                     </div>
@@ -220,7 +242,7 @@ export const Estimates: React.FC = () => {
                     <div className="flex justify-between pt-10 border-t-2 border-gray-100">
                         <div className="max-w-[300px]">
                             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Terms & Conditions</p>
-                            <p className="text-sm font-bold text-gray-500 italic leading-relaxed">{est.notes || "This estimate is valid for 30 days. Final pricing may vary based on specific project requirements. Sivajoy Creatives reserves the right to modify terms prior to acceptance."}</p>
+                            <p className="text-sm font-bold text-gray-500 italic leading-relaxed">{est.notes || `This estimate is valid for 30 days. Final pricing may vary based on specific project requirements. ${companyName} reserves the right to modify terms prior to acceptance.`}</p>
                         </div>
                         <div className="w-[350px] space-y-4">
                             <div className="flex justify-between py-4 border-y-2 border-gray-100 items-center">
@@ -402,13 +424,13 @@ export const Estimates: React.FC = () => {
 
                             <div className="mt-8 flex gap-3 pt-3 border-t border-gray-800/50 relative z-20">
                                 <button
-                                    onClick={(event) => { event.stopPropagation(); sendInvoiceEmail({ ...est, invoiceNumber: est.estimateNumber, total: est.amount } as any); }}
+                                    onClick={(event) => { event.stopPropagation(); sendInvoiceEmail({ ...est, invoiceNumber: est.estimateNumber, total: est.amount } as any, companyName); }}
                                     className="flex-1 bg-white text-black font-black py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-blue-400 transition-colors uppercase tracking-widest text-[10px]"
                                 >
                                     <Send size={12} /> Send
                                 </button>
                                 <button
-                                    onClick={(event) => { event.stopPropagation(); generateInvoicePDF({ ...est, invoiceNumber: est.estimateNumber, total: est.amount, subtotal: est.amount, tax: 0, dueDate: est.validUntil, customerAddress: est.customerAddress || customers.find(c => c.name === est.customerName)?.address } as any); }}
+                                    onClick={(event) => { event.stopPropagation(); generateInvoicePDF({ ...est, invoiceNumber: est.estimateNumber, total: est.amount, subtotal: est.amount, tax: 0, dueDate: est.validUntil, customerAddress: est.customerAddress || customers.find(c => c.name === est.customerName)?.address } as any, companyName, companyPhone, companyLogo); }}
                                     className="flex-1 bg-gray-800 text-white font-black py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-gray-700 transition-colors uppercase tracking-widest text-[10px]"
                                 >
                                     <Download size={12} /> PDF

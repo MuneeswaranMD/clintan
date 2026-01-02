@@ -13,7 +13,8 @@ import {
   LayoutGrid,
   ClipboardList,
   Clock,
-  Users
+  Users,
+  Building2
 } from 'lucide-react';
 import { User } from '../types';
 
@@ -25,7 +26,24 @@ interface LayoutProps {
 
 export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
+  const [logoUrl, setLogoUrl] = React.useState<string | null>(null);
   const location = useLocation();
+
+  React.useEffect(() => {
+    const fetchCompanyLogo = async () => {
+      if (!user) return;
+      try {
+        const { companyService } = await import('../services/companyService');
+        const company = await companyService.getCompanyByUserId(user.id);
+        if (company && (company as any).logoUrl) {
+          setLogoUrl((company as any).logoUrl);
+        }
+      } catch (error) {
+        console.error("Failed to fetch company logo", error);
+      }
+    };
+    fetchCompanyLogo();
+  }, [user]);
 
   const navItems = [
     { label: 'Dashboard', path: '/', icon: LayoutDashboard },
@@ -38,6 +56,13 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
     { label: 'Customers', path: '/customers', icon: Users },
     { label: 'Products', path: '/products', icon: Package },
   ];
+
+  // Super Admin Access
+  if (user && user.email === 'muneeswaran@averqon.in') {
+    navItems.unshift({ label: 'Companies', path: '/companies', icon: Building2 });
+  }
+
+  const displayLogo = logoUrl || (user as any).photoURL || (user as any).logoUrl;
 
   return (
     <div className="flex h-screen bg-[#1D2125] overflow-hidden text-white font-sans">
@@ -58,8 +83,15 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
       >
         <div className="flex flex-col h-full">
           <div className="p-8">
-            <h1 className="text-2xl font-bold text-white tracking-tight">
-              Sivajoy Creatives<span className="text-[#8FFF00]">.</span>
+            <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
+              {displayLogo ? (
+                <img
+                  src={displayLogo}
+                  alt=""
+                  className="h-8 w-8 object-contain"
+                />
+              ) : null}
+              {user.email === 'muneeswaran@averqon.in' ? 'Averqon' : user.name}<span className="text-[#8FFF00]">.</span>
             </h1>
             <p className="text-xs text-gray-500 mt-1 uppercase tracking-wider">Workspace</p>
           </div>
@@ -118,7 +150,16 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
           >
             <Menu size={24} />
           </button>
-          <span className="font-bold text-white">Sivajoy Creatives</span>
+          <div className="flex items-center gap-2">
+            {displayLogo ? (
+              <img
+                src={displayLogo}
+                alt=""
+                className="h-6 w-6 object-contain"
+              />
+            ) : null}
+            <span className="font-bold text-white">{user.email === 'muneeswaran@averqon.in' ? 'Averqon' : user.name}</span>
+          </div>
           <div className="w-8" /> {/* Spacer */}
         </header>
 

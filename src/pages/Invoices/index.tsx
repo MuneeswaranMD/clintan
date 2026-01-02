@@ -36,16 +36,34 @@ export const Invoices: React.FC = () => {
     notes: ''
   });
 
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  const [companyDetails, setCompanyDetails] = useState<any>(null);
+
   useEffect(() => {
     const user = authService.getCurrentUser();
+    if (user) setCurrentUser(user);
     if (!user) return;
+
+    // Fetch company details
+    const fetchCompany = async () => {
+      try {
+        // @ts-ignore
+        const { companyService } = await import('../../services/companyService');
+        const details = await companyService.getCompanyByUserId(user.id);
+        if (details) setCompanyDetails(details);
+      } catch (error) {
+        console.error("Error fetching company details:", error);
+      }
+    };
+    fetchCompany();
 
     const unsubInvoices = invoiceService.subscribeToInvoices(user.id, (data) => {
       setInvoices(data);
       setLoading(false);
     });
     const unsubCustomers = customerService.subscribeToCustomers(user.id, setCustomers);
-    const unsubProducts = productService.subscribeToProducts(setProducts);
+    const unsubProducts = productService.subscribeToProducts(user.id, setProducts);
 
     return () => {
       unsubInvoices();
@@ -53,6 +71,10 @@ export const Invoices: React.FC = () => {
       unsubProducts();
     };
   }, []);
+
+  const companyName = currentUser?.email === 'muneeswaran@averqon.in' ? 'Averqon' : (companyDetails?.name || currentUser?.name || 'Sivajoy Creatives');
+  const companyPhone = currentUser?.email === 'muneeswaran@averqon.in' ? '6382025350' : (companyDetails?.phone || '8300648155');
+  const companyLogo = companyDetails?.logoUrl || currentUser?.logoUrl || currentUser?.photoURL;
 
   const filtered = invoices.filter(inv =>
     inv.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -239,10 +261,10 @@ export const Invoices: React.FC = () => {
             <X size={18} /> Close Preview
           </button>
           <div className="flex gap-3">
-            <button onClick={() => sendInvoiceEmail(inv)} className="bg-[#8FFF00] text-black px-4 py-2 rounded-xl font-black flex items-center gap-2 hover:scale-[1.02] transition-transform shadow-lg uppercase text-[10px]">
+            <button onClick={() => sendInvoiceEmail(inv, companyName)} className="bg-[#8FFF00] text-black px-4 py-2 rounded-xl font-black flex items-center gap-2 hover:scale-[1.02] transition-transform shadow-lg uppercase text-[10px]">
               <Send size={14} /> Send Email
             </button>
-            <button onClick={() => generateInvoicePDF({ ...inv, customerAddress: inv.customerAddress || customers.find(c => c.name === inv.customerName)?.address })} className="bg-white text-black px-4 py-2 rounded-xl font-black flex items-center gap-2 hover:scale-[1.02] transition-transform shadow-lg uppercase text-[10px]">
+            <button onClick={() => generateInvoicePDF({ ...inv, customerAddress: inv.customerAddress || customers.find(c => c.name === inv.customerName)?.address }, companyName, companyPhone, companyLogo)} className="bg-white text-black px-4 py-2 rounded-xl font-black flex items-center gap-2 hover:scale-[1.02] transition-transform shadow-lg uppercase text-[10px]">
               <Download size={14} /> Save PDF
             </button>
           </div>
@@ -254,7 +276,7 @@ export const Invoices: React.FC = () => {
               <h1 className="text-3xl font-black italic tracking-tighter text-[#1D2125] leading-none">INVOICE</h1>
             </div>
             <div className="text-right pb-1">
-              <h2 className="text-2xl font-black tracking-tighter text-[#1D2125]">Sivajoy Creatives<span className="text-[#8FFF00]">.</span></h2>
+              <h2 className="text-2xl font-black tracking-tighter text-[#1D2125]">{companyName}<span className="text-[#8FFF00]">.</span></h2>
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Premium Business Systems</p>
             </div>
           </div>
@@ -300,7 +322,7 @@ export const Invoices: React.FC = () => {
           <div className="flex justify-between pt-10 border-t-2 border-gray-100">
             <div className="max-w-[300px]">
               <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Notes & Legal</p>
-              <p className="text-sm font-bold text-gray-500 italic leading-relaxed">{inv.notes || "This is a computer generated invoice and does not require a signature. All services rendered are subject to Sivajoy Creatives's standard terms and conditions."}</p>
+              <p className="text-sm font-bold text-gray-500 italic leading-relaxed">{inv.notes || `This is a computer generated invoice and does not require a signature. All services rendered are subject to ${companyName}'s standard terms and conditions.`}</p>
             </div>
             <div className="w-[350px] space-y-4">
               <div className="flex justify-between text-gray-400 font-bold uppercase text-sm tracking-widest">
@@ -331,19 +353,7 @@ export const Invoices: React.FC = () => {
           </div>
 
           <div className="mt-20 pt-10 border-t border-gray-100/50 text-center">
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-6">Accepting Digital Payments</p>
-            <div className="flex justify-center items-center gap-10 mb-4">
-              <div className="flex items-center gap-2">
-                <img width="48" height="48" src="https://img.icons8.com/color/48/google-pay.png" alt="google-pay" crossorigin="anonymous" />
-                <span className="font-bold text-gray-600 text-sm">Google Pay</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <img width="48" height="48" src="https://img.icons8.com/color/48/phone-pe.png" alt="phone-pe" crossorigin="anonymous" />
-                <span className="font-bold text-gray-600 text-sm">PhonePe</span>
-              </div>
-            </div>
-            <p className="text-2xl font-black text-[#1D2125] tracking-widest mb-1">8300648155</p>
-            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Sivajoy Creatives</p>
+            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{companyName}</p>
           </div>
 
           <div className="mt-16 text-center">
@@ -435,7 +445,7 @@ export const Invoices: React.FC = () => {
                 <Send size={12} /> Send
               </button>
               <button
-                onClick={(e) => { e.stopPropagation(); generateInvoicePDF({ ...inv, customerAddress: inv.customerAddress || customers.find(c => c.name === inv.customerName)?.address }); }}
+                onClick={(e) => { e.stopPropagation(); generateInvoicePDF({ ...inv, customerAddress: inv.customerAddress || customers.find(c => c.name === inv.customerName)?.address }, companyName, companyPhone, companyLogo); }}
                 className="flex-1 bg-gray-800 text-white font-black py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-gray-700 transition-colors uppercase tracking-widest text-[10px]"
               >
                 <Download size={12} /> PDF

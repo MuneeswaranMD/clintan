@@ -25,7 +25,10 @@ export const Products: React.FC = () => {
   });
 
   useEffect(() => {
-    const unsub = productService.subscribeToProducts(data => {
+    const user = authService.getCurrentUser();
+    if (!user) return;
+
+    const unsub = productService.subscribeToProducts(user.id, data => {
       setProducts(data);
       setLoading(false);
     });
@@ -39,11 +42,20 @@ export const Products: React.FC = () => {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    const user = authService.getCurrentUser();
+    if (!user) {
+      alert("You must be logged in.");
+      return;
+    }
+
     try {
       if (formData.id) {
         await productService.updateProduct(formData.id, formData);
       } else {
-        await productService.createProduct(formData as any);
+        // We cast formData to any because TS might complain about missing properties if strict
+        // But `createProduct` expects Omit<Product, 'id' | 'userId'> which formData matches partially
+        const { id, userId, ...productData } = formData as Product;
+        await productService.createProduct(user.id, productData);
       }
       setView('list');
       setFormData({ name: '', price: 0, description: '', tax: 18, type: 'Service', stock: 0 });

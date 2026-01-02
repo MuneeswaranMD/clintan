@@ -125,7 +125,7 @@ export const Dashboard: React.FC = () => {
         {/* Revenue Chart */}
         <div className="lg:col-span-2 bg-[#24282D] p-6 rounded-3xl border border-gray-800 flex flex-col min-h-[400px]">
           <h3 className="text-lg font-bold mb-6 flex items-center gap-2">Monthly Revenue <ArrowUpRight size={16} className="text-[#8FFF00]" /></h3>
-          <div className="flex-1 min-h-[250px]">
+          <div className="flex-1 min-h-[250px]" style={{ minHeight: '300px' }}>
             <ResponsiveContainer width="95%" height="100%">
               <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#374151" />
@@ -141,7 +141,7 @@ export const Dashboard: React.FC = () => {
         {/* Status Breakdown */}
         <div className="bg-[#24282D] p-6 rounded-3xl border border-gray-800 flex flex-col min-h-[400px]">
           <h3 className="text-lg font-bold mb-6">Invoice Status</h3>
-          <div className="flex-1 min-h-[250px]">
+          <div className="flex-1 min-h-[250px]" style={{ minHeight: '300px' }}>
             <ResponsiveContainer width="95%" height="100%">
               <PieChart>
                 <Pie data={statusData} innerRadius={50} outerRadius={70} paddingAngle={5} dataKey="value">

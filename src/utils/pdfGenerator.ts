@@ -2,7 +2,7 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Invoice } from '../types';
 
-export const generateInvoicePDF = async (invoice: Invoice) => {
+export const generateInvoicePDF = async (invoice: Invoice, companyName: string = 'Sivajoy Creatives', companyPhone: string = '8300648155', logoUrl?: string) => {
     const element = document.createElement('div');
     element.style.padding = '40px';
     element.style.width = '800px';
@@ -17,8 +17,9 @@ export const generateInvoicePDF = async (invoice: Invoice) => {
             <div>
                 <h1 style="margin: 0; color: #1D2125; font-size: 48px; font-weight: 900; letter-spacing: -2px;">INVOICE</h1>
             </div>
-            <div style="text-align: right;">
-                <h2 style="margin: 0; font-size: 28px; font-weight: 900; color: #1D2125;">Sivajoy Creatives</h2>
+            <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end;">
+             
+                <h2 style="margin: 0; font-size: 28px; font-weight: 900; color: #1D2125; display: flex; align-items: center; gap: 12px;">${companyName}</h2>
                 <p style="margin: 5px 0; color: #666; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Giving your brand a visual voice </p>
             </div>
         </div>
@@ -60,7 +61,7 @@ export const generateInvoicePDF = async (invoice: Invoice) => {
         <div style="display: flex; justify-content: space-between;">
             <div style="max-width: 300px;">
                 <p style="text-transform: uppercase; font-size: 10px; font-weight: bold; color: #999; margin-bottom: 5px;">Notes</p>
-                <p style="font-size: 12px; color: #666;">${invoice.notes || 'Thank you for your business. Please pay by the due date.'}</p>
+                <p style="font-size: 12px; color: #666;">${invoice.notes || `Online Payment through GPAY and PhonePe: ${companyPhone}`}</p>
             </div>
             <div style="min-width: 250px;">
                 <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee;">
@@ -88,20 +89,8 @@ export const generateInvoicePDF = async (invoice: Invoice) => {
             </div>
         </div>
 
-        <div style="margin-top: 60px; text-align: center; border-top: 1px dashed #eee; pt-20px;">
-            <p style="text-transform: uppercase; font-size: 10px; font-weight: bold; color: #999; margin-bottom: 15px; letter-spacing: 2px;">Accepting Digital Payments</p>
-            <div style="display: flex; justify-content: center; align-items: center; gap: 30px; margin-bottom: 12px;">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <img src="https://img.icons8.com/color/48/google-pay.png" style="width: 24px; height: 24px;" crossorigin="anonymous" />
-                    <span style="font-weight: 800; color: #444; font-size: 14px;">Google Pay</span>
-                </div>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <img src="https://img.icons8.com/color/48/phone-pe.png" style="width: 24px; height: 24px;" crossorigin="anonymous" />
-                    <span style="font-weight: 800; color: #444; font-size: 14px;">PhonePe</span>
-                </div>
-            </div>
-            <p style="font-size: 20px; font-weight: 900; color: #1D2125; letter-spacing: 1px; margin: 0;">8300648155</p>
-            <p style="font-size: 10px; color: #999; margin-top: 5px; font-weight: bold;">Sivajoy Creatives</p>
+        <div style="margin-top: 30px; text-align: center; border-top: 1px dashed #eee; pt-20px;">
+            <p style="font-size: 10px; color: #999; margin-top: 5px; font-weight: bold;">${companyName}</p>
             
         </div>
     `;

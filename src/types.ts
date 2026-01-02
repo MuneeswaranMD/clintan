@@ -3,6 +3,7 @@ export interface User {
   name: string;
   email: string;
   isAuthenticated: boolean;
+  logoUrl?: string;
 }
 
 export interface Product {
@@ -13,6 +14,7 @@ export interface Product {
   description?: string;
   tax?: number;
   type?: 'Product' | 'Service';
+  userId: string;
 }
 
 export enum InvoiceStatus {
@@ -46,6 +48,7 @@ export interface Invoice {
   total: number;
   paidAmount?: number;
   customerAddress?: string;
+  customerEmail?: string;
   notes?: string;
 }
 
