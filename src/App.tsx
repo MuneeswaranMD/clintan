@@ -30,6 +30,15 @@ function App() {
     return () => unsubscribe();
   }, []);
 
+  useEffect(() => {
+    if (user) {
+      const companyName = user.email === 'muneeswaran@averqon.in' ? 'Averqon' : user.name;
+      document.title = `${companyName} | CRM`;
+    } else {
+      document.title = 'Averqon | Login';
+    }
+  }, [user]);
+
   const handleLogin = (newUser: User) => {
     setUser(newUser);
   };

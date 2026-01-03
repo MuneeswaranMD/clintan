@@ -27,22 +27,28 @@ interface LayoutProps {
 export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
   const [logoUrl, setLogoUrl] = React.useState<string | null>(null);
+  const [dbCompanyName, setDbCompanyName] = React.useState<string | null>(null);
   const location = useLocation();
 
   React.useEffect(() => {
-    const fetchCompanyLogo = async () => {
+    const fetchCompanyDetails = async () => {
       if (!user) return;
       try {
         const { companyService } = await import('../services/companyService');
         const company = await companyService.getCompanyByUserId(user.id);
-        if (company && (company as any).logoUrl) {
-          setLogoUrl((company as any).logoUrl);
+        if (company) {
+          if ((company as any).logoUrl) {
+            setLogoUrl((company as any).logoUrl);
+          }
+          if ((company as any).name) {
+            setDbCompanyName((company as any).name);
+          }
         }
       } catch (error) {
-        console.error("Failed to fetch company logo", error);
+        console.error("Failed to fetch company details", error);
       }
     };
-    fetchCompanyLogo();
+    fetchCompanyDetails();
   }, [user]);
 
   const navItems = [
@@ -59,8 +65,17 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
 
   // Super Admin Access
   if (user && user.email === 'muneeswaran@averqon.in') {
-    navItems.unshift({ label: 'Companies', path: '/companies', icon: Building2 });
+    if (!navItems.find(item => item.path === '/companies')) {
+      navItems.unshift({ label: 'Companies', path: '/companies', icon: Building2 });
+    }
   }
+
+  React.useEffect(() => {
+    const currentNavItem = navItems.find(item => item.path === location.pathname);
+    const pageLabel = currentNavItem ? currentNavItem.label : 'CRM';
+    const effectiveCompanyName = user.email === 'muneeswaran@averqon.in' ? 'Averqon' : (dbCompanyName || user.name);
+    document.title = `${effectiveCompanyName} | ${pageLabel}`;
+  }, [location.pathname, user, dbCompanyName]);
 
   const displayLogo = logoUrl || (user as any).photoURL || (user as any).logoUrl;
 
@@ -91,7 +106,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
                   className="h-8 w-8 object-contain"
                 />
               ) : null}
-              {user.email === 'muneeswaran@averqon.in' ? 'Averqon' : user.name}<span className="text-[#8FFF00]">.</span>
+              {user.email === 'muneeswaran@averqon.in' ? 'Averqon' : (dbCompanyName || user.name)}<span className="text-[#8FFF00]">.</span>
             </h1>
             <p className="text-xs text-gray-500 mt-1 uppercase tracking-wider">Workspace</p>
           </div>
@@ -158,7 +173,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
                 className="h-6 w-6 object-contain"
               />
             ) : null}
-            <span className="font-bold text-white">{user.email === 'muneeswaran@averqon.in' ? 'Averqon' : user.name}</span>
+            <span className="font-bold text-white">{user.email === 'muneeswaran@averqon.in' ? 'Averqon' : (dbCompanyName || user.name)}</span>
           </div>
           <div className="w-8" /> {/* Spacer */}
         </header>
