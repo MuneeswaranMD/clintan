@@ -2,7 +2,7 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Invoice } from '../types';
 
-export const generateInvoicePDF = async (invoice: Invoice, companyName: string = 'Sivajoy Creatives', companyPhone: string = '8300648155', logoUrl?: string) => {
+export const generateInvoicePDF = async (invoice: Invoice, companyName: string = '', companyPhone: string = '', logoUrl?: string) => {
     const element = document.createElement('div');
     element.style.padding = '40px';
     element.style.width = '800px';
@@ -61,7 +61,7 @@ export const generateInvoicePDF = async (invoice: Invoice, companyName: string =
         <div style="display: flex; justify-content: space-between;">
             <div style="max-width: 300px;">
                 <p style="text-transform: uppercase; font-size: 10px; font-weight: bold; color: #999; margin-bottom: 5px;">Notes</p>
-                <p style="font-size: 12px; color: #666;">${invoice.notes || `Online Payment through GPAY and PhonePe: ${companyPhone}`}</p>
+                <p style="font-size: 12px; color: #666;">${invoice.notes || (companyPhone ? `Online Payment through GPAY and PhonePe: ${companyPhone}` : 'Thank you for your business.')}</p>
             </div>
             <div style="min-width: 250px;">
                 <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee;">

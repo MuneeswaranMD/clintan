@@ -70,7 +70,7 @@ export const Estimates: React.FC = () => {
     }, []);
 
     const companyName = currentUser?.email === 'muneeswaran@averqon.in' ? 'Averqon' : (companyDetails?.name || currentUser?.name);
-    const companyPhone = currentUser?.email === 'muneeswaran@averqon.in' ? '8300864083' : (companyDetails?.phone);
+    const companyPhone = currentUser?.email === 'muneeswaran@averqon.in' ? '8300864083' : (companyDetails?.phone || '');
     const companyLogo = companyDetails?.logoUrl || currentUser?.logoUrl || currentUser?.photoURL;
 
     const filtered = estimates.filter(e =>

@@ -73,7 +73,7 @@ export const Invoices: React.FC = () => {
   }, []);
 
   const companyName = currentUser?.email === 'muneeswaran@averqon.in' ? 'Averqon' : (companyDetails?.name || currentUser?.name || 'Sivajoy Creatives');
-  const companyPhone = currentUser?.email === 'muneeswaran@averqon.in' ? '6382025350' : (companyDetails?.phone || '8300648155');
+  const companyPhone = currentUser?.email === 'muneeswaran@averqon.in' ? '8300864083' : (companyDetails?.phone || '');
   const companyLogo = companyDetails?.logoUrl || currentUser?.logoUrl || currentUser?.photoURL;
 
   const filtered = invoices.filter(inv =>
