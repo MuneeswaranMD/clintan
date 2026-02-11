@@ -1,0 +1,655 @@
+{
+    "name": "WhatsApp Order Verification - Complete Workflow",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "order-created",
+                "responseMode": "responseNode",
+                "options": {}
+            },
+            "name": "Webhook: Order Created",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                250,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "create",
+                "collection": "orders",
+                "dataToSend": "={{$json}}"
+            },
+            "name": "Firebase: Create Order",
+            "type": "n8n-nodes-base.firebase",
+            "typeVersion": 1,
+            "position": [
+                450,
+                300
+            ],
+            "credentials": {
+                "firebaseApi": {
+                    "id": "1",
+                    "name": "Firebase Account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "values": {
+                    "string": [
+                        {
+                            "name": "customerPhone",
+                            "value": "={{$json.customerPhone}}"
+                        },
+                        {
+                            "name": "message",
+                            "value": "Hi {{$json.customerName}} 👋\n\nWe received your order! 📝\n\nOrder ID: {{$json.orderId}}\nAmount: ₹{{$json.totalAmount}}\n\nWe will send you an estimate for approval shortly.\n\nThank you for choosing us!"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "name": "Set: Format Order Confirmation",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 1,
+            "position": [
+                650,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "resource": "message",
+                "operation": "send",
+                "to": "={{$json.customerPhone}}",
+                "messageType": "text",
+                "message": "={{$json.message}}"
+            },
+            "name": "WhatsApp: Send Order Confirmation",
+            "type": "n8n-nodes-base.whatsApp",
+            "typeVersion": 1,
+            "position": [
+                850,
+                300
+            ],
+            "credentials": {
+                "whatsAppApi": {
+                    "id": "2",
+                    "name": "WhatsApp Cloud API"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "estimate-created",
+                "responseMode": "responseNode",
+                "options": {}
+            },
+            "name": "Webhook: Estimate Created",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                250,
+                500
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "get",
+                "collection": "estimates",
+                "documentId": "={{$json.estimateId}}"
+            },
+            "name": "Firebase: Get Estimate",
+            "type": "n8n-nodes-base.firebase",
+            "typeVersion": 1,
+            "position": [
+                450,
+                500
+            ],
+            "credentials": {
+                "firebaseApi": {
+                    "id": "1",
+                    "name": "Firebase Account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "values": {
+                    "string": [
+                        {
+                            "name": "message",
+                            "value": "Hi {{$json.customerName}},\n\nYour estimate is ready! 📋\n\nEstimate No: {{$json.estimateNumber}}\nOrder ID: {{$json.orderId}}\nAmount: ₹{{$json.amount}}\nValid Until: {{$json.validUntil}}\n\nTo proceed, please reply:\n✅ ACCEPT - to approve\n❌ REJECT - to cancel\n\nReply within 30 days."
+                        }
+                    ]
+                }
+            },
+            "name": "Set: Format Approval Request",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 1,
+            "position": [
+                650,
+                500
+            ]
+        },
+        {
+            "parameters": {
+                "resource": "message",
+                "operation": "send",
+                "to": "={{$json.customerPhone}}",
+                "messageType": "text",
+                "message": "={{$json.message}}"
+            },
+            "name": "WhatsApp: Send Approval Request",
+            "type": "n8n-nodes-base.whatsApp",
+            "typeVersion": 1,
+            "position": [
+                850,
+                500
+            ],
+            "credentials": {
+                "whatsAppApi": {
+                    "id": "2",
+                    "name": "WhatsApp Cloud API"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "whatsapp-incoming",
+                "responseMode": "responseNode",
+                "options": {}
+            },
+            "name": "Webhook: WhatsApp Reply",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                250,
+                700
+            ]
+        },
+        {
+            "parameters": {
+                "httpMethod": "GET",
+                "path": "whatsapp-incoming",
+                "responseMode": "responseNode",
+                "options": {}
+            },
+            "name": "Webhook: WhatsApp Verification",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                250,
+                850
+            ]
+        },
+        {
+            "parameters": {
+                "respondWith": "text",
+                "responseBody": "={{$json.query['hub.challenge']}}",
+                "options": {}
+            },
+            "name": "Respond to Webhook",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1,
+            "position": [
+                450,
+                850
+            ]
+        },
+        {
+            "parameters": {
+                "values": {
+                    "string": [
+                        {
+                            "name": "phone",
+                            "value": "={{$json.entry[0].changes[0].value.messages[0].from}}"
+                        },
+                        {
+                            "name": "message",
+                            "value": "={{$json.entry[0].changes[0].value.messages[0].text.body.toUpperCase()}}"
+                        }
+                    ]
+                }
+            },
+            "name": "Set: Extract Phone & Message",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 1,
+            "position": [
+                450,
+                700
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "query",
+                "collection": "estimates",
+                "query": {
+                    "where": [
+                        {
+                            "field": "customerPhone",
+                            "operator": "==",
+                            "value": "={{$json.phone}}"
+                        },
+                        {
+                            "field": "status",
+                            "operator": "==",
+                            "value": "Sent"
+                        }
+                    ],
+                    "orderBy": [
+                        {
+                            "field": "date",
+                            "direction": "desc"
+                        }
+                    ],
+                    "limit": 1
+                }
+            },
+            "name": "Firebase: Find Pending Estimate",
+            "type": "n8n-nodes-base.firebase",
+            "typeVersion": 1,
+            "position": [
+                650,
+                700
+            ],
+            "credentials": {
+                "firebaseApi": {
+                    "id": "1",
+                    "name": "Firebase Account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "string": [
+                        {
+                            "value1": "={{$json.message}}",
+                            "operation": "regex",
+                            "value2": "(ACCEPT|YES|OK|APPROVE|CONFIRMED)"
+                        }
+                    ]
+                }
+            },
+            "name": "IF: Message is ACCEPT",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                850,
+                700
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "update",
+                "collection": "estimates",
+                "documentId": "={{$json.id}}",
+                "dataToSend": {
+                    "status": "Accepted",
+                    "acceptedAt": "={{$now}}",
+                    "acceptedVia": "WhatsApp"
+                }
+            },
+            "name": "Firebase: Update Estimate → Accepted",
+            "type": "n8n-nodes-base.firebase",
+            "typeVersion": 1,
+            "position": [
+                1050,
+                600
+            ],
+            "credentials": {
+                "firebaseApi": {
+                    "id": "1",
+                    "name": "Firebase Account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "operation": "update",
+                "collection": "orders",
+                "documentId": "={{$json.orderId}}",
+                "dataToSend": {
+                    "orderStatus": "Estimate Accepted",
+                    "verifiedVia": "WhatsApp"
+                }
+            },
+            "name": "Firebase: Update Order Status",
+            "type": "n8n-nodes-base.firebase",
+            "typeVersion": 1,
+            "position": [
+                1250,
+                600
+            ],
+            "credentials": {
+                "firebaseApi": {
+                    "id": "1",
+                    "name": "Firebase Account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "resource": "message",
+                "operation": "send",
+                "to": "={{$json.customerPhone}}",
+                "messageType": "text",
+                "message": "Thank you! ✅\n\nYour estimate {{$json.estimateNumber}} is approved.\n\nWe will process your order and dispatch it soon.\n\nYou will receive a notification once dispatched."
+            },
+            "name": "WhatsApp: Send Acceptance Confirmation",
+            "type": "n8n-nodes-base.whatsApp",
+            "typeVersion": 1,
+            "position": [
+                1450,
+                600
+            ],
+            "credentials": {
+                "whatsAppApi": {
+                    "id": "2",
+                    "name": "WhatsApp Cloud API"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "string": [
+                        {
+                            "value1": "={{$json.message}}",
+                            "operation": "regex",
+                            "value2": "(REJECT|NO|CANCEL|DECLINE)"
+                        }
+                    ]
+                }
+            },
+            "name": "IF: Message is REJECT",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                1050,
+                800
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "update",
+                "collection": "estimates",
+                "documentId": "={{$json.id}}",
+                "dataToSend": {
+                    "status": "Rejected",
+                    "rejectedAt": "={{$now}}",
+                    "rejectedVia": "WhatsApp"
+                }
+            },
+            "name": "Firebase: Update Estimate → Rejected",
+            "type": "n8n-nodes-base.firebase",
+            "typeVersion": 1,
+            "position": [
+                1250,
+                800
+            ],
+            "credentials": {
+                "firebaseApi": {
+                    "id": "1",
+                    "name": "Firebase Account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "resource": "message",
+                "operation": "send",
+                "to": "={{$json.customerPhone}}",
+                "messageType": "text",
+                "message": "We understand. ❌\n\nYour estimate {{$json.estimateNumber}} has been cancelled.\n\nIf you change your mind, please contact us.\n\nThank you!"
+            },
+            "name": "WhatsApp: Send Rejection Confirmation",
+            "type": "n8n-nodes-base.whatsApp",
+            "typeVersion": 1,
+            "position": [
+                1450,
+                800
+            ],
+            "credentials": {
+                "whatsAppApi": {
+                    "id": "2",
+                    "name": "WhatsApp Cloud API"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "order-dispatched",
+                "responseMode": "responseNode",
+                "options": {}
+            },
+            "name": "Webhook: Order Dispatched",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                250,
+                1000
+            ]
+        },
+        {
+            "parameters": {
+                "resource": "message",
+                "operation": "send",
+                "to": "={{$json.customerPhone}}",
+                "messageType": "text",
+                "message": "📦 Your order has been dispatched!\n\nOrder ID: {{$json.orderId}}\nTracking: {{$json.trackingNumber}}\n\nEstimated Delivery: {{$json.deliveryDate}}\n\nWe will notify you once delivered.\n\nThank you for your patience! 🙏"
+            },
+            "name": "WhatsApp: Send Dispatch Notification",
+            "type": "n8n-nodes-base.whatsApp",
+            "typeVersion": 1,
+            "position": [
+                450,
+                1000
+            ],
+            "credentials": {
+                "whatsAppApi": {
+                    "id": "2",
+                    "name": "WhatsApp Cloud API"
+                }
+            }
+        }
+    ],
+    "connections": {
+        "Webhook: Order Created": {
+            "main": [
+                [
+                    {
+                        "node": "Firebase: Create Order",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Firebase: Create Order": {
+            "main": [
+                [
+                    {
+                        "node": "Set: Format Order Confirmation",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Set: Format Order Confirmation": {
+            "main": [
+                [
+                    {
+                        "node": "WhatsApp: Send Order Confirmation",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Webhook: Estimate Created": {
+            "main": [
+                [
+                    {
+                        "node": "Firebase: Get Estimate",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Firebase: Get Estimate": {
+            "main": [
+                [
+                    {
+                        "node": "Set: Format Approval Request",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Set: Format Approval Request": {
+            "main": [
+                [
+                    {
+                        "node": "WhatsApp: Send Approval Request",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Webhook: WhatsApp Verification": {
+            "main": [
+                [
+                    {
+                        "node": "Respond to Webhook",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Webhook: WhatsApp Reply": {
+            "main": [
+                [
+                    {
+                        "node": "Set: Extract Phone & Message",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Set: Extract Phone & Message": {
+            "main": [
+                [
+                    {
+                        "node": "Firebase: Find Pending Estimate",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Firebase: Find Pending Estimate": {
+            "main": [
+                [
+                    {
+                        "node": "IF: Message is ACCEPT",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "IF: Message is ACCEPT": {
+            "main": [
+                [
+                    {
+                        "node": "Firebase: Update Estimate → Accepted",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "IF: Message is REJECT",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Firebase: Update Estimate → Accepted": {
+            "main": [
+                [
+                    {
+                        "node": "Firebase: Update Order Status",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Firebase: Update Order Status": {
+            "main": [
+                [
+                    {
+                        "node": "WhatsApp: Send Acceptance Confirmation",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "IF: Message is REJECT": {
+            "main": [
+                [
+                    {
+                        "node": "Firebase: Update Estimate → Rejected",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Firebase: Update Estimate → Rejected": {
+            "main": [
+                [
+                    {
+                        "node": "WhatsApp: Send Rejection Confirmation",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Webhook: Order Dispatched": {
+            "main": [
+                [
+                    {
+                        "node": "WhatsApp: Send Dispatch Notification",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {},
+    "staticData": null,
+    "tags": [],
+    "triggerCount": 0,
+    "updatedAt": "2026-02-11T01:16:27.000Z",
+    "versionId": "1"
+}
