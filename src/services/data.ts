@@ -36,10 +36,10 @@ const storage = {
 
 // Mock Data Generators
 const generateMockProducts = (): Product[] => [
-  { id: '1', name: 'Web Design Service', price: 1500, stock: 100, description: 'Basic website design package' },
-  { id: '2', name: 'SEO Optimization', price: 500, stock: 999, description: 'Monthly SEO maintenance' },
-  { id: '3', name: 'Hosting (Annual)', price: 120, stock: 999, description: 'Premium cloud hosting' },
-  { id: '4', name: 'Logo Design', price: 300, stock: 50, description: 'Vector logo with 3 revisions' },
+  { id: '1', name: 'Web Design Service', price: 1500, stock: 100, description: 'Basic website design package', userId: 'mock-user' },
+  { id: '2', name: 'SEO Optimization', price: 500, stock: 999, description: 'Monthly SEO maintenance', userId: 'mock-user' },
+  { id: '3', name: 'Hosting (Annual)', price: 120, stock: 999, description: 'Premium cloud hosting', userId: 'mock-user' },
+  { id: '4', name: 'Logo Design', price: 300, stock: 50, description: 'Vector logo with 3 revisions', userId: 'mock-user' },
 ];
 
 const generateMockInvoices = (): Invoice[] => {

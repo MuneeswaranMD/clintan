@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import {
     Plus, Search, Edit2, Trash2, Mail, Phone,
-    Briefcase, MapPin, IndianRupee, FileText, ChevronRight, X
+    Briefcase, MapPin, IndianRupee, FileText, ChevronRight, X, User, ChevronLeft
 } from 'lucide-react';
 import { customerService, invoiceService } from '../../services/firebaseService';
 import { authService } from '../../services/authService';
@@ -93,64 +93,93 @@ export const Customers: React.FC = () => {
         const history = invoices.filter(inv => inv.customerName === selectedCustomer.name).sort((a, b) => b.date.localeCompare(a.date));
 
         return (
-            <div className="max-w-4xl mx-auto animate-fade-in">
-                <div className="flex items-center justify-between mb-8">
-                    <button onClick={() => setView('list')} className="flex items-center gap-2 text-gray-400 hover:text-white font-black uppercase tracking-widest text-xs transition-colors">
-                        <X size={18} /> Close Profile
+            <div className="max-w-4xl mx-auto animate-fade-in pb-20">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-10">
+                    <button onClick={() => setView('list')} className="flex items-center gap-2 text-slate-500 hover:text-slate-800 font-bold text-sm transition-all group">
+                        <div className="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center group-hover:bg-slate-100 transition-all">
+                            <ChevronLeft size={18} />
+                        </div>
+                        Back to Customers
                     </button>
-                    <button onClick={() => { setFormData(selectedCustomer); setView('form'); }} className="bg-white text-black px-6 py-3 rounded-xl font-black flex items-center gap-2 hover:bg-[#8FFF00] transition-colors uppercase text-xs shadow-lg">
-                        <Edit2 size={16} /> Edit Profile
+                    <button onClick={() => { setFormData(selectedCustomer); setView('form'); }} className="bg-white border border-slate-200 text-slate-700 px-6 py-2.5 rounded-lg font-bold flex items-center gap-2 hover:bg-slate-50 transition-all text-sm shadow-sm">
+                        <Edit2 size={16} className="text-blue-600" /> Edit Profile
                     </button>
                 </div>
 
-                <div className="bg-[#24282D] rounded-3xl border border-gray-800 overflow-hidden mb-8">
-                    <div className="p-6 bg-gradient-to-br from-[#1D2125] to-[#24282D] border-b border-gray-800">
-                        <div className="flex flex-col md:flex-row justify-between gap-8">
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-8">
+                    <div className="p-10 border-b border-slate-100 flex flex-col md:flex-row justify-between items-center gap-8 text-center md:text-left">
+                        <div className="flex flex-col md:flex-row items-center gap-8">
+                            <div className="w-20 h-20 rounded-2xl bg-blue-600 flex items-center justify-center text-3xl font-bold text-white shadow-lg">
+                                {selectedCustomer.name[0]}
+                            </div>
                             <div>
-                                <h1 className="text-3xl font-black text-white italic tracking-tighter uppercase mb-2">{selectedCustomer.name}</h1>
-                                <div className="flex items-center gap-6 mt-4">
-                                    <div className="flex items-center gap-2 text-gray-400 font-bold uppercase text-[10px] tracking-widest"><Phone size={14} className="text-[#8FFF00]" /> {selectedCustomer.phone}</div>
-                                </div>
+                                <h1 className="text-3xl font-bold text-slate-900 leading-none">{selectedCustomer.name}</h1>
+                                <p className="text-slate-500 text-sm mt-2">{selectedCustomer.company || 'Private Individual'}</p>
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="bg-black/20 p-4 rounded-3xl border border-gray-800/50">
-                                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Total Trading</p>
-                                    <h4 className="text-xl font-black text-white italic">₹{stats.totalBilled.toLocaleString()}</h4>
-                                </div>
-                                <div className="bg-black/20 p-4 rounded-3xl border border-gray-800/50">
-                                    <p className="text-[10px] font-black text-red-500/80 uppercase tracking-widest mb-1">Due Balance</p>
-                                    <h4 className="text-xl font-black text-red-400 italic">₹{stats.balance.toLocaleString()}</h4>
-                                </div>
+                        </div>
+                        <div className="flex flex-col items-center md:items-end gap-3">
+                            <div className="flex items-center gap-2 text-slate-600 font-bold text-sm">
+                                <Phone size={16} className="text-blue-600" /> {selectedCustomer.phone}
                             </div>
+                            <div className="bg-blue-50 px-4 py-2 rounded-lg inline-block border border-blue-100">
+                                <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Customer ID: {selectedCustomer.id.slice(0, 8)}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-slate-100">
+                        <div className="bg-white p-10 space-y-4">
+                            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Total Invoiced</p>
+                            <h4 className="text-4xl font-bold text-slate-900 tracking-tighter">₹{stats.totalBilled.toLocaleString()}</h4>
+                            <p className="text-xs text-slate-500">Cumulative value of all finalized invoices.</p>
+                        </div>
+                        <div className="bg-white p-10 space-y-4">
+                            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Pending Balance</p>
+                            <h4 className={`text-4xl font-bold tracking-tighter ${stats.balance > 0 ? 'text-red-500' : 'text-emerald-500'}`}>₹{stats.balance.toLocaleString()}</h4>
+                            <p className="text-xs text-slate-500">Unpaid amount across all active invoices.</p>
                         </div>
                     </div>
                 </div>
 
                 <div className="space-y-6">
-                    <h3 className="text-lg font-black italic tracking-widest uppercase text-white flex items-center gap-2">
-                        <FileText size={20} className="text-[#8FFF00]" /> Billing History
-                    </h3>
-                    <div className="bg-[#24282D] rounded-2xl border border-gray-800 overflow-hidden">
-                        <table className="w-full text-left font-bold">
-                            <thead>
-                                <tr className="text-[10px] uppercase font-black tracking-widest text-gray-500 bg-[#1D2125] border-b border-gray-800">
-                                    <th className="p-4">Invoice</th>
-                                    <th className="p-4">Date</th>
-                                    <th className="p-4">Status</th>
-                                    <th className="p-4 text-right">Total</th>
+                    <div className="flex items-center justify-between px-4">
+                        <h3 className="text-xl font-bold text-slate-800">Billing History</h3>
+                        <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-4 py-1.5 rounded-full uppercase tracking-wider border border-slate-200">
+                            {history.length} Invoices
+                        </span>
+                    </div>
+
+                    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                        <table className="w-full text-left">
+                            <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[11px] border-b border-slate-100">
+                                <tr>
+                                    <th className="px-10 py-5">Invoice Number</th>
+                                    <th className="px-10 py-5">Date</th>
+                                    <th className="px-10 py-5">Status</th>
+                                    <th className="px-10 py-5 text-right">Amount</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-800/50">
+                            <tbody className="divide-y divide-slate-100">
                                 {history.map(inv => (
-                                    <tr key={inv.id} className="group hover:bg-white/5 transition-colors">
-                                        <td className="p-4 font-black text-white">{inv.invoiceNumber}</td>
-                                        <td className="p-4 text-gray-400 text-xs">{new Date(inv.date).toLocaleDateString()}</td>
-                                        <td className="p-4">
-                                            <span className={`text-[10px] uppercase font-black px-4 py-1.5 rounded-full ${inv.status === 'Paid' ? 'bg-[#8FFF00]/20 text-[#8FFF00]' : 'bg-red-500/10 text-red-500'}`}>{inv.status}</span>
+                                    <tr key={inv.id} className="hover:bg-slate-50/50 transition-all font-medium text-[13px]">
+                                        <td className="px-10 py-6 font-bold text-slate-900">#{inv.invoiceNumber}</td>
+                                        <td className="px-10 py-6 text-slate-500">{new Date(inv.date).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                                        <td className="px-10 py-6">
+                                            <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${inv.status === 'Paid' ? 'bg-emerald-100 text-emerald-700' :
+                                                inv.status === 'Overdue' ? 'bg-red-100 text-red-700' :
+                                                    'bg-amber-100 text-amber-700'
+                                                }`}>
+                                                {inv.status}
+                                            </span>
                                         </td>
-                                        <td className="p-4 text-right font-black italic text-base">₹{inv.total.toLocaleString()}</td>
+                                        <td className="px-10 py-6 text-right font-bold text-slate-900 text-base">₹{inv.total.toLocaleString()}</td>
                                     </tr>
                                 ))}
+                                {history.length === 0 && (
+                                    <tr>
+                                        <td colSpan={4} className="px-10 py-20 text-center text-slate-400 font-bold uppercase tracking-wider text-sm">No billing history found</td>
+                                    </tr>
+                                )}
                             </tbody>
                         </table>
                     </div>
@@ -161,32 +190,64 @@ export const Customers: React.FC = () => {
 
     if (view === 'form') {
         return (
-            <div className="max-w-2xl mx-auto animate-fade-in">
+            <div className="max-w-2xl mx-auto animate-fade-in pb-20">
                 <div className="flex items-center justify-between mb-8">
-                    <h1 className="text-xl font-black text-white uppercase italic tracking-tighter">{formData.id ? 'Modify' : 'Onboard'} Customer</h1>
-                    <button onClick={() => setView('list')} className="p-2 hover:bg-gray-800 rounded-full text-gray-400"><X /></button>
+                    <div>
+                        <h1 className="text-2xl font-bold text-slate-800 tracking-tight">{formData.id ? 'Edit Customer' : 'Add New Customer'}</h1>
+                        <p className="text-slate-500 text-sm mt-1">Information about the business or individual.</p>
+                    </div>
+                    <button onClick={() => setView('list')} className="w-10 h-10 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg text-slate-400 transition-all flex items-center justify-center">
+                        <X size={20} />
+                    </button>
                 </div>
-                <form onSubmit={handleSave} className="bg-[#24282D] p-6 rounded-3xl border border-gray-800 space-y-6">
-                    <div className="space-y-4">
-                        <div>
-                            <label className="block text-[10px] font-black text-gray-500 mb-2 uppercase tracking-widest">Full Name</label>
-                            <input required type="text" className="w-full bg-[#1D2125] border border-gray-700 p-4 rounded-xl text-white outline-none focus:border-[#8FFF00] font-black uppercase text-xs tracking-widest" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
+                <form onSubmit={handleSave} className="bg-white p-8 rounded-xl border border-slate-200 shadow-sm space-y-6">
+                    <div className="space-y-6">
+                        <div className="space-y-2">
+                            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Full Name / Display Name</label>
+                            <input
+                                required
+                                type="text"
+                                className="w-full bg-slate-50 border border-transparent p-3 rounded-lg text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-medium"
+                                placeholder="Enter full name"
+                                value={formData.name}
+                                onChange={e => setFormData({ ...formData, name: e.target.value })}
+                            />
                         </div>
-                        <div>
-                            <label className="block text-[10px] font-black text-gray-500 mb-2 uppercase tracking-widest">Phone Number</label>
-                            <input required type="text" className="w-full bg-[#1D2125] border border-gray-700 p-4 rounded-xl text-white outline-none focus:border-[#8FFF00] font-bold text-xs" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Phone Number</label>
+                                <input
+                                    required
+                                    type="text"
+                                    className="w-full bg-slate-50 border border-transparent p-3 rounded-lg text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-medium"
+                                    placeholder="+91 0000 000 000"
+                                    value={formData.phone}
+                                    onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Company Name (Optional)</label>
+                                <input
+                                    type="text"
+                                    className="w-full bg-slate-50 border border-transparent p-3 rounded-lg text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-medium"
+                                    placeholder="Enter company name"
+                                    value={formData.company}
+                                    onChange={e => setFormData({ ...formData, company: e.target.value })}
+                                />
+                            </div>
                         </div>
-                        <div>
-                            <label className="block text-[10px] font-black text-gray-500 mb-2 uppercase tracking-widest">Company (Optional)</label>
-                            <input type="text" className="w-full bg-[#1D2125] border border-gray-700 p-4 rounded-xl text-white outline-none focus:border-[#8FFF00] font-black uppercase text-xs" value={formData.company} onChange={e => setFormData({ ...formData, company: e.target.value })} />
-                        </div>
-                        <div>
-                            <label className="block text-[10px] font-black text-gray-500 mb-2 uppercase tracking-widest">Billing Address</label>
-                            <textarea className="w-full bg-[#1D2125] border border-gray-700 p-4 rounded-xl text-white outline-none focus:border-[#8FFF00] font-bold h-24 text-xs" value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} />
+                        <div className="space-y-2">
+                            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Full Address</label>
+                            <textarea
+                                className="w-full bg-slate-50 border border-transparent p-3 rounded-lg text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-medium h-32 leading-relaxed"
+                                placeholder="Provide complete billing address"
+                                value={formData.address}
+                                onChange={e => setFormData({ ...formData, address: e.target.value })}
+                            />
                         </div>
                     </div>
-                    <button type="submit" className="w-full bg-[#8FFF00] text-black font-black py-4 rounded-xl hover:scale-[1.01] transition-transform shadow-[0_10px_30px_rgba(143,255,0,0.15)] uppercase tracking-widest text-base">
-                        COMMIT CLIENT DATA
+                    <button type="submit" className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-700 transition-all shadow-md text-lg">
+                        {formData.id ? 'Update Profile' : 'Save Customer'}
                     </button>
                 </form>
             </div>
@@ -194,73 +255,81 @@ export const Customers: React.FC = () => {
     }
 
     return (
-        <div className="space-y-8 animate-fade-in pb-10">
+        <div className="space-y-10 animate-fade-in pb-10">
             <div className="flex flex-col md:flex-row justify-between items-center gap-6">
                 <div>
-                    <h1 className="text-xl font-black text-white tracking-widest uppercase flex items-center gap-3 italic">
-                        <Briefcase size={24} className="text-[#8FFF00]" /> Clients
+                    <h1 className="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-3">
+                        <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg">
+                            <User size={22} />
+                        </div>
+                        Customer Directory
                     </h1>
-                    <p className="text-gray-500 font-bold uppercase tracking-widest text-[10px] mt-1">Institutional Client Portfolio Management</p>
+                    <p className="text-slate-500 text-sm mt-1">Manage your customer relationships and contact nodes.</p>
                 </div>
-                <button onClick={() => { setFormData({ name: '', phone: '', address: '', company: '', gst: '' }); setView('form'); }} className="bg-white text-black px-6 py-2 rounded-xl font-black flex items-center gap-2 hover:bg-[#8FFF00] transition-all shadow-2xl uppercase tracking-widest text-xs">
-                    <Plus size={16} /> Add Client
+                <button onClick={() => { setFormData({ name: '', phone: '', address: '', company: '', gst: '' }); setView('form'); }} className="bg-blue-600 text-white px-8 py-3.5 rounded-xl font-bold flex items-center gap-2 hover:bg-blue-700 transition-all shadow-md text-sm active:scale-95">
+                    <Plus size={20} /> Add New Customer
                 </button>
             </div>
 
-            <div className="flex bg-[#24282D] p-1 rounded-2xl border border-gray-800">
-                <div className="relative flex-1">
-                    <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-600" size={20} />
-                    <input
-                        placeholder="Filter client matrix by name or firm..."
-                        className="w-full bg-transparent border-none pl-16 pr-6 py-4 rounded-xl text-white outline-none font-bold text-sm"
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                    />
-                </div>
+            <div className="relative group">
+                <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={20} />
+                <input
+                    placeholder="Search by customer name or company..."
+                    className="w-full bg-white border border-slate-200 pl-16 pr-6 py-4 rounded-xl text-slate-900 outline-none focus:border-blue-500 shadow-sm transition-all font-medium"
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {loading ? (
-                    <div className="col-span-full py-20 text-center font-black text-gray-700 text-xl uppercase tracking-widest animate-pulse italic">Synchronizing Client Matrix...</div>
+                    <div className="col-span-full py-40 text-center font-bold text-slate-300 text-xl animate-pulse">Syncing Customer Data...</div>
                 ) : filteredCustomers.length > 0 ? filteredCustomers.map(c => {
                     const stats = getCustomerStats(c.id);
                     return (
-                        <div key={c.id} onClick={() => { setSelectedCustomer(c); setView('details'); }} className="bg-[#24282D] p-6 rounded-3xl border border-gray-800 hover:border-[#8FFF00] cursor-pointer transition-all hover:scale-[1.01] group relative overflow-hidden">
-                            <div className="absolute top-0 right-0 p-6 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity translate-x-6 translate-y--6 group-hover:translate-x-2 group-hover:translate-y--2">
-                                <Briefcase size={120} />
+                        <div key={c.id} onClick={() => { setSelectedCustomer(c); setView('details'); }} className="bg-white p-8 rounded-xl border border-slate-200 hover:border-blue-400 hover:shadow-md cursor-pointer transition-all flex flex-col group relative overflow-hidden">
+                            <div className="flex justify-between items-start mb-6">
+                                <div className="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center text-2xl font-bold text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
+                                    {c.name[0]}
+                                </div>
+                                <div className="flex gap-2">
+                                    <button onClick={(e) => { e.stopPropagation(); setFormData(c); setView('form'); }} className="w-10 h-10 bg-slate-50 border border-slate-100 rounded-lg flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all"><Edit2 size={16} /></button>
+                                    <button onClick={(e) => handleDelete(c.id, e)} className="w-10 h-10 bg-slate-50 border border-slate-100 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all"><Trash2 size={16} /></button>
+                                </div>
                             </div>
 
-                            <div className="relative z-10">
-                                <div className="flex justify-between items-start mb-6">
-                                    <div className="w-12 h-12 rounded-2xl bg-gray-800 flex items-center justify-center text-xl font-black text-white">{c.name[0]}</div>
-                                    <div className="flex gap-2">
-                                        <button onClick={(e) => { e.stopPropagation(); setFormData(c); setView('form'); }} className="p-3 bg-gray-800 rounded-xl text-gray-400 hover:text-white transition-all"><Edit2 size={16} /></button>
-                                        <button onClick={(e) => handleDelete(c.id, e)} className="p-3 bg-red-500/10 rounded-xl text-red-500/50 hover:text-red-500 transition-all"><Trash2 size={16} /></button>
+                            <div className="space-y-4 mb-8">
+                                <h3 className="text-2xl font-bold text-slate-800 transition-colors group-hover:text-blue-600">{c.name}</h3>
+                                <div className="flex items-center gap-2 text-slate-500 text-[11px] font-bold uppercase tracking-wider">
+                                    <Briefcase size={12} className="text-blue-400" />
+                                    {c.company || 'Private Customer'}
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4 pt-6 border-t border-slate-50 mt-auto">
+                                <div>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Invoices</p>
+                                    <div className="font-bold text-slate-700 text-sm">
+                                        {stats.invoiceCount} Total
                                     </div>
                                 </div>
-
-                                <div className="space-y-1 mb-6">
-                                    <h3 className="text-lg font-black text-white italic truncate uppercase">{c.name}</h3>
-                                    <p className="text-[10px] font-bold text-gray-500 flex items-center gap-1 uppercase tracking-tighter">{c.company || 'Private Practice'}</p>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4 pt-6 border-t border-gray-800/50">
-                                    <div>
-                                        <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1 italic">Relationship</p>
-                                        <p className="font-bold text-white text-[10px]">{stats.invoiceCount} Projects</p>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1 italic">Total Revenue</p>
-                                        <p className="text-lg font-black text-[#8FFF00] leading-none italic">₹{stats.totalBilled.toLocaleString()}</p>
-                                    </div>
+                                <div className="text-right">
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Total Value</p>
+                                    <p className="text-xl font-bold text-slate-900 tracking-tighter">₹{stats.totalBilled.toLocaleString()}</p>
                                 </div>
                             </div>
                         </div>
                     );
                 }) : (
-                    <div className="col-span-full py-20 text-center border-2 border-dotted border-gray-800 rounded-3xl">
-                        <p className="text-gray-700 font-black text-xl uppercase tracking-[0.5em] italic">No Clients Onboarded</p>
-                        <button onClick={() => setView('form')} className="mt-4 text-[#8FFF00] font-bold uppercase tracking-widest hover:text-white transition-colors text-sm">Start Building Your Network →</button>
+                    <div className="col-span-full py-40 text-center bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                        <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm text-slate-200">
+                            <User size={32} />
+                        </div>
+                        <h3 className="text-slate-800 font-bold text-xl mb-2">No Customers Found</h3>
+                        <p className="text-slate-500 text-sm max-w-xs mx-auto mb-8">Your customer list is currently empty. Add your first customer to get started.</p>
+                        <button onClick={() => setView('form')} className="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-md active:scale-95 inline-flex items-center gap-2">
+                            <Plus size={20} /> Add New Customer
+                        </button>
                     </div>
                 )}
             </div>

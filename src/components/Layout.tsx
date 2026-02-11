@@ -14,7 +14,14 @@ import {
   ClipboardList,
   Clock,
   Users,
-  Building2
+  Building2,
+  Search,
+  Bell,
+  Settings,
+  Plus,
+  HelpCircle,
+  ChevronDown,
+  ShoppingBag
 } from 'lucide-react';
 import { User } from '../types';
 
@@ -52,9 +59,10 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
   }, [user]);
 
   const navItems = [
-    { label: 'Dashboard', path: '/', icon: LayoutDashboard },
+    { label: 'Overview', path: '/', icon: LayoutDashboard },
     { label: 'Estimates', path: '/estimates', icon: ClipboardList },
     { label: 'Invoices', path: '/invoices', icon: FileText },
+    { label: 'Orders', path: '/orders', icon: ShoppingBag },
     { label: 'Payments', path: '/payments', icon: CreditCard },
     { label: 'Recurring', path: '/recurring', icon: Repeat },
     { label: 'Checkouts', path: '/checkouts', icon: LayoutGrid },
@@ -63,55 +71,92 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
     { label: 'Products', path: '/products', icon: Package },
   ];
 
-  // Super Admin Access
   if (user && user.email === 'muneeswaran@averqon.in') {
     if (!navItems.find(item => item.path === '/companies')) {
       navItems.unshift({ label: 'Companies', path: '/companies', icon: Building2 });
     }
   }
 
-  React.useEffect(() => {
-    const currentNavItem = navItems.find(item => item.path === location.pathname);
-    const pageLabel = currentNavItem ? currentNavItem.label : 'CRM';
-    const effectiveCompanyName = user.email === 'muneeswaran@averqon.in' ? 'Averqon' : (dbCompanyName || user.name);
-    document.title = `${effectiveCompanyName} | ${pageLabel}`;
-  }, [location.pathname, user, dbCompanyName]);
-
+  const effectiveCompanyName = user.email === 'muneeswaran@averqon.in' ? 'Averqon' : (dbCompanyName || user.name);
   const displayLogo = logoUrl || (user as any).photoURL || (user as any).logoUrl;
 
   return (
-    <div className="flex h-screen bg-[#1D2125] overflow-hidden text-white font-sans">
-      {/* Mobile Sidebar Overlay */}
-      {isSidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-50 lg:hidden"
-          onClick={() => setIsSidebarOpen(false)}
-        />
-      )}
+    <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-900">
+      {/* Top Header Row */}
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
+        <div className="max-w-[1600px] mx-auto px-4 lg:px-6 py-3 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-xl shadow-md">
+                A
+              </div>
+              <span className="text-xl font-bold text-slate-800 hidden sm:block tracking-tight">
+                Arto<span className="text-blue-600">+</span>
+              </span>
+            </div>
 
-      {/* Sidebar */}
-      <aside
-        className={`
-          fixed lg:static inset-y-0 left-0 z-50 w-64 bg-[#1D2125] border-r border-gray-800 text-white transform transition-transform duration-200 ease-in-out
-          ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        `}
-      >
-        <div className="flex flex-col h-full">
-          <div className="p-8">
-            <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-              {displayLogo ? (
-                <img
-                  src={displayLogo}
-                  alt=""
-                  className="h-8 w-8 object-contain"
-                />
-              ) : null}
-              {user.email === 'muneeswaran@averqon.in' ? 'Averqon' : (dbCompanyName || user.name)}<span className="text-[#8FFF00]">.</span>
-            </h1>
-            <p className="text-xs text-gray-500 mt-1 uppercase tracking-wider">Workspace</p>
+            <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-100 rounded-lg cursor-pointer hover:bg-slate-100 transition-colors">
+              <span className="text-sm font-bold text-slate-700">{user.name}</span>
+              <ChevronDown size={14} className="text-slate-400" />
+            </div>
+
+            <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-100 rounded-lg cursor-pointer hover:bg-slate-100 transition-colors">
+              <LayoutGrid size={16} className="text-blue-600" />
+              <span className="text-sm font-bold text-slate-700">{effectiveCompanyName}</span>
+              <ChevronDown size={14} className="text-slate-400" />
+            </div>
           </div>
 
-          <nav className="flex-1 px-4 space-y-2 mt-4">
+          <div className="flex-1 max-w-2xl hidden md:block">
+            <div className="relative group">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={18} />
+              <input
+                type="text"
+                placeholder="Search anything..."
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 pl-10 pr-4 outline-none focus:bg-white focus:border-blue-600 transition-all text-sm font-medium"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all relative">
+              <Bell size={20} />
+              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+            </button>
+            <NavLink
+              to="/settings"
+              className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+            >
+              <Settings size={20} />
+            </NavLink>
+
+            <div className="h-8 w-px bg-slate-200 mx-1 hidden sm:block"></div>
+
+            <div className="flex items-center gap-2 mr-2 hidden sm:flex">
+              <div className="w-10 h-5 bg-slate-200 rounded-full p-0.5 cursor-pointer relative transition-colors hover:bg-slate-300">
+                <div className="w-4 h-4 bg-white rounded-full shadow-sm"></div>
+              </div>
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Enterprise</span>
+            </div>
+
+            <button className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-blue-700 transition-all shadow-md shadow-blue-100 text-sm whitespace-nowrap">
+              <Plus size={18} />
+              <span className="hidden sm:inline">Action</span>
+            </button>
+
+            <button
+              onClick={onLogout}
+              className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+              title="Sign Out"
+            >
+              <LogOut size={20} />
+            </button>
+          </div>
+        </div>
+
+        {/* Navigation Tier */}
+        <div className="max-w-[1600px] mx-auto px-4 lg:px-6 border-t border-slate-100">
+          <nav className="flex items-center gap-1 overflow-x-auto no-scrollbar scroll-smooth py-0.5">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.path;
@@ -119,72 +164,39 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
                 <NavLink
                   key={item.path}
                   to={item.path}
-                  onClick={() => setIsSidebarOpen(false)}
                   className={`
-                    flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group
+                    flex items-center gap-2 px-5 py-3.5 text-xs font-bold uppercase tracking-widest transition-all duration-200 relative whitespace-nowrap
                     ${isActive
-                      ? 'bg-[#8FFF00] text-black shadow-[0_0_15px_rgba(143,255,0,0.3)]'
-                      : 'text-gray-400 hover:text-white hover:bg-[#2C3035]'}
+                      ? 'text-blue-600 bg-blue-50/50'
+                      : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'}
                   `}
                 >
-                  <Icon size={20} className={isActive ? 'text-black' : 'group-hover:text-[#8FFF00] transition-colors'} />
-                  <span className="font-medium">{item.label}</span>
+                  <Icon size={16} className={isActive ? 'text-blue-600' : 'text-slate-400'} />
+                  <span>{item.label}</span>
+                  {isActive && (
+                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-t-full"></div>
+                  )}
                 </NavLink>
               );
             })}
           </nav>
-
-          <div className="p-4 border-t border-gray-800">
-            <div className="flex items-center gap-3 px-4 py-3 mb-2 bg-[#2C3035] rounded-xl">
-              <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center overflow-hidden border border-gray-500">
-                <img src={`https://ui-avatars.com/api/?name=${user.name}&background=random`} alt={user.name} />
-              </div>
-              <div className="flex-1 overflow-hidden">
-                <p className="text-sm font-medium truncate text-white">{user.name}</p>
-                <p className="text-xs text-gray-400 truncate">{user.email}</p>
-              </div>
-            </div>
-            <button
-              onClick={onLogout}
-              className="flex w-full items-center gap-3 px-4 py-2 text-gray-500 hover:text-red-400 transition-colors rounded-lg hover:bg-gray-800/50 mt-2"
-            >
-              <LogOut size={18} />
-              <span className="text-sm font-medium">Sign Out</span>
-            </button>
-          </div>
         </div>
-      </aside>
+      </header>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col h-full overflow-hidden relative">
-        {/* Header (Mobile) */}
-        <header className="lg:hidden bg-[#1D2125] border-b border-gray-800 p-4 flex items-center justify-between z-40">
-          <button
-            onClick={() => setIsSidebarOpen(true)}
-            className="p-2 text-gray-400 hover:bg-gray-800 rounded-lg"
-          >
-            <Menu size={24} />
+      {/* Main Content Area */}
+      <main className="flex-1 overflow-y-auto p-4 lg:p-8">
+        <div className="max-w-[1600px] mx-auto">
+          {children}
+
+          {/* Floating AI Assistant (Optional, matches image) */}
+          <button className="fixed bottom-8 right-8 bg-white border border-gray-200 shadow-2xl rounded-full px-4 py-2.5 flex items-center gap-2 hover:scale-105 transition-transform z-50">
+            <div className="w-6 h-6 bg-indigo-100 rounded-full flex items-center justify-center">
+              <HelpCircle size={14} className="text-indigo-600" />
+            </div>
+            <span className="text-sm font-bold text-gray-700">AI Assistant</span>
           </button>
-          <div className="flex items-center gap-2">
-            {displayLogo ? (
-              <img
-                src={displayLogo}
-                alt=""
-                className="h-6 w-6 object-contain"
-              />
-            ) : null}
-            <span className="font-bold text-white">{user.email === 'muneeswaran@averqon.in' ? 'Averqon' : (dbCompanyName || user.name)}</span>
-          </div>
-          <div className="w-8" /> {/* Spacer */}
-        </header>
-
-        {/* Page Content */}
-        <main className="flex-1 overflow-y-auto bg-[#1D2125] p-4 lg:p-6 scroll-smooth">
-          <div className="max-w-[1600px] mx-auto">
-            {children}
-          </div>
-        </main>
-      </div>
+        </div>
+      </main>
     </div>
   );
 };

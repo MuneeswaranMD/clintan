@@ -14,6 +14,51 @@ export interface Product {
   description?: string;
   tax?: number;
   type?: 'Product' | 'Service';
+  category?: string;
+  sku?: string;
+  status?: 'Active' | 'Inactive';
+  imageUrl?: string;
+  userId: string;
+}
+
+export enum OrderStatus {
+  Pending = 'Pending',
+  EstimateSent = 'Estimate Sent',
+  EstimateAccepted = 'Estimate Accepted',
+  EstimateRejected = 'Estimate Rejected',
+  Paid = 'Paid',
+  Processing = 'Processing',
+  Dispatched = 'Dispatched',
+  Shipped = 'Shipped',
+  Delivered = 'Delivered',
+  Cancelled = 'Cancelled'
+}
+
+export interface OrderItem {
+  id: string;
+  productId: string;
+  productName: string;
+  quantity: number;
+  price: number;
+  total: number;
+}
+
+export interface Order {
+  id: string;
+  orderId: string;
+  customerName: string;
+  customerPhone: string;
+  customerEmail?: string;
+  customerAddress: string;
+  items: OrderItem[];
+  totalAmount: number;
+  paymentStatus: 'Paid' | 'Pending';
+  orderStatus: OrderStatus;
+  orderDate: string;
+  paymentMethod: string;
+  notes?: string;
+  source?: string;
+  estimateId?: string; // Link to estimate if created
   userId: string;
 }
 
@@ -77,6 +122,9 @@ export interface Estimate {
   tax?: number;
   items?: InvoiceItem[];
   customerAddress?: string;
+  customerPhone?: string;
+  customerEmail?: string;
+  orderId?: string; // Link to source order if created from order
   userId: string;
 }
 

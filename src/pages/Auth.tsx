@@ -50,39 +50,44 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#1D2125] flex items-center justify-center p-4 font-sans">
-      <div className="bg-[#24282D] rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col relative border border-gray-800">
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#8FFF00] via-emerald-500 to-[#1D2125]"></div>
+    <div className="min-h-screen bg-[#F3F4F6] flex items-center justify-center p-4 font-sans relative overflow-hidden">
+      {/* Background Decorative Elements */}
+      <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-50 rounded-full blur-[120px] opacity-60"></div>
+      <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-50 rounded-full blur-[120px] opacity-60"></div>
 
-        <div className="w-full p-8 md:p-12">
-          <div className="mb-8 text-center">
-            <div className="flex justify-center mb-6">
+      <div className="bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] w-full max-w-lg overflow-hidden flex flex-col relative border border-gray-100 animate-fade-in">
+        <div className="w-full p-10 md:p-14">
+          <div className="mb-10 text-center">
+            <div className="flex justify-center mb-8">
+              <div className="w-16 h-16 bg-gradient-to-br from-indigo-600 to-blue-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-indigo-100 transform -rotate-3 hover:rotate-0 transition-transform cursor-pointer">
+                <Lock size={32} />
+              </div>
             </div>
-            <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">
-              {isLogin ? 'Welcome Back' : 'Create Account'}
+            <h1 className="text-3xl font-black text-gray-900 mb-2 tracking-tight uppercase">
+              {isLogin ? 'Enterprise Access' : 'Node Onboarding'}
             </h1>
-            <p className="text-gray-400 text-sm">
-              {isLogin ? 'Enter your details to access your workspace' : 'Start managing your invoices today'}
+            <p className="text-gray-500 font-medium text-sm">
+              {isLogin ? 'Enter your credentials to access the matrix' : 'Initialize your workspace in the Averqon  ecosystem'}
             </p>
           </div>
 
           {error && (
-            <div className="mb-6 p-4 bg-red-900/20 text-red-200 text-sm rounded-xl border border-red-500/20 flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+            <div className="mb-8 p-4 bg-red-50 text-red-600 text-sm font-bold rounded-2xl border border-red-100 flex items-center gap-3 animate-shake">
+              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
               {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-6">
             {!isLogin && (
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">Full Name</label>
+              <div className="space-y-3">
+                <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Full Identity</label>
                 <div className="relative group">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-[#8FFF00] transition-colors" size={20} />
+                  <User className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-indigo-600 transition-colors" size={20} />
                   <input
                     type="text"
-                    className="w-full pl-12 pr-4 py-3.5 bg-[#1D2125] border border-gray-700 rounded-xl focus:ring-2 focus:ring-[#8FFF00] focus:border-transparent outline-none text-white transition-all placeholder:text-gray-600"
-                    placeholder="John Doe"
+                    className="w-full pl-14 pr-5 py-4.5 bg-gray-50 border border-gray-200 rounded-2xl focus:bg-white focus:ring-4 focus:ring-indigo-100 focus:border-indigo-200 outline-none text-gray-900 transition-all font-bold text-sm placeholder:text-gray-300"
+                    placeholder="e.g. Rahul Sharma"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                   />
@@ -90,28 +95,33 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
               </div>
             )}
 
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">Email Address</label>
+            <div className="space-y-3">
+              <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Control Email</label>
               <div className="relative group">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-[#8FFF00] transition-colors" size={20} />
+                <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-indigo-600 transition-colors" size={20} />
                 <input
                   type="email"
-                  className="w-full pl-12 pr-4 py-3.5 bg-[#1D2125] border border-gray-700 rounded-xl focus:ring-2 focus:ring-[#8FFF00] focus:border-transparent outline-none text-white transition-all placeholder:text-gray-600"
-                  placeholder="you@example.com"
+                  className="w-full pl-14 pr-5 py-4.5 bg-gray-50 border border-gray-200 rounded-2xl focus:bg-white focus:ring-4 focus:ring-indigo-100 focus:border-indigo-200 outline-none text-gray-900 transition-all font-bold text-sm placeholder:text-gray-300"
+                  placeholder="admin@enterprise.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
               </div>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">Password</label>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center ml-1">
+                <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Secret Key</label>
+                {isLogin && (
+                  <button type="button" className="text-[10px] font-black text-indigo-600 uppercase tracking-tighter hover:underline">Forgot Key?</button>
+                )}
+              </div>
               <div className="relative group">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-[#8FFF00] transition-colors" size={20} />
+                <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-indigo-600 transition-colors" size={20} />
                 <input
                   type="password"
-                  className="w-full pl-12 pr-4 py-3.5 bg-[#1D2125] border border-gray-700 rounded-xl focus:ring-2 focus:ring-[#8FFF00] focus:border-transparent outline-none text-white transition-all placeholder:text-gray-600"
-                  placeholder="••••••••"
+                  className="w-full pl-14 pr-5 py-4.5 bg-gray-50 border border-gray-200 rounded-2xl focus:bg-white focus:ring-4 focus:ring-indigo-100 focus:border-indigo-200 outline-none text-gray-900 transition-all font-bold text-sm placeholder:text-gray-300"
+                  placeholder="••••••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
@@ -121,25 +131,36 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#8FFF00] hover:bg-[#76D100] text-black font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 mt-8 shadow-lg shadow-[#8FFF00]/20 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-[0_0_20px_rgba(143,255,0,0.4)]"
+              className="w-full bg-[#0066FF] hover:bg-blue-700 text-white font-bold py-5 rounded-2xl transition-all flex items-center justify-center gap-3 mt-10 shadow-xl shadow-blue-100 disabled:opacity-50 disabled:cursor-not-allowed group"
             >
-              {loading ? 'Please wait...' : (isLogin ? 'Sign In' : 'Sign Up')}
-              {!loading && <ArrowRight size={20} />}
+              <span className="uppercase tracking-[0.2em] text-lg">
+                {loading ? 'Processing...' : (isLogin ? 'Authorize Entry' : 'Register Node')}
+              </span>
+              {!loading && <ArrowRight size={22} className="group-hover:translate-x-1 transition-transform" />}
             </button>
           </form>
 
-          <div className="mt-8 text-center">
+          <div className="mt-10 text-center">
             <button
               onClick={() => {
                 setIsLogin(!isLogin);
                 setError('');
               }}
-              className="text-sm text-gray-500 hover:text-[#8FFF00] font-medium transition-colors"
+              className="text-xs font-black text-gray-400 uppercase tracking-widest hover:text-indigo-600 transition-colors group"
             >
-              {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
+              {isLogin ? (
+                <>Don't have an account? <span className="text-indigo-600 group-hover:underline">Join the Matrix</span></>
+              ) : (
+                <>Already a member? <span className="text-indigo-600 group-hover:underline">Return to Access</span></>
+              )}
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Footer Branding */}
+      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-2 opacity-30 grayscale hover:opacity-100 hover:grayscale-0 transition-all cursor-default">
+        <span className="text-xs font-black uppercase tracking-[0.5em] text-gray-900">Powered by Averqon </span>
       </div>
     </div>
   );

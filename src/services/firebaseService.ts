@@ -13,11 +13,52 @@ import {
     onSnapshot
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { Invoice, Product, Estimate, Payment, RecurringInvoice, CheckoutLink, Customer } from '../types';
+import { Invoice, Product, Estimate, Payment, RecurringInvoice, CheckoutLink, Customer, Order, OrderStatus } from '../types';
 
-// Collections References
+// ... (existing constants)
 const INVOICES_COLLECTION = 'invoices';
 const PRODUCTS_COLLECTION = 'products';
+const ORDERS_COLLECTION = 'orders';
+
+// ... (other services)
+
+// ========== ORDER OPERATIONS ==========
+export const orderService = {
+    subscribeToOrders: (userId: string, callback: (orders: Order[]) => void) => {
+        const q = query(
+            collection(db, ORDERS_COLLECTION),
+            where('userId', '==', userId),
+            orderBy('orderDate', 'desc')
+        );
+        return onSnapshot(q, (snapshot) => {
+            const orders: Order[] = [];
+            snapshot.forEach((doc) => orders.push({ id: doc.id, ...doc.data() } as Order));
+            callback(orders);
+        }, (error) => {
+            console.error('Error fetching orders:', error);
+            callback([]);
+        });
+    },
+    createOrder: async (userId: string, order: Omit<Order, 'id'>) => {
+        return addDoc(collection(db, ORDERS_COLLECTION), { ...order, userId, createdAt: Timestamp.now() });
+    },
+    updateOrder: async (id: string, updates: Partial<Order>) => {
+        await updateDoc(doc(db, ORDERS_COLLECTION, id), updates);
+    },
+    deleteOrder: async (id: string) => {
+        await deleteDoc(doc(db, ORDERS_COLLECTION, id));
+    },
+    fulfillOrder: async (userId: string, orderId: string) => {
+        const orderRef = doc(db, ORDERS_COLLECTION, orderId);
+        const orderSnap = await getDocs(query(collection(db, ORDERS_COLLECTION), where('id', '==', orderId)));
+        // In a real app we'd use a transaction here
+        // 1. Mark order as Paid/Processing
+        await updateDoc(orderRef, { orderStatus: 'Processing', paymentStatus: 'Paid' });
+
+        // 2. Logic to create invoice and update stock would go here in the UI or a Cloud Function
+        console.log("Order fulfillment triggered for:", orderId);
+    }
+};
 
 // ========== INVOICE OPERATIONS ==========
 
@@ -226,6 +267,44 @@ export const estimateService = {
     },
     deleteEstimate: async (id: string) => {
         await deleteDoc(doc(db, 'estimates', id));
+    },
+
+    // Convert an order to an estimate
+    convertOrderToEstimate: async (order: Order, userId: string): Promise<string> => {
+        // Generate estimate number
+        const estimateNumber = `EST-${Math.floor(100000 + Math.random() * 900000)}`;
+
+        // Calculate validity (30 days from now)
+        const validUntil = new Date();
+        validUntil.setDate(validUntil.getDate() + 30);
+
+        // Create estimate from order
+        const estimateData: Omit<Estimate, 'id'> = {
+            estimateNumber,
+            customerName: order.customerName,
+            customerPhone: order.customerPhone,
+            customerEmail: order.customerEmail,
+            customerAddress: order.customerAddress,
+            date: new Date().toISOString(),
+            validUntil: validUntil.toISOString(),
+            amount: order.totalAmount,
+            status: 'Sent',
+            items: order.items,
+            notes: order.notes,
+            orderId: order.id, // Link back to order
+            userId
+        };
+
+        // Create the estimate
+        const estimateRef = await estimateService.createEstimate(userId, estimateData);
+
+        // Update the order with estimate link and status
+        await orderService.updateOrder(order.id, {
+            estimateId: estimateRef.id,
+            orderStatus: OrderStatus.EstimateSent
+        });
+
+        return estimateRef.id;
     }
 };
 

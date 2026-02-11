@@ -1,7 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
-import { Plus, Building2, Mail, Lock, Search, AlertCircle, Phone, X as XIcon } from 'lucide-react';
+import { Plus, Building2, Mail, Lock, Search, AlertCircle, Phone, X as XIcon, Edit2, Trash2, Globe } from 'lucide-react';
 import { companyService } from '../../services/companyService';
+import axios from 'axios';
 
 interface Company {
     id: string;
@@ -12,9 +12,6 @@ interface Company {
     logoUrl?: string;
     createdAt?: any;
 }
-
-import axios from 'axios';
-// ... existing imports
 
 export const Companies: React.FC = () => {
     const [companies, setCompanies] = useState<Company[]>([]);
@@ -78,9 +75,9 @@ export const Companies: React.FC = () => {
     const handleEdit = (company: Company) => {
         setFormData({
             name: company.name,
-            email: company.email, // Email might not be editable depending on auth backend, but we can allow editing the record
+            email: company.email,
             phone: company.phone || '',
-            password: '', // Password usually shouldn't be pre-filled or editable easily here without admin SDK
+            password: '',
             logoUrl: (company as any).logoUrl || ''
         });
         setEditingId(company.id);
@@ -95,16 +92,13 @@ export const Companies: React.FC = () => {
 
         try {
             if (editingId) {
-                // Update existing
                 await companyService.updateCompany(editingId, {
                     name: formData.name,
                     phone: formData.phone,
-                    // email: formData.email, // Be careful updating email if it links to Auth 
                     logoUrl: formData.logoUrl
                 });
                 setSuccess('Company updated successfully!');
             } else {
-                // Create new
                 await companyService.createCompanyWithPassword(formData.name, formData.email, formData.password, formData.logoUrl, formData.phone);
                 setSuccess('Company created successfully!');
             }
@@ -115,7 +109,7 @@ export const Companies: React.FC = () => {
             fetchCompanies();
         } catch (err: any) {
             setError(err.message || 'Failed to save company');
-            console.error(err); // Log full error
+            console.error(err);
         } finally {
             setCreating(false);
         }
@@ -128,30 +122,33 @@ export const Companies: React.FC = () => {
     };
 
     return (
-        <div className="space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="space-y-10 animate-fade-in pb-10">
+            <div className="flex flex-col md:flex-row justify-between items-center gap-6">
                 <div>
-                    <h1 className="text-3xl font-bold text-white tracking-tight">Companies</h1>
-                    <p className="text-gray-400 mt-1">Manage client companies and access</p>
+                    <h1 className="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-3">
+                        <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg">
+                            <Building2 size={22} />
+                        </div>
+                        Organization Directory
+                    </h1>
+                    <p className="text-slate-500 text-sm mt-1">Manage institutional accounts and system-wide enterprise nodes.</p>
                 </div>
                 <button
                     onClick={openCreateModal}
-                    className="bg-[#8FFF00] hover:bg-[#76D100] text-black font-bold py-3 px-6 rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-[#8FFF00]/20"
+                    className="bg-blue-600 text-white px-8 py-3.5 rounded-xl font-bold flex items-center gap-2 hover:bg-blue-700 transition-all shadow-md text-sm active:scale-95"
                 >
-                    <Plus size={20} />
-                    Create Company
+                    <Plus size={20} /> Add New Company
                 </button>
             </div>
 
-            {/* List */}
-            <div className="bg-[#24282D] rounded-2xl border border-gray-800 overflow-hidden">
-                <div className="p-6 border-b border-gray-800 flex items-center justify-between gap-4">
-                    <div className="relative flex-1 max-w-md">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={20} />
+            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="relative flex-1 max-w-md group">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={18} />
                         <input
                             type="text"
-                            placeholder="Search companies..."
-                            className="w-full pl-10 pr-4 py-2.5 bg-[#1D2125] border border-gray-700 rounded-xl focus:ring-2 focus:ring-[#8FFF00] text-white outline-none"
+                            placeholder="Search by company name or email..."
+                            className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-lg focus:border-blue-500 text-slate-900 outline-none transition-all text-sm font-medium"
                         />
                     </div>
                 </div>
@@ -159,45 +156,45 @@ export const Companies: React.FC = () => {
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
                         <thead>
-                            <tr className="border-b border-gray-800 bg-[#1D2125]/50">
-                                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Company Name</th>
-                                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Admin Email</th>
-                                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Account ID</th>
-                                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
-                                <th className="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Actions</th>
+                            <tr className="bg-slate-50/80 text-slate-500 font-bold uppercase tracking-wider text-[11px] border-b border-slate-100">
+                                <th className="px-8 py-5">Organization</th>
+                                <th className="px-8 py-5">Control Email</th>
+                                <th className="px-8 py-5">Internal Status</th>
+                                <th className="px-8 py-5 text-right">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-800">
+                        <tbody className="divide-y divide-slate-50 italic font-medium">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-8 text-center text-gray-500">Loading companies...</td>
+                                    <td colSpan={4} className="px-8 py-20 text-center text-slate-400 animate-pulse font-bold uppercase tracking-widest text-sm italic">Syncing Enterprise Matrix...</td>
                                 </tr>
                             ) : companies.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-8 text-center text-gray-500">No companies found. Create one to get started.</td>
+                                    <td colSpan={4} className="px-8 py-20 text-center text-slate-400 font-bold uppercase tracking-wider text-sm">No organizations found</td>
                                 </tr>
                             ) : (
                                 companies.map((company) => (
-                                    <tr key={company.id} className="hover:bg-[#2C3035] transition-colors group">
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500 overflow-hidden">
-                                                    {/* @ts-ignore */}
-                                                    {company.logoUrl ? <img src={company.logoUrl} alt={company.name} className="w-full h-full object-cover" /> : <Building2 size={20} />}
+                                    <tr key={company.id} className="hover:bg-blue-50/30 transition-all group text-[13px]">
+                                        <td className="px-8 py-6">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-blue-600 overflow-hidden shadow-sm group-hover:bg-blue-600 group-hover:text-white transition-all">
+                                                    {company.logoUrl ? <img src={company.logoUrl} alt={company.name} className="w-full h-full object-cover" /> : <Building2 size={24} />}
                                                 </div>
-                                                <span className="font-medium text-white">{company.name}</span>
+                                                <div>
+                                                    <span className="font-bold text-slate-800 text-base leading-none block mb-1">{company.name}</span>
+                                                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">UID: {company.uid.substring(0, 12)}...</span>
+                                                </div>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 text-gray-300">{company.email}</td>
-                                        <td className="px-6 py-4 text-gray-500 font-mono text-xs">{company.uid}</td>
-                                        <td className="px-6 py-4">
-                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                                Active
+                                        <td className="px-8 py-6 text-slate-600 font-bold">{company.email}</td>
+                                        <td className="px-8 py-6">
+                                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-100 uppercase tracking-wider">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                                Active Account
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <button onClick={() => handleEdit(company)} className="text-gray-500 hover:text-white transition-colors">Edit</button>
+                                        <td className="px-8 py-6 text-right">
+                                            <button onClick={() => handleEdit(company)} className="px-4 py-2 bg-slate-50 text-slate-600 hover:bg-blue-600 hover:text-white rounded-lg transition-all font-bold text-[11px] uppercase tracking-wider shadow-sm">Edit Profile</button>
                                         </td>
                                     </tr>
                                 ))
@@ -209,34 +206,37 @@ export const Companies: React.FC = () => {
 
             {/* Modal */}
             {showModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                    <div className="bg-[#24282D] rounded-2xl w-full max-w-md border border-gray-800 shadow-2xl overflow-hidden animate-fade-in">
-                        <div className="p-6 border-b border-gray-800">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
+                    <div className="bg-white rounded-2xl w-full max-w-lg border border-slate-200 shadow-2xl overflow-hidden animate-fade-in my-8">
+                        <div className="p-8 border-b border-slate-100 bg-slate-50/50">
                             <div className="flex items-center justify-between">
-                                <h2 className="text-xl font-bold text-white">{editingId ? 'Edit Company' : 'New Company'}</h2>
-                                <button onClick={() => setShowModal(false)} className="text-gray-500 hover:text-white">
-                                    <XIcon />
+                                <div>
+                                    <h2 className="text-xl font-bold text-slate-800 tracking-tight">{editingId ? 'Organization Profile' : 'New Organization'}</h2>
+                                    <p className="text-slate-500 text-sm mt-1">Configure workspace credentials and branding.</p>
+                                </div>
+                                <button onClick={() => setShowModal(false)} className="w-10 h-10 flex items-center justify-center border border-slate-200 hover:bg-white rounded-lg text-slate-400 transition-all">
+                                    <XIcon size={18} />
                                 </button>
                             </div>
                         </div>
 
-                        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                        <form onSubmit={handleSubmit} className="p-8 space-y-8 italic font-medium">
                             {error && (
-                                <div className="p-3 bg-red-900/20 text-red-200 text-sm rounded-lg flex items-center gap-2 border border-red-500/20">
+                                <div className="p-4 bg-red-50 text-red-600 text-[13px] font-bold rounded-xl flex items-center gap-2 border border-red-100 italic">
                                     <AlertCircle size={16} />
                                     {error}
                                 </div>
                             )}
 
-                            <div className="flex items-center gap-4 mb-4">
-                                <div className="w-20 h-20 rounded-xl bg-[#1D2125] border border-gray-700 flex items-center justify-center overflow-hidden relative group">
+                            <div className="flex items-center gap-6 p-6 bg-slate-50 rounded-2xl border border-slate-100 group">
+                                <div className="w-24 h-24 rounded-xl bg-white border border-slate-200 flex items-center justify-center overflow-hidden relative group-hover:shadow-md transition-all shadow-sm shrink-0">
                                     {formData.logoUrl ? (
                                         <img src={formData.logoUrl} alt="Logo" className="w-full h-full object-cover" />
                                     ) : (
-                                        <Building2 size={24} className="text-gray-600" />
+                                        <Building2 size={32} className="text-slate-200" />
                                     )}
-                                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer">
-                                        <span className="text-[10px] font-bold text-white">CHANGE</span>
+                                    <div className="absolute inset-0 bg-blue-600/90 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all cursor-pointer">
+                                        <Plus className="text-white" size={24} />
                                     </div>
                                     <input
                                         type="file"
@@ -246,88 +246,92 @@ export const Companies: React.FC = () => {
                                     />
                                 </div>
                                 <div className="flex-1">
-                                    <h3 className="text-sm font-bold text-white uppercase">Company Logo</h3>
-                                    <p className="text-xs text-gray-500 mt-1">{uploading ? 'Uploading...' : 'Click to upload brand logo'}</p>
+                                    <h3 className="text-[10px] font-bold text-blue-600 uppercase tracking-wider mb-1 italic">Brand Assets</h3>
+                                    <p className="text-sm font-bold text-slate-800">{uploading ? 'Processing...' : (formData.logoUrl ? 'Branding loaded' : 'Upload organization logo')}</p>
+                                    <p className="text-[10px] text-slate-400 font-bold uppercase mt-2 tracking-tighter italic">400x400 PNG/SVG Preferred</p>
                                 </div>
                             </div>
 
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-gray-500 uppercase">Company Name</label>
-                                <div className="relative">
-                                    <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
-                                    <input
-                                        type="text"
-                                        required
-                                        className="w-full pl-10 pr-4 py-3 bg-[#1D2125] border border-gray-700 rounded-xl focus:ring-2 focus:ring-[#8FFF00] text-white outline-none"
-                                        placeholder="Acme Corp"
-                                        value={formData.name}
-                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-gray-500 uppercase">Admin Email</label>
-                                <div className="relative">
-                                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
-                                    <input
-                                        type="email"
-                                        required
-                                        className="w-full pl-10 pr-4 py-3 bg-[#1D2125] border border-gray-700 rounded-xl focus:ring-2 focus:ring-[#8FFF00] text-white outline-none"
-                                        placeholder="admin@acmecorp.com"
-                                        value={formData.email}
-                                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-gray-500 uppercase">Phone Number</label>
-                                <div className="relative">
-                                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
-                                    <input
-                                        type="tel"
-                                        className="w-full pl-10 pr-4 py-3 bg-[#1D2125] border border-gray-700 rounded-xl focus:ring-2 focus:ring-[#8FFF00] text-white outline-none"
-                                        placeholder="+91 9876543210"
-                                        value={formData.phone}
-                                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                    />
-                                </div>
-                            </div>
-
-                            {!editingId && (
+                            <div className="space-y-6">
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-gray-500 uppercase">Password</label>
+                                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Organization Name</label>
                                     <div className="relative">
-                                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
+                                        <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
                                         <input
-                                            type="password"
+                                            type="text"
                                             required
-                                            minLength={6}
-                                            className="w-full pl-10 pr-4 py-3 bg-[#1D2125] border border-gray-700 rounded-xl focus:ring-2 focus:ring-[#8FFF00] text-white outline-none"
-                                            placeholder="••••••••"
-                                            value={formData.password}
-                                            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                            className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-transparent rounded-xl focus:bg-white focus:border-blue-500 text-slate-900 outline-none transition-all font-bold text-sm"
+                                            placeholder="e.g. Acme Corp"
+                                            value={formData.name}
+                                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                         />
                                     </div>
-                                    <p className="text-xs text-gray-500">Min. 6 characters</p>
                                 </div>
-                            )}
 
-                            <div className="pt-4 flex gap-3">
+                                <div className="space-y-2">
+                                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Control Email</label>
+                                    <div className="relative">
+                                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+                                        <input
+                                            type="email"
+                                            required
+                                            className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-transparent rounded-xl focus:bg-white focus:border-blue-500 text-slate-900 outline-none transition-all font-bold text-sm"
+                                            placeholder="admin@organization.com"
+                                            value={formData.email}
+                                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Primary Phone</label>
+                                        <div className="relative">
+                                            <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+                                            <input
+                                                type="tel"
+                                                className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-transparent rounded-xl focus:bg-white focus:border-blue-500 text-slate-900 outline-none transition-all font-bold text-sm"
+                                                placeholder="+91"
+                                                value={formData.phone}
+                                                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {!editingId && (
+                                        <div className="space-y-2">
+                                            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Access Key</label>
+                                            <div className="relative">
+                                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+                                                <input
+                                                    type="password"
+                                                    required
+                                                    minLength={6}
+                                                    className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-transparent rounded-xl focus:bg-white focus:border-blue-500 text-slate-900 outline-none transition-all font-bold text-sm"
+                                                    placeholder="Security Code"
+                                                    value={formData.password}
+                                                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="pt-4 flex gap-4">
                                 <button
                                     type="button"
                                     onClick={() => setShowModal(false)}
-                                    className="flex-1 py-3 bg-[#1D2125] hover:bg-gray-800 text-gray-300 font-medium rounded-xl transition-colors"
+                                    className="flex-1 py-4 bg-slate-50 hover:bg-slate-100 text-slate-500 font-bold rounded-xl transition-all uppercase tracking-wider text-[11px]"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={creating || uploading}
-                                    className="flex-1 py-3 bg-[#8FFF00] hover:bg-[#76D100] text-black font-bold rounded-xl transition-colors shadow-lg shadow-[#8FFF00]/20 disabled:opacity-50"
+                                    className="flex-[2] py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-100 uppercase tracking-wider text-[11px] disabled:opacity-50"
                                 >
-                                    {creating ? 'Saving...' : (editingId ? 'Update Company' : 'Create Company')}
+                                    {creating ? 'Saving...' : (editingId ? 'Update Organization' : 'Initialize Account')}
                                 </button>
                             </div>
                         </form>

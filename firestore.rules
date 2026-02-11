@@ -1,0 +1,84 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ========== ORDERS ==========
+    // Allow public creation (for order forms), but only authenticated users can read their own
+    match /orders/{orderId} {
+      // Anyone can create an order (public order form)
+      allow create: if request.resource.data.userId != null 
+                    && request.resource.data.userId is string;
+      
+      // Only the owner can read, update, or delete
+      allow read, update, delete: if request.auth != null 
+                                  && request.auth.uid == resource.data.userId;
+    }
+    
+    // ========== PRODUCTS ==========
+    // Public read access (for order form product selection)
+    // Only owner can write
+    match /products/{productId} {
+      // Anyone can read products (needed for public order form)
+      allow read: if true;
+      
+      // Only authenticated owner can create/update/delete
+      allow create, update, delete: if request.auth != null 
+                                    && request.auth.uid == request.resource.data.userId;
+    }
+    
+    // ========== INVOICES ==========
+    match /invoices/{invoiceId} {
+      allow read, write: if request.auth != null 
+                         && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null 
+                    && request.auth.uid == request.resource.data.userId;
+    }
+    
+    // ========== CUSTOMERS ==========
+    match /customers/{customerId} {
+      allow read, write: if request.auth != null 
+                         && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null 
+                    && request.auth.uid == request.resource.data.userId;
+    }
+    
+    // ========== COMPANIES ==========
+    match /companies/{companyId} {
+      allow read, write: if request.auth != null 
+                         && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null 
+                    && request.auth.uid == request.resource.data.userId;
+    }
+    
+    // ========== SETTINGS ==========
+    match /settings/{userId} {
+      allow read, write: if request.auth != null 
+                         && request.auth.uid == userId;
+    }
+    
+    // ========== PAYMENTS ==========
+    match /payments/{paymentId} {
+      allow read, write: if request.auth != null 
+                         && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null 
+                    && request.auth.uid == request.resource.data.userId;
+    }
+    
+    // ========== CHECKOUTS ==========
+    match /checkouts/{checkoutId} {
+      allow read, write: if request.auth != null 
+                         && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null 
+                    && request.auth.uid == request.resource.data.userId;
+    }
+    
+    // ========== ESTIMATES ==========
+    match /estimates/{estimateId} {
+      allow read, write: if request.auth != null 
+                         && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null 
+                    && request.auth.uid == request.resource.data.userId;
+    }
+  }
+}

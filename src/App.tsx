@@ -11,7 +11,10 @@ import { Checkouts } from './pages/Checkouts';
 import { Overdue } from './pages/Overdue';
 import { Customers } from './pages/Customers';
 import { Products } from './pages/Products';
+import { Orders } from './pages/Orders';
 import { Companies } from './pages/Companies';
+import { OrderForm } from './pages/OrderForm';
+import { SettingsPage } from './pages/Settings';
 import { authService } from './services/authService';
 import { User } from './types';
 
@@ -64,6 +67,8 @@ function App() {
           element={!user ? <Auth onLogin={handleLogin} /> : <Navigate to="/" replace />}
         />
 
+        <Route path="/order-form/:userId" element={<OrderForm />} />
+
         <Route
           path="/*"
           element={
@@ -79,7 +84,9 @@ function App() {
                   <Route path="/overdue" element={<Overdue />} />
                   <Route path="/customers" element={<Customers />} />
                   <Route path="/products" element={<Products />} />
+                  <Route path="/orders" element={<Orders />} />
                   <Route path="/companies" element={<Companies />} />
+                  <Route path="/settings" element={<SettingsPage />} />
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
               </Layout>
