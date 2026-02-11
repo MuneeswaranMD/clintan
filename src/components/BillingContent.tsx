@@ -2,13 +2,15 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
     Plus, Search, Eye, Trash2, Edit2, X, Download, Printer, ArrowLeft,
     MoreVertical, Copy, Mail, CheckCircle, LayoutGrid, PieChart, CreditCard,
-    Repeat, Settings, Bell, ChevronDown, Calendar, Filter, ArrowUpRight, Check, FileText
+    Repeat, Settings as SettingsIcon, Bell, ChevronDown, Calendar, Filter, ArrowUpRight, Check, FileText
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Invoice, InvoiceItem, InvoiceStatus, Product, Estimate, Payment, RecurringInvoice, CheckoutLink, Customer } from '../types';
+import { Invoice, InvoiceItem, InvoiceStatus, Product, Estimate, Payment, RecurringInvoice, CheckoutLink, Customer, Settings } from '../types';
 import { invoiceService, productService, estimateService, paymentService, recurringInvoiceService, checkoutLinkService, customerService } from '../services/firebaseService';
+import { settingsService } from '../services/settingsService';
 import { authService } from '../services/authService';
 import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface BillingContentProps {
     initialTab?: string;
@@ -25,6 +27,7 @@ export const BillingContent: React.FC<BillingContentProps> = ({ initialTab = 'In
     const [recurringInvoices, setRecurringInvoices] = useState<RecurringInvoice[]>([]);
     const [checkoutLinks, setCheckoutLinks] = useState<CheckoutLink[]>([]);
     const [customers, setCustomers] = useState<Customer[]>([]);
+    const [settings, setSettings] = useState<Settings | null>(null);
 
     const [view, setView] = useState<'list' | 'create' | 'edit' | 'view' | 'create_payment' | 'create_checkout'>('list');
     const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
@@ -64,6 +67,8 @@ export const BillingContent: React.FC<BillingContentProps> = ({ initialTab = 'In
         const unsubRecurring = recurringInvoiceService.subscribeToRecurring(user.id, setRecurringInvoices);
         const unsubCheckouts = checkoutLinkService.subscribeToCheckouts(user.id, setCheckoutLinks);
         const unsubCustomers = customerService.subscribeToCustomers(user.id, setCustomers);
+
+        settingsService.getSettings(user.id).then(setSettings);
 
         return () => {
             unsubInvoices();
@@ -233,7 +238,7 @@ export const BillingContent: React.FC<BillingContentProps> = ({ initialTab = 'In
         if (!confirm('Convert this estimate to an invoice?')) return;
 
         try {
-            const invoiceData: Omit<Invoice, 'id'> = {
+            const invoiceData: Omit<Invoice, 'id' | 'userId'> = {
                 invoiceNumber: `INV-${Math.floor(Math.random() * 10000)}`,
                 customerName: estimate.customerName,
                 customerEmail: (estimate as any).customerEmail || '',
@@ -290,125 +295,210 @@ export const BillingContent: React.FC<BillingContentProps> = ({ initialTab = 'In
         setFormData({ ...formData, items: newItems });
     };
 
-    const generatePDF = (invoice: Invoice) => {
+    const generatePDF = async (invoice: Invoice) => {
+        const input = document.getElementById('invoice-preview');
+        if (!input) return;
+
         try {
-            const doc = new jsPDF('p', 'mm', 'a4');
-            const pageWidth = doc.internal.pageSize.getWidth();
-            const pageHeight = doc.internal.pageSize.getHeight();
-            const COLORS = { BLACK: '#000000', GRAY: '#4a5568', LIGHT_GRAY: '#e2e8f0', ACCENT: '#1a202c' };
-            const margin = 20;
-
-            doc.setTextColor(COLORS.BLACK);
-            doc.setFontSize(40);
-            doc.setFont('helvetica', 'normal');
-            const title = 'I N V O I C E';
-            const titleWidth = doc.getTextWidth(title);
-            doc.text(title, pageWidth - margin - titleWidth, 35);
-
-            doc.setFontSize(10);
-            doc.text(`#${invoice.invoiceNumber}`, pageWidth - margin, 48, { align: 'right' });
-
-            let y = 65;
-            doc.setFont('helvetica', 'bold');
-            doc.text('BILLED TO:', margin, y);
-            doc.setFont('helvetica', 'normal');
-            doc.text(invoice.customerName, margin + 35, y);
-
-            y += 10;
-            doc.setFont('helvetica', 'bold');
-            doc.text('PAY TO:', margin, y);
-            doc.setFont('helvetica', 'normal');
-            doc.text('Ragavathi Graphics', margin + 35, y);
-            doc.text('123 Anywhere St., Any City', margin + 35, y + 6);
-            doc.text('123-456-7890', margin + 35, y + 12);
-
-            const tableTop = y + 40;
-            doc.setDrawColor(COLORS.BLACK);
-            doc.line(margin, tableTop, pageWidth - margin, tableTop);
-            doc.line(margin, tableTop + 10, pageWidth - margin, tableTop + 10);
-
-            const col = { desc: margin, rate: pageWidth - margin - 80, QTY: pageWidth - margin - 45, amount: pageWidth - margin };
-            doc.text('DESCRIPTION', col.desc, tableTop + 6);
-            doc.text('RATE', col.rate, tableTop + 6, { align: 'center' });
-            doc.text('QTY', col.QTY, tableTop + 6, { align: 'center' });
-            doc.text('AMOUNT', col.amount, tableTop + 6, { align: 'right' });
-
-            let itemY = tableTop + 18;
-            invoice.items.forEach((item) => {
-                doc.text(item.productName, col.desc, itemY);
-                doc.text(`₹${item.price.toFixed(0)}`, col.rate, itemY, { align: 'center' });
-                doc.text(item.quantity.toString(), col.QTY, itemY, { align: 'center' });
-                doc.text(`₹${item.total.toFixed(2)}`, col.amount, itemY, { align: 'right' });
-                doc.line(margin, itemY + 4, pageWidth - margin, itemY + 4);
-                itemY += 10;
+            const canvas = await html2canvas(input, {
+                scale: 2,
+                useCORS: true,
+                logging: false,
+                windowWidth: input.scrollWidth,
+                windowHeight: input.scrollHeight
             });
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4'
+            });
+            const imgProps = pdf.getImageProperties(imgData);
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
 
-            y = itemY + 5;
-            doc.text('Sub-Total', margin, y);
-            doc.text(`₹${invoice.subtotal.toFixed(2)}`, pageWidth - margin, y, { align: 'right' });
-            y += 8;
-            doc.text('Tax (10%)', margin, y);
-            doc.text(`₹${invoice.tax.toFixed(2)}`, pageWidth - margin, y, { align: 'right' });
-            y += 6;
-            doc.line(margin, y, pageWidth - margin, y);
-            y += 10;
-            doc.setFont('helvetica', 'bold');
-            doc.text('TOTAL', margin, y);
-            doc.text(`₹${invoice.total.toFixed(2)}`, pageWidth - margin, y, { align: 'right' });
-
-            doc.save(`Invoice-${invoice.invoiceNumber}.pdf`);
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            pdf.save(`${activeTab === 'Estimates' ? 'Estimate' : 'Invoice'}-${invoice.invoiceNumber}.pdf`);
         } catch (error) {
-            console.error(error);
+            console.error('PDF Generation Error:', error);
+            alert('Failed to generate PDF');
         }
     };
 
     if (view === 'view' && selectedInvoice) {
+        const isEstimate = activeTab === 'Estimates';
+        const docTitle = isEstimate ? 'ESTIMATE' : 'INVOICE';
+        const docNumber = isEstimate ? (selectedInvoice as any).estimateNumber : selectedInvoice.invoiceNumber;
+
         return (
-            <div className="max-w-3xl mx-auto animate-fade-in">
-                <div className="bg-slate-900 p-4 rounded-t-xl flex justify-between items-center print:hidden">
+            <div className="max-w-[210mm] mx-auto animate-fade-in pb-20">
+                {/* Actions Header */}
+                <div className="bg-slate-900 p-4 rounded-t-xl flex justify-between items-center print:hidden mb-4 rounded-b-xl shadow-lg">
                     <button onClick={() => setView('list')} className="text-slate-300 hover:text-white flex items-center gap-2 transition-all font-medium text-sm group">
-                        <ArrowLeft size={16} /> Back
+                        <ArrowLeft size={16} /> Back to List
                     </button>
                     <div className="flex gap-3">
                         <button onClick={() => window.print()} className="bg-white/10 border border-white/20 hover:bg-white/20 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-all text-sm font-medium">
                             <Printer size={16} /> Print
                         </button>
                         <button onClick={() => generatePDF(selectedInvoice)} className="bg-white hover:bg-slate-100 text-slate-900 px-4 py-2 rounded-lg flex items-center gap-2 transition-all text-sm font-medium">
-                            <Download size={16} /> PDF
+                            <Download size={16} /> Download PDF
                         </button>
                     </div>
                 </div>
-                <div className="bg-white shadow-xl rounded-xl overflow-hidden p-16 text-black">
-                    <div className="flex justify-between items-start mb-16">
-                        <h1 className="text-4xl font-bold uppercase tracking-widest leading-none">Invoice</h1>
-                        <span className="font-bold text-xl">#{selectedInvoice.invoiceNumber}</span>
+
+                {/* VISIBLE INVOICE - A4 Paper Style */}
+                <div id="invoice-preview" className="bg-white shadow-2xl mx-auto text-slate-800 font-sans relative overflow-hidden" style={{ width: '210mm', minHeight: '297mm', padding: '15mm' }}>
+
+                    {/* Header */}
+                    <div className="flex justify-between items-start border-b border-slate-100 pb-8 mb-8">
+                        <div className="flex flex-col gap-4">
+                            {/* Logo */}
+                            {settings?.logoUrl ? (
+                                <img src={settings.logoUrl} alt="Logo" className="h-16 w-auto object-contain object-left" />
+                            ) : (
+                                <div className="h-16 w-16 bg-slate-900 flex items-center justify-center text-white font-bold text-2xl rounded-lg">
+                                    {settings?.companyName?.charAt(0) || 'C'}
+                                </div>
+                            )}
+
+                            <div>
+                                <h1 className="text-xl font-bold text-slate-900 leading-tight">{settings?.companyName || 'Your Company Name'}</h1>
+                                <p className="text-sm text-slate-500 max-w-xs leading-relaxed mt-1">
+                                    {settings?.companyAddress || '123 Business Street, City, Country'}<br />
+                                    Phone: {settings?.companyPhone || '+1 234 567 890'} | Email: {settings?.companyEmail || 'info@company.com'}<br />
+                                    Website: {settings?.website || 'www.company.com'}
+                                </p>
+                            </div>
+                        </div>
+                        <h1 className="text-4xl font-bold text-blue-600 uppercase tracking-widest">{docTitle}</h1>
                     </div>
-                    <div className="mb-12">
-                        <p className="text-xs uppercase font-bold text-gray-400 mb-2">Billed To</p>
-                        <p className="text-xl">{selectedInvoice.customerName}</p>
-                    </div>
-                    <table className="w-full mb-12">
-                        <thead className="border-y-2 border-black">
-                            <tr>
-                                <th className="text-left py-4 uppercase text-sm tracking-widest">Description</th>
-                                <th className="text-right py-4 uppercase text-sm tracking-widest">Amount</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                            {selectedInvoice.items.map(i => (
-                                <tr key={i.id}>
-                                    <td className="py-6 text-lg">{i.productName}</td>
-                                    <td className="py-6 text-right text-lg">₹{i.total.toLocaleString()}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                    <div className="flex justify-end border-t-2 border-black pt-8">
-                        <div className="text-right">
-                            <p className="text-sm uppercase text-gray-500 mb-2">Total Amount</p>
-                            <p className="text-4xl font-bold">₹{selectedInvoice.total.toLocaleString()}</p>
+
+                    {/* Info Section */}
+                    <div className="flex justify-between gap-12 mb-10">
+                        {/* Bill Info */}
+                        <div className="flex-1 space-y-3">
+                            <h3 className="font-bold text-slate-900 text-base mb-2 border-b border-slate-100 pb-1">Bill Information</h3>
+                            <div className="grid grid-cols-[100px_1fr] gap-y-2 text-sm">
+                                <span className="text-slate-500 block">Bill No:</span>
+                                <span className="font-bold text-slate-800">#{docNumber}</span>
+
+                                <span className="text-slate-500 block">Issue Date:</span>
+                                <span className="font-medium text-slate-800">
+                                    {selectedInvoice.date ? new Date(selectedInvoice.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A'}
+                                </span>
+
+                                <span className="text-slate-500 block">Due Date:</span>
+                                <span className="font-medium text-slate-800">
+                                    {selectedInvoice.dueDate ? new Date(selectedInvoice.dueDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A'}
+                                </span>
+
+                                <span className="text-slate-500 block">Status:</span>
+                                <span>
+                                    <span className={`px-3 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${selectedInvoice.status === InvoiceStatus.Paid ? 'bg-emerald-100 text-emerald-700' :
+                                        selectedInvoice.status === InvoiceStatus.Overdue ? 'bg-red-100 text-red-700' :
+                                            'bg-amber-100 text-amber-700'
+                                        }`}>
+                                        {selectedInvoice.status}
+                                    </span>
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Recipient Info */}
+                        <div className="flex-1 space-y-3">
+                            <h3 className="font-bold text-slate-900 text-base mb-2 border-b border-slate-100 pb-1">Recipient Information</h3>
+                            <div className="text-sm">
+                                <p className="font-bold text-slate-900 text-lg mb-1">{selectedInvoice.customerName}</p>
+                                <p className="text-slate-600 leading-relaxed mb-2">
+                                    <span className="font-bold text-slate-800">Billing:</span> {selectedInvoice.customerAddress || 'No address provided'}
+                                </p>
+                                <p className="text-slate-600 leading-relaxed mb-2">
+                                    <span className="font-bold text-slate-800">Contact:</span> {(selectedInvoice as any).customerPhone || selectedInvoice.customerEmail || 'N/A'}
+                                </p>
+                            </div>
                         </div>
                     </div>
+
+                    {/* Line Items */}
+                    <div className="mb-10">
+                        <h3 className="font-bold text-slate-900 text-base mb-4">Product/Service Line Items</h3>
+                        <table className="w-full text-sm">
+                            <thead>
+                                <tr className="bg-slate-50 border-y border-slate-200">
+                                    <th className="py-3 px-2 text-left font-bold text-slate-600 uppercase text-[10px] tracking-wider w-12">S/N</th>
+                                    <th className="py-3 px-2 text-left font-bold text-slate-600 uppercase text-[10px] tracking-wider">Item Name</th>
+                                    <th className="py-3 px-2 text-center font-bold text-slate-600 uppercase text-[10px] tracking-wider w-16">Qty</th>
+                                    <th className="py-3 px-2 text-right font-bold text-slate-600 uppercase text-[10px] tracking-wider w-24">Rate</th>
+                                    <th className="py-3 px-2 text-right font-bold text-slate-600 uppercase text-[10px] tracking-wider w-24">Discount</th>
+                                    <th className="py-3 px-2 text-right font-bold text-slate-600 uppercase text-[10px] tracking-wider w-24">Tax</th>
+                                    <th className="py-3 px-2 text-right font-bold text-slate-600 uppercase text-[10px] tracking-wider w-24">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {selectedInvoice.items.map((item, idx) => {
+                                    const rate = item.price || item.total / item.quantity;
+                                    const discount = 0; // Backend doesn't store per-item discount yet
+                                    const taxRate = settings?.defaultTaxPercentage || 0;
+                                    // Assuming item.total includes tax if tax is enabled
+
+                                    return (
+                                        <tr key={item.id}>
+                                            <td className="py-4 px-2 text-slate-500 font-medium">{idx + 1}</td>
+                                            <td className="py-4 px-2 font-bold text-slate-800">{item.productName}</td>
+                                            <td className="py-4 px-2 text-center text-slate-800 font-medium">{item.quantity}</td>
+                                            <td className="py-4 px-2 text-right text-slate-800">₹{rate.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                                            <td className="py-4 px-2 text-right text-slate-400">₹0.00</td>
+                                            <td className="py-4 px-2 text-right text-slate-600 text-xs">VAT ({taxRate}%)</td>
+                                            <td className="py-4 px-2 text-right font-bold text-slate-900">₹{item.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Footer Section */}
+                    <div className="flex gap-12 mb-12 border-t border-slate-100 pt-8">
+                        {/* Left: Notes */}
+                        <div className="flex-1">
+                            <h4 className="font-bold text-slate-800 mb-2">Notes/Remarks</h4>
+                            <div className="text-sm text-slate-500 bg-slate-50 p-4 rounded-lg border border-slate-100 min-h-[100px]">
+                                {selectedInvoice.notes || (isEstimate ? "This estimate is valid for 30 days." : "Thank you for your business. Please ensure timely payment.")}
+                            </div>
+                        </div>
+
+                        {/* Right: Totals */}
+                        <div className="w-[350px]">
+                            <div className="space-y-3 text-sm">
+                                <div className="flex justify-between text-slate-600">
+                                    <span>Subtotal:</span>
+                                    <span className="font-medium text-slate-900">₹{selectedInvoice.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                </div>
+                                <div className="flex justify-between text-slate-600">
+                                    <span>Total Discount:</span>
+                                    <span className="font-medium text-red-500">(₹0.00)</span>
+                                </div>
+                                <div className="flex justify-between text-slate-600 border-b border-slate-200 pb-3">
+                                    <span>Total Tax (VAT {settings?.defaultTaxPercentage || 0}%):</span>
+                                    <span className="font-medium text-slate-900">₹{selectedInvoice.tax.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                </div>
+                                <div className="flex justify-between items-center py-2">
+                                    <span className="font-bold text-slate-900 text-lg">Grand Total:</span>
+                                    <span className="font-bold text-blue-600 text-2xl">₹{selectedInvoice.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Payment Details */}
+                    
+                    {/* Footer Copyright */}
+                    <div className="absolute bottom-0 left-0 right-0 p-8 border-t border-slate-100 text-center text-[10px] text-slate-400">
+                        <p>© {new Date().getFullYear()} {settings?.companyName || 'Your Company'}. All rights reserved.</p>
+                        <p>Generated by Sivajoy Billing System</p>
+                    </div>
+
                 </div>
             </div>
         );

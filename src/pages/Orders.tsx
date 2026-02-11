@@ -6,8 +6,10 @@ import {
 } from 'lucide-react';
 import { orderService, productService } from '../services/firebaseService';
 import { authService } from '../services/authService';
-import { Order, OrderStatus, Product } from '../types';
+import { Order, OrderStatus, Product, OrderItem, OrderFormConfig } from '../types';
 import { ViewToggle } from '../components/ViewToggle';
+import { orderFormService } from '../services/orderFormService';
+import { Settings } from 'lucide-react';
 
 export const Orders: React.FC = () => {
     const [orders, setOrders] = useState<Order[]>([]);
@@ -19,6 +21,10 @@ export const Orders: React.FC = () => {
     const [statusFilter, setStatusFilter] = useState('All');
     const [paymentFilter, setPaymentFilter] = useState('All');
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+
+    // Dynamic Config State
+    const [formConfig, setFormConfig] = useState<OrderFormConfig | null>(null);
+    const [showSettings, setShowSettings] = useState(false);
 
     // Form State
     const [formData, setFormData] = useState<Partial<Order>>({
@@ -47,11 +53,22 @@ export const Orders: React.FC = () => {
             setProducts(data);
         });
 
+        // Load Form Config
+        orderFormService.getFormConfig(user.id).then(config => {
+            setFormConfig(config);
+        });
+
         return () => {
             unsubOrders();
             unsubProducts();
         };
     }, []);
+
+    const saveConfig = async (newConfig: OrderFormConfig) => {
+        setFormConfig(newConfig);
+        await orderFormService.saveFormConfig(newConfig);
+        setShowSettings(false);
+    };
 
     const filteredOrders = orders.filter(o => {
         const matchesSearch = (o.customerName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -79,7 +96,8 @@ export const Orders: React.FC = () => {
                     userId: user.id,
                     orderId,
                     orderDate: new Date().toISOString(),
-                    source: 'Internal'
+                    source: 'MANUAL_ENTRY',
+                    channel: 'MANUAL_ENTRY'
                 });
             }
             setView('list');
@@ -128,82 +146,481 @@ export const Orders: React.FC = () => {
         }
     };
 
+    const addItem = () => {
+        setFormData({
+            ...formData,
+            items: [
+                ...(formData.items || []),
+                {
+                    id: Math.random().toString(),
+                    name: '',
+                    type: 'PRODUCT',
+                    quantity: 1,
+                    price: 0,
+                    taxPercentage: formConfig?.defaultTaxPercentage || 0,
+                    discount: 0,
+                    subtotal: 0,
+                    total: 0
+                }
+            ]
+        });
+    };
+
+    const updateItem = (index: number, field: keyof OrderItem, value: any) => {
+        const newItems = [...(formData.items || [])];
+        const item = { ...newItems[index] };
+
+        // Handle product selection
+        if (field === 'itemId') {
+            item.itemId = value; // Always update the ID selection
+            const product = products.find(p => p.id === value);
+            if (product) {
+                item.name = product.name;
+
+                // Robust fetch: Check nested pricing OR fallback to flat property
+                const productPrice = product.pricing?.sellingPrice ?? (product as any).price ?? 0;
+                const productTax = product.pricing?.taxPercentage ?? (product as any).taxPercentage;
+
+                item.price = productPrice;
+                // Use product tax if defined, else use default form tax
+                item.taxPercentage = (productTax !== undefined && productTax !== null)
+                    ? productTax
+                    : (formConfig?.defaultTaxPercentage || 0);
+
+                item.type = 'PRODUCT';
+            }
+        } else if (field === 'name') {
+            item.name = value;
+            // Auto-switch to CUSTOM if typing and no product selected
+            if (!item.itemId && formConfig?.allowCustomItems !== false) {
+                item.type = 'CUSTOM';
+            }
+        } else {
+            (item as any)[field] = value;
+        }
+
+        // Calculate totals
+        const price = parseFloat(item.price as any) || 0;
+        const qty = parseInt(item.quantity as any) || 0;
+        const tax = parseFloat(item.taxPercentage as any) || 0;
+        const discount = parseFloat(item.discount as any) || 0;
+
+        item.subtotal = price * qty;
+        const taxAmount = (item.subtotal * tax) / 100;
+        item.total = item.subtotal + taxAmount - discount;
+
+        newItems[index] = item;
+
+        // Update overall totals
+        const subTotal = newItems.reduce((sum, i) => sum + (i.subtotal || 0), 0);
+        const taxTotal = newItems.reduce((sum, i) => sum + ((i.subtotal * i.taxPercentage) / 100), 0);
+        const discountTotal = newItems.reduce((sum, i) => sum + (i.discount || 0), 0);
+
+        setFormData({
+            ...formData,
+            items: newItems,
+            pricingSummary: {
+                subTotal,
+                taxTotal,
+                discountTotal,
+                grandTotal: subTotal + taxTotal - discountTotal
+            },
+            totalAmount: subTotal + taxTotal - discountTotal
+        });
+    };
+
+    const removeItem = (index: number) => {
+        const newItems = [...(formData.items || [])].filter((_, i) => i !== index);
+
+        // Recalculate totals
+        const subTotal = newItems.reduce((sum, i) => sum + (i.subtotal || 0), 0);
+        const taxTotal = newItems.reduce((sum, i) => sum + ((i.subtotal * i.taxPercentage) / 100), 0);
+        const discountTotal = newItems.reduce((sum, i) => sum + (i.discount || 0), 0);
+
+        setFormData({
+            ...formData,
+            items: newItems,
+            pricingSummary: {
+                subTotal,
+                taxTotal,
+                discountTotal,
+                grandTotal: subTotal + taxTotal - discountTotal
+            },
+            totalAmount: subTotal + taxTotal - discountTotal
+        });
+    };
+
     if (view === 'form') {
         return (
-            <div className="max-w-4xl mx-auto animate-fade-in pb-20">
+            <div className="max-w-6xl mx-auto animate-fade-in pb-20">
                 <div className="flex items-center justify-between mb-8">
                     <div>
-                        <h1 className="text-2xl font-bold text-slate-800 tracking-tight">{formData.id ? 'Modify Order' : 'Internal Order Placement'}</h1>
-                        <p className="text-slate-500 text-sm mt-1">Manual order entry for office or phone-in customers.</p>
+                        <h1 className="text-2xl font-bold text-slate-800 tracking-tight">{formData.id ? 'Modify Order' : 'New Order'}</h1>
+                        <p className="text-slate-500 text-sm mt-1">Universal order creation for products, services, and custom items.</p>
                     </div>
-                    <button onClick={() => setView('list')} className="w-10 h-10 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg text-slate-400 transition-all flex items-center justify-center">
-                        <X size={20} />
-                    </button>
+                    <div className="flex gap-2">
+                        <button onClick={() => setShowSettings(true)} className="w-10 h-10 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg text-slate-400 transition-all flex items-center justify-center">
+                            <Settings size={20} />
+                        </button>
+                        <button onClick={() => setView('list')} className="w-10 h-10 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg text-slate-400 transition-all flex items-center justify-center">
+                            <X size={20} />
+                        </button>
+                    </div>
                 </div>
 
+                {showSettings && formConfig && (
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                        <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl animate-fade-in">
+                            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                                <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2">
+                                    <Settings className="text-blue-600" size={20} /> Form Configuration
+                                </h3>
+                                <button onClick={() => setShowSettings(false)} className="text-slate-400 hover:text-slate-600"><X size={20} /></button>
+                            </div>
+                            <div className="p-6 space-y-6">
+                                <div className="space-y-4">
+                                    <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Customer Fields</h4>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        {formConfig.fields.map((field, idx) => (
+                                            <div key={idx} className="flex items-center justify-between p-3 border border-slate-200 rounded-xl bg-slate-50">
+                                                <span className="font-bold text-slate-700">{field.label}</span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs text-slate-400">{field.required ? 'Required' : 'Optional'}</span>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={field.required}
+                                                        onChange={(e) => {
+                                                            const newFields = [...formConfig.fields];
+                                                            newFields[idx].required = e.target.checked;
+                                                            setFormConfig({ ...formConfig, fields: newFields });
+                                                        }}
+                                                        className="w-4 h-4 accent-blue-600"
+                                                    />
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Order Rules</h4>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="flex items-center justify-between p-3 border border-slate-200 rounded-xl bg-slate-50">
+                                            <span className="font-bold text-slate-700">Allow Custom Items</span>
+                                            <input
+                                                type="checkbox"
+                                                checked={formConfig.allowCustomItems}
+                                                onChange={(e) => setFormConfig({ ...formConfig, allowCustomItems: e.target.checked })}
+                                                className="w-4 h-4 accent-blue-600"
+                                            />
+                                        </div>
+                                        <div className="flex items-center justify-between p-3 border border-slate-200 rounded-xl bg-slate-50">
+                                            <span className="font-bold text-slate-700">Track Stock</span>
+                                            <input
+                                                type="checkbox"
+                                                checked={formConfig.enableStock}
+                                                onChange={(e) => setFormConfig({ ...formConfig, enableStock: e.target.checked })}
+                                                className="w-4 h-4 accent-blue-600"
+                                            />
+                                        </div>
+                                        <div className="flex items-center justify-between p-3 border border-slate-200 rounded-xl bg-slate-50">
+                                            <span className="font-bold text-slate-700">Enable Tax</span>
+                                            <input
+                                                type="checkbox"
+                                                checked={formConfig.enableTax}
+                                                onChange={(e) => setFormConfig({ ...formConfig, enableTax: e.target.checked })}
+                                                className="w-4 h-4 accent-blue-600"
+                                            />
+                                        </div>
+                                        <div className="flex items-center justify-between p-3 border border-slate-200 rounded-xl bg-slate-50">
+                                            <span className="font-bold text-slate-700">Enable Discount</span>
+                                            <input
+                                                type="checkbox"
+                                                checked={formConfig.enableDiscount}
+                                                onChange={(e) => setFormConfig({ ...formConfig, enableDiscount: e.target.checked })}
+                                                className="w-4 h-4 accent-blue-600"
+                                            />
+                                        </div>
+                                        {/* Default Tax Input */}
+                                        <div className="flex flex-col gap-2 p-3 border border-slate-200 rounded-xl bg-slate-50">
+                                            <span className="font-bold text-slate-700 text-xs uppercase tracking-wider">Default Tax (%)</span>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                max="100"
+                                                placeholder="e.g. 18"
+                                                value={formConfig.defaultTaxPercentage || ''}
+                                                onChange={(e) => setFormConfig({ ...formConfig, defaultTaxPercentage: parseFloat(e.target.value) })}
+                                                className="w-full bg-white border border-slate-200 p-2 rounded-lg text-sm font-bold outline-none focus:border-blue-500"
+                                            />
+                                        </div>
+                                        <div className="col-span-2 mt-2 p-4 bg-blue-50 rounded-xl border border-blue-100 flex flex-col gap-2">
+                                            <span className="font-bold text-blue-700 text-xs uppercase tracking-wider mb-1">Shareable Public Order Link</span>
+                                            <div className="flex items-center gap-2 bg-white rounded-lg border border-blue-200 p-1 pl-3 shadow-sm">
+                                                <input
+                                                    readOnly
+                                                    className="flex-1 text-xs font-mono text-slate-500 bg-transparent outline-none truncate"
+                                                    value={`${window.location.origin}/#/order-form/${formConfig.userId}`}
+                                                />
+                                                <button
+                                                    onClick={() => navigator.clipboard.writeText(`${window.location.origin}/#/order-form/${formConfig.userId}`)}
+                                                    className="bg-blue-100 text-blue-700 px-3 py-1.5 rounded-md text-xs font-bold hover:bg-blue-200 transition-colors uppercase tracking-tight"
+                                                >
+                                                    Copy
+                                                </button>
+                                            </div>
+                                            <div className="flex gap-2 mt-1">
+                                                <span className="text-[10px] font-bold text-green-600 bg-green-100 px-2 py-0.5 rounded border border-green-200 cursor-pointer" onClick={() => navigator.clipboard.writeText(`${window.location.origin}/#/order-form/${formConfig.userId}?channel=WHATSAPP`)}>+ WhatsApp Link</span>
+                                                <span className="text-[10px] font-bold text-pink-600 bg-pink-100 px-2 py-0.5 rounded border border-pink-200 cursor-pointer" onClick={() => navigator.clipboard.writeText(`${window.location.origin}/#/order-form/${formConfig.userId}?channel=INSTAGRAM`)}>+ Instagram Link</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="p-6 border-t border-slate-100 flex justify-end gap-3 bg-slate-50">
+                                <button onClick={() => setShowSettings(false)} className="px-4 py-2 text-slate-500 font-bold hover:bg-slate-200 rounded-lg transition-colors">Cancel</button>
+                                <button onClick={() => formConfig && saveConfig(formConfig)} className="px-6 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200">Save Configuration</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 <form onSubmit={handleSave} className="space-y-8">
-                    <div className="bg-white p-8 rounded-xl border border-slate-200 shadow-sm space-y-8">
-                        <div>
-                            <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
-                                <User className="text-blue-600" size={20} />
-                                Customer Details
-                            </h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Customer Details */}
+                    <div className="bg-white p-8 rounded-xl border border-slate-200 shadow-sm space-y-6">
+                        <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                            <User className="text-blue-600" size={20} /> Customer Details
+                        </h3>
+                        {/* Dynamic Render based on Config */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {(!formConfig || formConfig.fields.find(f => f.name === 'customerName')?.required) && (
                                 <div className="space-y-2">
                                     <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Full Name</label>
                                     <input required type="text" className="w-full bg-slate-50 border border-transparent p-3 rounded-lg text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-medium" value={formData.customerName || ''} onChange={e => setFormData({ ...formData, customerName: e.target.value })} />
                                 </div>
+                            )}
+                            {(!formConfig || formConfig.fields.find(f => f.name === 'customerPhone')?.required) && (
                                 <div className="space-y-2">
                                     <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Phone Number</label>
                                     <input required type="text" className="w-full bg-slate-50 border border-transparent p-3 rounded-lg text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-medium" value={formData.customerPhone || ''} onChange={e => setFormData({ ...formData, customerPhone: e.target.value })} />
                                 </div>
+                            )}
+                            {(!formConfig || formConfig.fields.find(f => f.name === 'customerEmail')?.required) && (
+                                <div className="space-y-2">
+                                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Email (Optional)</label>
+                                    <input type="email" className="w-full bg-slate-50 border border-transparent p-3 rounded-lg text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-medium" value={formData.customerEmail || ''} onChange={e => setFormData({ ...formData, customerEmail: e.target.value })} />
+                                </div>
+                            )}
+                            {(!formConfig || formConfig.fields.find(f => f.name === 'customerAddress')?.required) && (
                                 <div className="space-y-2 md:col-span-2">
                                     <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Shipping Address</label>
-                                    <textarea required rows={2} className="w-full bg-slate-50 border border-transparent p-3 rounded-lg text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-medium h-20" value={formData.customerAddress || ''} onChange={e => setFormData({ ...formData, customerAddress: e.target.value })} />
+                                    <textarea required rows={2} className="w-full bg-slate-50 border border-transparent p-3 rounded-lg text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-medium" value={formData.customerAddress || ''} onChange={e => setFormData({ ...formData, customerAddress: e.target.value })} />
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Order Items */}
+                    <div className="bg-white p-8 rounded-xl border border-slate-200 shadow-sm space-y-6">
+                        <div className="flex justify-between items-center">
+                            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                <ShoppingBag className="text-emerald-600" size={20} /> Order Items
+                            </h3>
+                            <div className="flex gap-2">
+                                <button type="button" onClick={() => {
+                                    const newItems = Array(5).fill(null).map(() => ({
+                                        id: Math.random().toString(),
+                                        name: '',
+                                        type: 'PRODUCT', // Default, will change to CUSTOM if they just type name
+                                        quantity: 1,
+                                        price: 0,
+                                        taxPercentage: formConfig?.defaultTaxPercentage || 0,
+                                        discount: 0,
+                                        subtotal: 0,
+                                        total: 0
+                                    } as OrderItem));
+                                    setFormData({
+                                        ...formData,
+                                        items: [...(formData.items || []), ...newItems]
+                                    });
+                                }} className="flex items-center gap-2 text-slate-500 font-bold text-xs bg-slate-50 border border-slate-200 px-3 py-2 rounded-lg hover:bg-slate-100 transition-colors">
+                                    + Add 5 Rows
+                                </button>
+                                <button type="button" onClick={addItem} className="flex items-center gap-2 text-blue-600 font-bold text-sm bg-blue-50 px-4 py-2 rounded-lg hover:bg-blue-100 transition-colors">
+                                    <Plus size={16} /> Add Row
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left">
+                                <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-[10px] tracking-wider">
+                                    <tr>
+                                        <th className="px-4 py-3 rounded-l-lg min-w-[200px]">Item / Product</th>
+                                        <th className="px-4 py-3 w-32">Type</th>
+                                        <th className="px-4 py-3 w-24">Qty</th>
+                                        <th className="px-4 py-3 w-32">Price (₹)</th>
+                                        {(!formConfig || formConfig.enableTax) && <th className="px-4 py-3 w-24">Tax (%)</th>}
+                                        {(!formConfig || formConfig.enableDiscount) && <th className="px-4 py-3 w-32">Discount</th>}
+                                        <th className="px-4 py-3 w-32 text-right">Total</th>
+                                        <th className="px-4 py-3 w-12 rounded-r-lg"></th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {formData.items?.map((item, index) => (
+                                        <tr key={item.id} className="group hover:bg-slate-50/50">
+                                            <td className="px-4 py-3">
+                                                <div className="flex flex-col gap-1">
+                                                    <select
+                                                        className="w-full bg-slate-50 border border-slate-200 p-1.5 rounded textxs font-medium text-slate-500 mb-1 focus:border-blue-500 focus:outline-none"
+                                                        value={item.itemId || ''}
+                                                        onChange={e => updateItem(index, 'itemId', e.target.value)}
+                                                    >
+                                                        <option value="">-- Select Product (Optional) --</option>
+                                                        {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                                    </select>
+                                                    <input
+                                                        type="text"
+                                                        placeholder={formConfig?.allowCustomItems !== false ? "Item Name (or select above)..." : "Select a product above"}
+                                                        disabled={formConfig?.allowCustomItems === false && !item.itemId}
+                                                        className={`w-full bg-white border border-slate-200 p-2 rounded text-sm font-bold text-slate-800 outline-none focus:border-blue-500 ${formConfig?.allowCustomItems === false && !item.itemId ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : ''}`}
+                                                        value={item.name}
+                                                        onChange={e => updateItem(index, 'name', e.target.value)}
+                                                    />
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <select
+                                                    className="w-full bg-slate-50 border-none rounded text-xs font-bold text-slate-600 focus:ring-0 cursor-pointer"
+                                                    value={item.type}
+                                                    onChange={e => updateItem(index, 'type', e.target.value)}
+                                                >
+                                                    <option value="PRODUCT">Product</option>
+                                                    <option value="SERVICE">Service</option>
+                                                    {(formConfig?.allowCustomItems !== false) && <option value="CUSTOM">Custom</option>}
+                                                </select>
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    className="w-full bg-slate-50 border-transparent rounded text-center font-bold text-slate-800 focus:bg-white focus:border-blue-500 p-2"
+                                                    value={item.quantity}
+                                                    onChange={e => updateItem(index, 'quantity', e.target.value)}
+                                                />
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    className="w-full bg-slate-50 border-transparent rounded text-right font-medium text-slate-800 focus:bg-white focus:border-blue-500 p-2"
+                                                    value={item.price}
+                                                    onChange={e => updateItem(index, 'price', e.target.value)}
+                                                />
+                                            </td>
+                                            {(!formConfig || formConfig.enableTax) && (
+                                                <td className="px-4 py-3">
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        className="w-full bg-slate-50 border-transparent rounded text-center text-slate-600 focus:bg-white focus:border-blue-500 p-2"
+                                                        value={item.taxPercentage}
+                                                        onChange={e => updateItem(index, 'taxPercentage', e.target.value)}
+                                                    />
+                                                </td>
+                                            )}
+                                            {(!formConfig || formConfig.enableDiscount) && (
+                                                <td className="px-4 py-3">
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        className="w-full bg-slate-50 border-transparent rounded text-right text-red-500 focus:bg-white focus:border-blue-500 p-2"
+                                                        value={item.discount}
+                                                        onChange={e => updateItem(index, 'discount', e.target.value)}
+                                                    />
+                                                </td>
+                                            )}
+                                            <td className="px-4 py-3 text-right font-bold text-slate-900">
+                                                ₹{item.total.toLocaleString()}
+                                            </td>
+                                            <td className="px-4 py-3 text-right">
+                                                <button type="button" onClick={() => removeItem(index)} className="text-slate-300 hover:text-red-500 transition-colors p-2">
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                            {(!formData.items || formData.items.length === 0) && (
+                                <div className="text-center py-12 text-slate-400 italic">
+                                    No items added. Click "Add Item" to start building your order.
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Order Summary */}
+                    <div className="flex flex-col md:flex-row justify-between gap-8">
+                        <div className="flex-1 bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4 h-fit">
+                            <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Order Settings</h3>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-400">Status</label>
+                                    <select
+                                        className="w-full p-3 bg-slate-50 rounded-lg font-bold text-slate-700 outline-none"
+                                        value={formData.orderStatus}
+                                        onChange={e => setFormData({ ...formData, orderStatus: e.target.value as OrderStatus })}
+                                    >
+                                        {Object.values(OrderStatus).map(s => <option key={s} value={s}>{s}</option>)}
+                                    </select>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-400">Payment</label>
+                                    <select
+                                        className="w-full p-3 bg-slate-50 rounded-lg font-bold text-slate-700 outline-none"
+                                        value={formData.paymentStatus}
+                                        onChange={e => setFormData({ ...formData, paymentStatus: e.target.value as any })}
+                                    >
+                                        <option value="Pending">Pending</option>
+                                        <option value="Paid">Paid</option>
+                                    </select>
+                                </div>
+                                <div className="space-y-2 col-span-2">
+                                    <label className="text-xs font-bold text-slate-400">Notes</label>
+                                    <textarea
+                                        className="w-full p-3 bg-slate-50 rounded-lg font-medium text-sm h-24"
+                                        placeholder="Internal notes, delivery instructions..."
+                                        value={formData.notes || ''}
+                                        onChange={e => setFormData({ ...formData, notes: e.target.value })}
+                                    />
                                 </div>
                             </div>
                         </div>
 
-                        <div className="pt-8 border-t border-slate-100">
-                            <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
-                                <Package className="text-blue-600" size={20} />
-                                Order Items
-                            </h3>
-                            {/* Simple item selector for internal orders */}
+                        <div className="w-full md:w-96 bg-slate-900 text-white p-8 rounded-2xl shadow-xl flex flex-col justify-between">
                             <div className="space-y-4">
-                                {products.slice(0, 5).map(p => (
-                                    <div key={p.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100">
-                                        <div>
-                                            <p className="font-bold text-slate-800">{p.name}</p>
-                                            <p className="text-xs text-slate-500">₹{(p.pricing?.sellingPrice || 0).toLocaleString()}</p>
-                                        </div>
-                                        <div className="flex items-center gap-3">
-                                            <button type="button" onClick={() => {
-                                                const sellingPrice = p.pricing?.sellingPrice || 0;
-                                                const existing = formData.items?.find(i => i.productId === p.id);
-                                                if (existing) {
-                                                    const newItems = formData.items?.map(i => i.productId === p.id ? { ...i, quantity: i.quantity + 1, total: (i.quantity + 1) * sellingPrice } : i);
-                                                    setFormData({ ...formData, items: newItems, totalAmount: (formData.totalAmount || 0) + sellingPrice });
-                                                } else {
-                                                    const newItem = { id: Math.random().toString(), productId: p.id, productName: p.name, quantity: 1, price: sellingPrice, total: sellingPrice };
-                                                    setFormData({ ...formData, items: [...(formData.items || []), newItem], totalAmount: (formData.totalAmount || 0) + sellingPrice });
-                                                }
-                                            }} className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-blue-600 hover:bg-blue-600 hover:text-white transition-all shadow-sm">
-                                                <Plus size={16} />
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))}
+                                <div className="flex justify-between items-center text-slate-400">
+                                    <span className="text-sm font-medium">Subtotal</span>
+                                    <span className="font-mono">₹{(formData.pricingSummary?.subTotal || 0).toLocaleString()}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-slate-400">
+                                    <span className="text-sm font-medium">Tax Limit</span>
+                                    <span className="font-mono">+ ₹{(formData.pricingSummary?.taxTotal || 0).toLocaleString()}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-emerald-400">
+                                    <span className="text-sm font-medium">Discount</span>
+                                    <span className="font-mono">- ₹{(formData.pricingSummary?.discountTotal || 0).toLocaleString()}</span>
+                                </div>
+                                <div className="h-px bg-white/10 my-4"></div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-lg font-bold">Grand Total</span>
+                                    <span className="text-3xl font-bold tracking-tighter">₹{(formData.pricingSummary?.grandTotal || 0).toLocaleString()}</span>
+                                </div>
                             </div>
-                        </div>
-
-                        <div className="pt-8 border-t border-slate-100 flex flex-col md:flex-row justify-between items-center gap-6">
-                            <div className="w-full md:w-auto">
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 px-1">Gross Order Value</p>
-                                <h2 className="text-4xl font-bold text-slate-900 tracking-tighter leading-none">₹{formData.totalAmount?.toLocaleString()}</h2>
-                            </div>
-                            <button type="submit" className="w-full md:w-64 bg-slate-900 text-white font-bold py-4 rounded-xl hover:bg-black transition-all shadow-lg text-lg">
-                                {formData.id ? 'Update Ledger' : 'Confirm Order'}
+                            <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl mt-8 transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2">
+                                <CheckCircle2 size={20} />
+                                {formData.id ? 'Update Order' : 'Create Order'}
                             </button>
                         </div>
                     </div>
@@ -507,7 +924,16 @@ export const Orders: React.FC = () => {
                                                 <p className="text-xs text-slate-400 group-hover:text-slate-600 transition-colors uppercase font-bold tracking-tight">{o.customerPhone}</p>
                                             </td>
                                             <td className="px-8 py-6">
-                                                <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded border border-slate-200 uppercase tracking-widest">{o.source || 'Direct'}</span>
+                                                <div className="flex flex-col gap-1">
+                                                    <span className={`text-[10px] font-bold px-2 py-1 rounded border uppercase tracking-widest w-fit ${o.channel === 'WHATSAPP' ? 'bg-green-50 text-green-600 border-green-200' :
+                                                        o.channel === 'WEBSITE' ? 'bg-blue-50 text-blue-600 border-blue-200' :
+                                                            o.channel === 'INSTAGRAM' ? 'bg-pink-50 text-pink-600 border-pink-200' :
+                                                                'bg-slate-100 text-slate-500 border-slate-200'
+                                                        }`}>
+                                                        {o.channel || 'INTERNAL'}
+                                                    </span>
+                                                    <span className="text-[9px] text-slate-400 font-medium pl-1 truncate max-w-[100px]">{o.source || 'Direct'}</span>
+                                                </div>
                                             </td>
                                             <td className="px-8 py-6">
                                                 <div className="flex items-center gap-3">

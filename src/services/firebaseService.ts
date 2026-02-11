@@ -12,10 +12,11 @@ import {
     Timestamp,
     onSnapshot,
     getDoc,
-    writeBatch
+    writeBatch,
+    setDoc
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { Invoice, Product, Estimate, Payment, RecurringInvoice, CheckoutLink, Customer, Order, OrderStatus, StockLog, Supplier, StockMovementType } from '../types';
+import { Invoice, Product, Estimate, Payment, RecurringInvoice, CheckoutLink, Customer, Order, OrderStatus, StockLog, Supplier, StockMovementType, OrderFormConfig } from '../types';
 
 // ... (existing constants)
 const INVOICES_COLLECTION = 'invoices';
@@ -44,7 +45,7 @@ export const invoiceService = {
         snapshot.forEach((doc) => invoices.push({ id: doc.id, ...doc.data() } as Invoice));
         return invoices;
     },
-    createInvoice: async (userId: string, invoice: Omit<Invoice, 'id'>): Promise<string> => {
+    createInvoice: async (userId: string, invoice: Omit<Invoice, 'id' | 'userId'>): Promise<string> => {
         const docRef = await addDoc(collection(db, INVOICES_COLLECTION), {
             ...invoice,
             userId,
@@ -154,33 +155,56 @@ export const orderService = {
     processStockReduction: async (order: Order) => {
         const batch = writeBatch(db);
         const stockLogs: Omit<StockLog, 'id'>[] = [];
-        for (const item of order.items) {
-            const productRef = doc(db, PRODUCTS_COLLECTION, item.productId);
-            const productSnap = await getDoc(productRef);
-            if (productSnap.exists()) {
-                const product = productSnap.data() as Product;
-                const currentStock = product.inventory?.stock || 0;
-                const newStock = currentStock - item.quantity;
-                let newStatus = product.inventory?.status || 'ACTIVE';
-                if (newStock <= 0) newStatus = 'OUT_OF_STOCK';
-                else if (newStock <= (product.inventory?.minStockLevel || 0)) newStatus = 'LOW_STOCK';
 
-                batch.update(productRef, {
-                    'inventory.stock': newStock,
-                    'inventory.status': newStatus,
-                    lastUpdated: new Date().toISOString()
-                });
-                stockLogs.push({
-                    productId: item.productId, orderId: order.id,
-                    type: 'DEDUCT', quantity: item.quantity,
-                    previousStock: currentStock, newStock: newStock,
-                    reason: `Order Confirmed: ${order.orderId}`,
-                    timestamp: new Date().toISOString(), userId: order.userId
-                });
+        for (const item of order.items) {
+            // Only deduct stock for tracked products
+            if (item.type === 'PRODUCT' && item.itemId) {
+                const productRef = doc(db, PRODUCTS_COLLECTION, item.itemId);
+                const productSnap = await getDoc(productRef);
+
+                if (productSnap.exists()) {
+                    const product = productSnap.data() as Product;
+                    // Skip if product has no inventory tracking
+                    if (!product.inventory) continue;
+
+                    const currentStock = product.inventory.stock || 0;
+                    const newStock = currentStock - item.quantity;
+
+                    let newStatus = product.inventory.status || 'ACTIVE';
+                    if (newStock <= 0) newStatus = 'OUT_OF_STOCK';
+                    else if (newStock <= (product.inventory.minStockLevel || 0)) newStatus = 'LOW_STOCK';
+
+                    batch.update(productRef, {
+                        'inventory.stock': newStock,
+                        'inventory.status': newStatus,
+                        'lastUpdated': new Date().toISOString()
+                    });
+
+                    stockLogs.push({
+                        productId: item.itemId,
+                        orderId: order.id,
+                        type: 'DEDUCT',
+                        quantity: item.quantity,
+                        previousStock: currentStock,
+                        newStock: newStock,
+                        reason: `Order Confirmed: ${order.orderId}`,
+                        timestamp: new Date().toISOString(),
+                        userId: order.userId
+                    });
+                }
             }
         }
-        await batch.commit();
-        for (const log of stockLogs) await addDoc(collection(db, 'stock_logs'), { ...log, createdAt: Timestamp.now() });
+
+        // Commit all updates and create logs
+        if (stockLogs.length > 0) {
+            await batch.commit();
+            const logBatch = writeBatch(db);
+            for (const log of stockLogs) {
+                const logRef = doc(collection(db, 'stock_logs'));
+                logBatch.set(logRef, { ...log, createdAt: Timestamp.now() });
+            }
+            await logBatch.commit();
+        }
     }
 };
 

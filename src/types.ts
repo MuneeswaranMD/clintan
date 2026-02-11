@@ -59,32 +59,79 @@ export enum OrderStatus {
   Cancelled = 'Cancelled'
 }
 
+export type ItemType = 'PRODUCT' | 'SERVICE' | 'CUSTOM';
+
 export interface OrderItem {
   id: string;
-  productId: string;
-  productName: string;
+  itemId?: string; // Optional for custom items
+  name: string;
+  type: ItemType;
   quantity: number;
   price: number;
-  total: number;
+  taxPercentage: number;
+  discount: number;
+  subtotal: number; // (price * quantity)
+  total: number; // (subtotal + tax - discount)
+  trackStock?: boolean; // New: Per-item stock tracking
+}
+
+export interface PricingSummary {
+  subTotal: number;
+  taxTotal: number;
+  discountTotal: number;
+  grandTotal: number;
+}
+
+export type FieldType = 'text' | 'number' | 'email' | 'textarea' | 'date' | 'select' | 'checkbox';
+
+export interface OrderFieldConfig {
+  name: string;
+  label: string;
+  type: FieldType;
+  required: boolean;
+  options?: string[]; // For select inputs
+  placeholder?: string;
+}
+
+export interface OrderFormConfig {
+  id?: string;
+  userId: string; // Creates the 'Per Company' link
+  companyName?: string;
+  fields: OrderFieldConfig[];
+  allowMultipleProducts: boolean;
+  allowCustomItems: boolean;
+  enableTax: boolean;
+  enableDiscount: boolean;
+  enableStock: boolean;
+  currency: string;
+  defaultTaxPercentage?: number;
+  termsAndConditions?: string;
+  formName?: string;
+  logoUrl?: string;
 }
 
 export interface Order {
   id: string;
   orderId: string;
-  customerName: string;
+  customerName: string; // Mapped from dynamic fields if present, or standard
   customerPhone: string;
   customerEmail?: string;
   customerAddress: string;
+  customFields?: Record<string, any>; // Store extra dynamic field data here
   items: OrderItem[];
+  pricingSummary?: PricingSummary;
   totalAmount: number;
-  paymentStatus: 'Paid' | 'Pending';
+  paymentStatus: 'Pending' | 'Paid' | 'Failed';
   orderStatus: OrderStatus;
-  orderDate: string;
-  paymentMethod: string;
+  orderDate: string; // ISO String
+  paymentMethod?: string;
   notes?: string;
   source?: string;
   estimateId?: string; // Link to estimate if created
   userId: string;
+  discount?: number;
+  channel?: 'WEBSITE' | 'WHATSAPP' | 'INSTAGRAM' | 'FACEBOOK' | 'MANUAL_ENTRY' | 'API'; // Omnichannel tracking
+  createdAt?: string;
 }
 
 export enum InvoiceStatus {
@@ -120,6 +167,7 @@ export interface Invoice {
   customerAddress?: string;
   customerEmail?: string;
   notes?: string;
+  userId: string;
 }
 
 export interface SalesData {
@@ -211,5 +259,21 @@ export interface StockLog {
   newStock: number;
   reason: string;
   timestamp: string;
+  userId: string;
+}
+
+export interface Settings {
+  companyName?: string;
+  companyAddress?: string;
+  companyPhone?: string;
+  companyEmail?: string;
+  website?: string;
+  logoUrl?: string;
+  bankName?: string;
+  accountNumber?: string;
+  ifscCode?: string;
+  upiId?: string;
+  defaultTaxPercentage?: number;
+  n8nWebhookUrl?: string;
   userId: string;
 }

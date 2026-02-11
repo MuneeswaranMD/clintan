@@ -1,23 +1,16 @@
 import { db } from './firebase';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
-
-export interface UserSettings {
-    n8nWebhookUrl?: string;
-    razorpayKey?: string;
-    whatsappPhoneId?: string;
-    whatsappToken?: string;
-    emailFrom?: string;
-}
+import { Settings } from '../types';
 
 const SETTINGS_COLLECTION = 'settings';
 
 export const settingsService = {
-    getSettings: async (userId: string): Promise<UserSettings | null> => {
+    getSettings: async (userId: string): Promise<Settings | null> => {
         try {
             const docRef = doc(db, SETTINGS_COLLECTION, userId);
             const docSnap = await getDoc(docRef);
             if (docSnap.exists()) {
-                return docSnap.data() as UserSettings;
+                return docSnap.data() as Settings;
             }
             return null;
         } catch (error) {
@@ -26,7 +19,7 @@ export const settingsService = {
         }
     },
 
-    saveSettings: async (userId: string, settings: UserSettings): Promise<void> => {
+    saveSettings: async (userId: string, settings: Partial<Settings>): Promise<void> => {
         try {
             const docRef = doc(db, SETTINGS_COLLECTION, userId);
             await setDoc(docRef, { ...settings, updatedAt: new Date().toISOString() }, { merge: true });

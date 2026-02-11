@@ -169,7 +169,7 @@ export const Dashboard: React.FC = () => {
             </div>
           </div>
           <div className="h-[350px] w-full mt-4">
-            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+            <ResponsiveContainer width="100%" height="100%" debounce={50} minWidth={0} minHeight={0}>
               <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="6 6" vertical={false} stroke="#F1F5F9" />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 11, fontWeight: 700 }} dy={10} />
@@ -195,7 +195,7 @@ export const Dashboard: React.FC = () => {
                 <p className="text-2xl font-bold text-slate-800 tracking-tight">100%</p>
               </div>
             </div>
-            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+            <ResponsiveContainer width="100%" height="100%" debounce={50} minWidth={0} minHeight={0}>
               <PieChart>
                 <Pie data={statusData} innerRadius={80} outerRadius={100} paddingAngle={8} dataKey="value">
                   {statusData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />)}
