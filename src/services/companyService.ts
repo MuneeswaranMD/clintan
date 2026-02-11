@@ -40,7 +40,7 @@ export const companyService = {
         // Store additional company metadata in Firestore 'companies' collection
         // This allows us to list them later
         await addDoc(collection(db, 'companies'), {
-            uid: user.uid,
+            userId: user.uid,
             name: name,
             email: email,
             phone: phone,
@@ -54,7 +54,7 @@ export const companyService = {
 
     // Get company details by User ID
     getCompanyByUserId: async (uid: string) => {
-        const q = query(collection(db, 'companies'), where('uid', '==', uid));
+        const q = query(collection(db, 'companies'), where('userId', '==', uid));
         const snapshot = await getDocs(q);
         if (snapshot.empty) return null;
         return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
