@@ -4,12 +4,13 @@ import {
   ArrowUpRight, Download, Trash2, Edit2, CheckCircle2,
   Calendar, Mail, X, CreditCard, Clock, MoreVertical, Send, ChevronRight, ChevronLeft
 } from 'lucide-react';
-import { invoiceService, customerService, productService } from '../../services/firebaseService';
-import { authService } from '../../services/authService';
-import { Invoice, Customer, InvoiceStatus, Product, InvoiceItem } from '../../types';
+import { invoiceService, customerService, productService } from '../services/firebaseService';
+import { authService } from '../services/authService';
+import { Invoice, Customer, InvoiceStatus, Product, InvoiceItem } from '../types';
 import { useNavigate } from 'react-router-dom';
-import { generateInvoicePDF } from '../../utils/pdfGenerator';
-import { sendInvoiceEmail } from '../../services/mailService';
+import { generateInvoicePDF } from '../utils/pdfGenerator';
+import { sendInvoiceEmail } from '../services/mailService';
+import { ViewToggle } from '../components/ViewToggle';
 
 export const Invoices: React.FC = () => {
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ export const Invoices: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<'list' | 'form' | 'details'>('list');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -49,7 +51,7 @@ export const Invoices: React.FC = () => {
     const fetchCompany = async () => {
       try {
         // @ts-ignore
-        const { companyService } = await import('../../services/companyService');
+        const { companyService } = await import('../services/companyService');
         const details = await companyService.getCompanyByUserId(user.id);
         if (details) setCompanyDetails(details);
       } catch (error) {
@@ -113,9 +115,9 @@ export const Invoices: React.FC = () => {
       id: Date.now().toString(),
       productId: product.id,
       productName: product.name,
-      price: product.price,
+      price: product.pricing?.sellingPrice || 0,
       quantity: 1,
-      total: product.price
+      total: product.pricing?.sellingPrice || 0
     };
     const newItems = [...(formData.items || []), newItem];
     const subtotal = newItems.reduce((sum, i) => sum + i.total, 0);
@@ -123,7 +125,7 @@ export const Invoices: React.FC = () => {
     // Use product tax if available, otherwise 0
     const itemTaxTotal = newItems.reduce((sum, item) => {
       const prod = products.find(p => p.id === item.productId);
-      const taxRate = (prod as any)?.tax || 0;
+      const taxRate = prod?.pricing?.taxPercentage || 0;
       return sum + (item.total * (taxRate / 100));
     }, 0);
 
@@ -237,7 +239,7 @@ export const Invoices: React.FC = () => {
                   value=""
                 >
                   <option value="">+ Add Row From Catalog</option>
-                  {products.map(p => <option key={p.id} value={p.id}>{p.name} (₹{p.price})</option>)}
+                  {products.map(p => <option key={p.id} value={p.id}>{p.name} (₹{(p.pricing?.sellingPrice || 0).toLocaleString()})</option>)}
                 </select>
               </div>
             </div>
@@ -270,7 +272,7 @@ export const Invoices: React.FC = () => {
                               const subtotal = newItems.reduce((sum, i) => sum + i.total, 0);
                               const tax = newItems.reduce((sum, item) => {
                                 const prod = products.find(p => p.id === item.productId);
-                                return sum + (item.total * (((prod as any)?.tax || 0) / 100));
+                                return sum + (item.total * ((prod?.pricing?.taxPercentage || 0) / 100));
                               }, 0);
                               setFormData({ ...formData, items: newItems, subtotal, tax, total: subtotal + tax });
                             }
@@ -283,7 +285,7 @@ export const Invoices: React.FC = () => {
                             const subtotal = newItems.reduce((sum, i) => sum + i.total, 0);
                             const tax = newItems.reduce((sum, item) => {
                               const prod = products.find(p => p.id === item.productId);
-                              return sum + (item.total * (((prod as any)?.tax || 0) / 100));
+                              return sum + (item.total * ((prod?.pricing?.taxPercentage || 0) / 100));
                             }, 0);
                             setFormData({ ...formData, items: newItems, subtotal, tax, total: subtotal + tax });
                           }} className="w-7 h-7 rounded bg-slate-100 flex items-center justify-center font-bold text-slate-500 hover:bg-slate-200 transition-all">+</button>
@@ -298,7 +300,7 @@ export const Invoices: React.FC = () => {
                           const subtotal = newItems.reduce((sum, i) => sum + i.total, 0);
                           const tax = newItems.reduce((sum, item) => {
                             const prod = products.find(p => p.id === item.productId);
-                            return sum + (item.total * (((prod as any)?.tax || 0) / 100));
+                            return sum + (item.total * ((prod?.pricing?.taxPercentage || 0) / 100));
                           }, 0);
                           setFormData({ ...formData, items: newItems, subtotal, tax, total: subtotal + tax });
                         }} className="text-slate-300 hover:text-red-500 transition-colors">
@@ -488,6 +490,7 @@ export const Invoices: React.FC = () => {
           <p className="text-slate-500 text-sm mt-1">Manage and track all customer billing and payment statuses.</p>
         </div>
         <div className="flex flex-wrap items-center gap-4">
+          <ViewToggle view={viewMode} onViewChange={setViewMode} />
           <div className="bg-white px-6 py-3 rounded-xl border border-slate-200 text-left shadow-sm flex items-center gap-4">
             <div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-lg flex items-center justify-center">
               <Clock size={20} />
@@ -516,72 +519,111 @@ export const Invoices: React.FC = () => {
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 2xl:grid-cols-3 gap-6">
-        {loading ? (
-          <div className="col-span-full py-40 text-center text-slate-400 font-medium animate-pulse">Syncing invoice records...</div>
-        ) : filtered.length > 0 ? filtered.map(inv => (
-          <div key={inv.id} onClick={() => { setSelectedInvoice(inv); setView('details'); }} className="bg-white p-6 rounded-xl border border-slate-200 hover:border-blue-400 hover:shadow-md cursor-pointer transition-all group relative overflow-hidden">
-            <div className="flex justify-between items-start mb-6">
-              <div className="flex items-center gap-4">
-                <div className={`w-12 h-12 rounded-lg ${inv.status === 'Paid' ? 'bg-emerald-50 text-emerald-600' : inv.status === 'Overdue' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'} flex items-center justify-center shadow-sm border border-black/5 transition-all`}>
-                  {inv.status === 'Paid' ? <CheckCircle2 size={24} /> : <FileText size={24} />}
+      {loading ? (
+        <div className="py-40 text-center text-slate-400 font-medium animate-pulse italic uppercase tracking-widest text-xs font-bold">Synchronizing Ledger...</div>
+      ) : filtered.length > 0 ? (
+        viewMode === 'grid' ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 2xl:grid-cols-3 gap-6">
+            {filtered.map(inv => (
+              <div key={inv.id} onClick={() => { setSelectedInvoice(inv); setView('details'); }} className="bg-white p-6 rounded-xl border border-slate-200 hover:border-blue-400 hover:shadow-md cursor-pointer transition-all group relative overflow-hidden">
+                <div className="flex justify-between items-start mb-6">
+                  <div className="flex items-center gap-4">
+                    <div className={`w-12 h-12 rounded-lg ${inv.status === 'Paid' ? 'bg-emerald-50 text-emerald-600' : inv.status === 'Overdue' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'} flex items-center justify-center shadow-sm border border-black/5 transition-all`}>
+                      {inv.status === 'Paid' ? <CheckCircle2 size={24} /> : <FileText size={24} />}
+                    </div>
+                    <div>
+                      <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${inv.status === 'Paid' ? 'bg-emerald-100 text-emerald-700' : inv.status === 'Overdue' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>{inv.status}</span>
+                      <h3 className="text-lg font-bold text-slate-900 mt-1">#{inv.invoiceNumber}</h3>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={(e) => { e.stopPropagation(); setFormData(inv); setView('form'); }} className="p-2 text-slate-300 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all"><Edit2 size={16} /></button>
+                    <button onClick={(e) => { e.stopPropagation(); if (confirm('Delete this invoice?')) invoiceService.deleteInvoice(inv.id); }} className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"><Trash2 size={16} /></button>
+                  </div>
                 </div>
-                <div>
-                  <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${inv.status === 'Paid' ? 'bg-emerald-100 text-emerald-700' : inv.status === 'Overdue' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>{inv.status}</span>
-                  <h3 className="text-lg font-bold text-slate-900 mt-1">#{inv.invoiceNumber}</h3>
+
+                <div className="space-y-1 mb-6">
+                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Customer</p>
+                  <p className="text-base font-bold text-slate-800">{inv.customerName}</p>
+                  <p className="text-xs text-slate-500 truncate mt-1">
+                    {inv.customerAddress || customers.find(c => c.name === inv.customerName)?.address || 'No address provided'}
+                  </p>
+                </div>
+
+                <div className="flex justify-between items-end pt-4 border-t border-slate-100">
+                  <div>
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Date</p>
+                    <p className="text-sm font-bold text-slate-700">{new Date(inv.date).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[11px] font-bold text-blue-500 uppercase tracking-wider mb-1">Total Amount</p>
+                    <p className="text-2xl font-bold text-slate-900 leading-none">₹{inv.total.toLocaleString()}</p>
+                  </div>
+                </div>
+
+                <div className="mt-6 flex gap-3 pt-4 border-t border-slate-100 opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); sendInvoiceEmail(inv); }}
+                    className="flex-1 bg-slate-50 text-slate-600 font-bold py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-slate-900 hover:text-white transition-all text-xs border border-transparent hover:border-slate-900"
+                  >
+                    <Send size={14} /> Send Email
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); generateInvoicePDF({ ...inv, customerAddress: inv.customerAddress || customers.find(c => c.name === inv.customerName)?.address }, companyName, companyPhone, companyLogo); }}
+                    className="flex-1 bg-slate-50 text-slate-600 font-bold py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-blue-600 hover:text-white transition-all text-xs border border-transparent hover:border-blue-600"
+                  >
+                    <Download size={14} /> Download PDF
+                  </button>
                 </div>
               </div>
-              <div className="flex gap-2">
-                <button onClick={(e) => { e.stopPropagation(); setFormData(inv); setView('form'); }} className="p-2 text-slate-300 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all"><Edit2 size={16} /></button>
-                <button onClick={(e) => { e.stopPropagation(); if (confirm('Delete this invoice?')) invoiceService.deleteInvoice(inv.id); }} className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"><Trash2 size={16} /></button>
-              </div>
-            </div>
-
-            <div className="space-y-1 mb-6">
-              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Customer</p>
-              <p className="text-base font-bold text-slate-800">{inv.customerName}</p>
-              <p className="text-xs text-slate-500 truncate mt-1">
-                {inv.customerAddress || customers.find(c => c.name === inv.customerName)?.address || 'No address provided'}
-              </p>
-            </div>
-
-            <div className="flex justify-between items-end pt-4 border-t border-slate-100">
-              <div>
-                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Date</p>
-                <p className="text-sm font-bold text-slate-700">{new Date(inv.date).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-[11px] font-bold text-blue-500 uppercase tracking-wider mb-1">Total Amount</p>
-                <p className="text-2xl font-bold text-slate-900 leading-none">₹{inv.total.toLocaleString()}</p>
-              </div>
-            </div>
-
-            <div className="mt-6 flex gap-3 pt-4 border-t border-slate-100">
-              <button
-                onClick={(e) => { e.stopPropagation(); sendInvoiceEmail(inv); }}
-                className="flex-1 bg-slate-50 text-slate-600 font-bold py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-slate-900 hover:text-white transition-all text-xs border border-transparent hover:border-slate-900"
-              >
-                <Send size={14} /> Send Email
-              </button>
-              <button
-                onClick={(e) => { e.stopPropagation(); generateInvoicePDF({ ...inv, customerAddress: inv.customerAddress || customers.find(c => c.name === inv.customerName)?.address }, companyName, companyPhone, companyLogo); }}
-                className="flex-1 bg-slate-50 text-slate-600 font-bold py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-blue-600 hover:text-white transition-all text-xs border border-transparent hover:border-blue-600"
-              >
-                <Download size={14} /> Download PDF
-              </button>
-            </div>
+            ))}
           </div>
-        )) : (
-          <div className="col-span-full py-32 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-            <div className="w-20 h-20 bg-white rounded-xl flex items-center justify-center mx-auto mb-6 shadow-sm border border-slate-100 text-slate-200">
-              <FileText size={40} />
-            </div>
-            <p className="text-slate-800 font-bold text-xl mb-2">No Invoices Found</p>
-            <p className="text-slate-500 text-sm max-w-xs mx-auto mb-8 font-medium">Get started by creating your first customer invoice.</p>
-            <button onClick={() => setView('form')} className="bg-blue-600 text-white px-8 py-3 rounded-lg font-bold text-sm hover:bg-blue-700 transition-all shadow-sm">Create New Invoice</button>
+        ) : (
+          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+            <table className="w-full text-left">
+              <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200">
+                <tr>
+                  <th className="px-8 py-5">Invoice Details</th>
+                  <th className="px-8 py-5">Customer</th>
+                  <th className="px-8 py-5">Date</th>
+                  <th className="px-8 py-5">Status</th>
+                  <th className="px-8 py-5 text-right">Total Amount</th>
+                  <th className="px-8 py-5 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 italic">
+                {filtered.map(inv => (
+                  <tr key={inv.id} onClick={() => { setSelectedInvoice(inv); setView('details'); }} className="hover:bg-slate-50/50 transition-all cursor-pointer group text-[13px] font-medium">
+                    <td className="px-8 py-5 font-bold text-slate-800">#{inv.invoiceNumber}</td>
+                    <td className="px-8 py-5 text-slate-600">{inv.customerName}</td>
+                    <td className="px-8 py-5 text-slate-500">{new Date(inv.date).toLocaleDateString()}</td>
+                    <td className="px-8 py-5">
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${inv.status === 'Paid' ? 'bg-emerald-100 text-emerald-700' : inv.status === 'Overdue' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>{inv.status}</span>
+                    </td>
+                    <td className="px-8 py-5 text-right font-bold text-slate-900">₹{inv.total.toLocaleString()}</td>
+                    <td className="px-8 py-5 text-right">
+                      <div className="flex justify-end gap-2">
+                        <button onClick={(e) => { e.stopPropagation(); setFormData(inv); setView('form'); }} className="p-2 text-slate-400 hover:text-blue-600 transition-all"><Edit2 size={16} /></button>
+                        <button onClick={(e) => { e.stopPropagation(); if (confirm('Delete invoice?')) invoiceService.deleteInvoice(inv.id); }} className="p-2 text-slate-400 hover:text-red-600 transition-all"><Trash2 size={16} /></button>
+                        <div className="p-2 text-slate-300 group-hover:text-blue-500 transition-all"><ChevronRight size={16} /></div>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        )}
-      </div>
+        )
+      ) : (
+        <div className="col-span-full py-32 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+          <div className="w-20 h-20 bg-white rounded-xl flex items-center justify-center mx-auto mb-6 shadow-sm border border-slate-100 text-slate-200">
+            <FileText size={40} />
+          </div>
+          <p className="text-slate-800 font-bold text-xl mb-2">No Invoices Found</p>
+          <p className="text-slate-500 text-sm max-w-xs mx-auto mb-8 font-medium">Get started by creating your first customer invoice.</p>
+          <button onClick={() => setView('form')} className="bg-blue-600 text-white px-8 py-3 rounded-lg font-bold text-sm hover:bg-blue-700 transition-all shadow-sm">Create New Invoice</button>
+        </div>
+      )}
     </div>
   );
 };

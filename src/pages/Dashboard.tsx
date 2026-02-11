@@ -5,12 +5,12 @@ import {
 } from 'recharts';
 import {
   Users, FileText, IndianRupee, Clock, AlertCircle,
-  Plus, ArrowUpRight, TrendingUp, CreditCard, Wallet, Banknote, LayoutDashboard, ShoppingBag
+  Plus, ArrowUpRight, TrendingUp, CreditCard, Wallet, Banknote, LayoutDashboard, ShoppingBag, X
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { invoiceService, customerService, paymentService, orderService } from '../../services/firebaseService';
-import { authService } from '../../services/authService';
-import { Invoice, Customer, Payment, InvoiceStatus, Order } from '../../types';
+import { invoiceService, customerService, paymentService, orderService, stockService, productService } from '../services/firebaseService';
+import { authService } from '../services/authService';
+import { Invoice, Customer, Payment, InvoiceStatus, Order, Product } from '../types';
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -18,6 +18,8 @@ export const Dashboard: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [stockStats, setStockStats] = useState({ lowStock: 0, outOfStock: 0, totalValue: 0, capitalLocked: 0 });
 
   useEffect(() => {
     const user = authService.getCurrentUser();
@@ -27,12 +29,23 @@ export const Dashboard: React.FC = () => {
     const unsubCustomers = customerService.subscribeToCustomers(user.id, setCustomers);
     const unsubPayments = paymentService.subscribeToPayments(user.id, setPayments);
     const unsubOrders = orderService.subscribeToOrders(user.id, setOrders);
+    const unsubProducts = productService.subscribeToProducts(user.id, (data) => {
+      setProducts(data);
+      const stats = {
+        lowStock: data.filter(p => (p.inventory?.stock || 0) <= (p.inventory?.minStockLevel || 0) && (p.inventory?.stock || 0) > 0).length,
+        outOfStock: data.filter(p => (p.inventory?.stock || 0) <= 0).length,
+        totalValue: data.reduce((sum, p) => sum + ((p.inventory?.stock || 0) * (p.pricing?.sellingPrice || 0)), 0),
+        capitalLocked: data.reduce((sum, p) => sum + ((p.inventory?.stock || 0) * (p.pricing?.costPrice || 0)), 0)
+      };
+      setStockStats(stats);
+    });
 
     return () => {
       unsubInvoices();
       unsubCustomers();
       unsubPayments();
       unsubOrders();
+      unsubProducts();
     };
   }, []);
 
@@ -113,12 +126,12 @@ export const Dashboard: React.FC = () => {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
-        <DashboardStatCard title="Total Customers" value={stats.totalCustomers} icon={Users} bgColor="bg-blue-50" iconColor="text-blue-600" description="Registered clients" />
-        <DashboardStatCard title="Total Invoices" value={stats.totalInvoices} icon={FileText} bgColor="bg-slate-50" iconColor="text-slate-600" description="Generated documents" />
-        <DashboardStatCard title="Total Orders" value={stats.totalOrders} icon={ShoppingBag} bgColor="bg-purple-50" iconColor="text-purple-600" description="External & Internal" />
-        <DashboardStatCard title="Total Revenue" value={`₹${stats.totalRevenue.toLocaleString()}`} icon={IndianRupee} bgColor="bg-emerald-50" iconColor="text-emerald-600" description="Confirmed earnings" />
-        <DashboardStatCard title="Pending Amount" value={`₹${stats.pendingAmount.toLocaleString()}`} icon={Clock} bgColor="bg-amber-50" iconColor="text-amber-600" description="Awaiting payment" />
-        <DashboardStatCard title="Overdue Amount" value={`₹${stats.overdueAmount.toLocaleString()}`} icon={AlertCircle} bgColor="bg-red-50" iconColor="text-red-600" description="Past settlement date" />
+        <DashboardStatCard title="Potential Revenue" value={`₹${stockStats.totalValue.toLocaleString()}`} icon={ShoppingBag} bgColor="bg-indigo-50" iconColor="text-indigo-600" description="Total stock worth" />
+        <DashboardStatCard title="Capital Locked" value={`₹${stockStats.capitalLocked.toLocaleString()}`} icon={Wallet} bgColor="bg-slate-50" iconColor="text-slate-600" description="Procurement cost" />
+        <DashboardStatCard title="Low Stock Assets" value={stockStats.lowStock} icon={AlertCircle} bgColor="bg-amber-50" iconColor="text-amber-600" description="Below threshold" />
+        <DashboardStatCard title="Out of Stock" value={stockStats.outOfStock} icon={X} bgColor="bg-red-50" iconColor="text-red-600" description="Refill required" />
+        <DashboardStatCard title="Settled Revenue" value={`₹${stats.totalRevenue.toLocaleString()}`} icon={IndianRupee} bgColor="bg-emerald-50" iconColor="text-emerald-600" description="Confirmed earnings" />
+        <DashboardStatCard title="Pending Amount" value={`₹${stats.pendingAmount.toLocaleString()}`} icon={Clock} bgColor="bg-blue-50" iconColor="text-blue-600" description="Invoices unpaid" />
       </div>
 
       {/* Quick Action Nodes */}
@@ -155,8 +168,8 @@ export const Dashboard: React.FC = () => {
               <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse"></span> Performance Analysis
             </div>
           </div>
-          <div className="flex-1 min-h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="h-[350px] w-full mt-4">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
               <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="6 6" vertical={false} stroke="#F1F5F9" />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 11, fontWeight: 700 }} dy={10} />
@@ -175,14 +188,14 @@ export const Dashboard: React.FC = () => {
         <div className="bg-white p-8 rounded-xl border border-slate-200 shadow-sm flex flex-col min-h-[450px]">
           <h3 className="text-lg font-bold text-slate-800 mb-1">Invoice Status</h3>
           <p className="text-xs font-medium text-slate-400 uppercase tracking-widest mb-10">Payment Distribution</p>
-          <div className="flex-1 min-h-[300px] relative">
+          <div className="h-[280px] w-full relative">
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="text-center">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Health</p>
                 <p className="text-2xl font-bold text-slate-800 tracking-tight">100%</p>
               </div>
             </div>
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
               <PieChart>
                 <Pie data={statusData} innerRadius={80} outerRadius={100} paddingAngle={8} dataKey="value">
                   {statusData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />)}

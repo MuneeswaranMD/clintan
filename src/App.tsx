@@ -13,8 +13,10 @@ import { Customers } from './pages/Customers';
 import { Products } from './pages/Products';
 import { Orders } from './pages/Orders';
 import { Companies } from './pages/Companies';
+import { Suppliers } from './pages/Suppliers';
+import { InventoryLogs } from './pages/Inventory/InventoryLogs';
 import { OrderForm } from './pages/OrderForm';
-import { SettingsPage } from './pages/Settings';
+import { SettingsPage } from './pages/SettingsPage';
 import { authService } from './services/authService';
 import { User } from './types';
 
@@ -85,6 +87,8 @@ function App() {
                   <Route path="/customers" element={<Customers />} />
                   <Route path="/products" element={<Products />} />
                   <Route path="/orders" element={<Orders />} />
+                  <Route path="/suppliers" element={<Suppliers />} />
+                  <Route path="/inventory-logs" element={<InventoryLogs />} />
                   <Route path="/companies" element={<Companies />} />
                   <Route path="/settings" element={<SettingsPage />} />
                   <Route path="*" element={<Navigate to="/" replace />} />

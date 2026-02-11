@@ -36,10 +36,50 @@ const storage = {
 
 // Mock Data Generators
 const generateMockProducts = (): Product[] => [
-  { id: '1', name: 'Web Design Service', price: 1500, stock: 100, description: 'Basic website design package', userId: 'mock-user' },
-  { id: '2', name: 'SEO Optimization', price: 500, stock: 999, description: 'Monthly SEO maintenance', userId: 'mock-user' },
-  { id: '3', name: 'Hosting (Annual)', price: 120, stock: 999, description: 'Premium cloud hosting', userId: 'mock-user' },
-  { id: '4', name: 'Logo Design', price: 300, stock: 50, description: 'Vector logo with 3 revisions', userId: 'mock-user' },
+  {
+    id: '1',
+    name: 'Web Design Service',
+    category: 'Digital',
+    sku: 'WD-001',
+    type: 'Service',
+    pricing: { costPrice: 500, sellingPrice: 1500, taxPercentage: 18 },
+    inventory: { stock: 100, minStockLevel: 5, reorderQuantity: 10, status: 'ACTIVE' },
+    userId: 'mock-user',
+    lastUpdated: new Date().toISOString()
+  },
+  {
+    id: '2',
+    name: 'SEO Optimization',
+    category: 'Digital',
+    sku: 'SEO-001',
+    type: 'Service',
+    pricing: { costPrice: 200, sellingPrice: 500, taxPercentage: 18 },
+    inventory: { stock: 999, minStockLevel: 0, reorderQuantity: 0, status: 'ACTIVE' },
+    userId: 'mock-user',
+    lastUpdated: new Date().toISOString()
+  },
+  {
+    id: '3',
+    name: 'Hosting (Annual)',
+    category: 'Hosting',
+    sku: 'HOST-001',
+    type: 'Service',
+    pricing: { costPrice: 50, sellingPrice: 120, taxPercentage: 18 },
+    inventory: { stock: 999, minStockLevel: 0, reorderQuantity: 0, status: 'ACTIVE' },
+    userId: 'mock-user',
+    lastUpdated: new Date().toISOString()
+  },
+  {
+    id: '4',
+    name: 'Logo Design',
+    category: 'Design',
+    sku: 'LD-001',
+    type: 'Service',
+    pricing: { costPrice: 100, sellingPrice: 300, taxPercentage: 18 },
+    inventory: { stock: 50, minStockLevel: 5, reorderQuantity: 10, status: 'ACTIVE' },
+    userId: 'mock-user',
+    lastUpdated: new Date().toISOString()
+  },
 ];
 
 const generateMockInvoices = (): Invoice[] => {

@@ -2,18 +2,22 @@ import React, { useEffect, useState } from 'react';
 import {
     ShoppingBag, Search, Plus, Trash2, Edit2,
     CheckCircle2, Clock, Truck, X, Package,
-    ChevronRight, MapPin, Phone, User, ExternalLink, FileText
+    ChevronRight, MapPin, Phone, User, ExternalLink
 } from 'lucide-react';
-import { orderService, productService, estimateService } from '../services/firebaseService';
+import { orderService, productService } from '../services/firebaseService';
 import { authService } from '../services/authService';
 import { Order, OrderStatus, Product } from '../types';
+import { ViewToggle } from '../components/ViewToggle';
 
 export const Orders: React.FC = () => {
     const [orders, setOrders] = useState<Order[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
     const [view, setView] = useState<'list' | 'form' | 'details'>('list');
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
     const [searchTerm, setSearchTerm] = useState('');
+    const [statusFilter, setStatusFilter] = useState('All');
+    const [paymentFilter, setPaymentFilter] = useState('All');
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
     // Form State
@@ -49,10 +53,15 @@ export const Orders: React.FC = () => {
         };
     }, []);
 
-    const filteredOrders = orders.filter(o =>
-        o.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        o.orderId?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredOrders = orders.filter(o => {
+        const matchesSearch = (o.customerName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (o.orderId || '').toLowerCase().includes(searchTerm.toLowerCase());
+
+        const matchesStatus = statusFilter === 'All' || o.orderStatus === statusFilter;
+        const matchesPayment = paymentFilter === 'All' || o.paymentStatus === paymentFilter;
+
+        return matchesSearch && matchesStatus && matchesPayment;
+    });
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -92,21 +101,6 @@ export const Orders: React.FC = () => {
         }
     };
 
-    const handleConvertToEstimate = async (order: Order) => {
-        const user = authService.getCurrentUser();
-        if (!user) return;
-
-        if (confirm(`Convert order ${order.orderId} to an estimate?`)) {
-            try {
-                const estimateId = await estimateService.convertOrderToEstimate(order, user.id);
-                alert(`✅ Estimate created successfully!\n\nOrder ${order.orderId} has been converted to an estimate.\n\nThe estimate is valid for 30 days and has been marked as "Sent".\n\nYou can view it in the Estimates page.`);
-            } catch (error) {
-                console.error(error);
-                alert('Failed to convert order to estimate');
-            }
-        }
-    };
-
     const resetForm = () => {
         setFormData({
             customerName: '',
@@ -125,12 +119,8 @@ export const Orders: React.FC = () => {
     const getStatusColor = (status: OrderStatus) => {
         switch (status) {
             case OrderStatus.Pending: return 'bg-amber-50 text-amber-600 border-amber-100';
-            case OrderStatus.EstimateSent: return 'bg-cyan-50 text-cyan-600 border-cyan-100';
-            case OrderStatus.EstimateAccepted: return 'bg-teal-50 text-teal-600 border-teal-100';
-            case OrderStatus.EstimateRejected: return 'bg-orange-50 text-orange-600 border-orange-100';
             case OrderStatus.Paid: return 'bg-blue-50 text-blue-600 border-blue-100';
             case OrderStatus.Processing: return 'bg-indigo-50 text-indigo-600 border-indigo-100';
-            case OrderStatus.Dispatched: return 'bg-violet-50 text-violet-600 border-violet-100';
             case OrderStatus.Shipped: return 'bg-purple-50 text-purple-600 border-purple-100';
             case OrderStatus.Delivered: return 'bg-emerald-50 text-emerald-600 border-emerald-100';
             case OrderStatus.Cancelled: return 'bg-red-50 text-red-600 border-red-100';
@@ -161,15 +151,15 @@ export const Orders: React.FC = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
                                     <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Full Name</label>
-                                    <input required type="text" className="w-full bg-slate-50 border border-transparent p-3 rounded-lg text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-medium" value={formData.customerName} onChange={e => setFormData({ ...formData, customerName: e.target.value })} />
+                                    <input required type="text" className="w-full bg-slate-50 border border-transparent p-3 rounded-lg text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-medium" value={formData.customerName || ''} onChange={e => setFormData({ ...formData, customerName: e.target.value })} />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Phone Number</label>
-                                    <input required type="text" className="w-full bg-slate-50 border border-transparent p-3 rounded-lg text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-medium" value={formData.customerPhone} onChange={e => setFormData({ ...formData, customerPhone: e.target.value })} />
+                                    <input required type="text" className="w-full bg-slate-50 border border-transparent p-3 rounded-lg text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-medium" value={formData.customerPhone || ''} onChange={e => setFormData({ ...formData, customerPhone: e.target.value })} />
                                 </div>
                                 <div className="space-y-2 md:col-span-2">
                                     <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Shipping Address</label>
-                                    <textarea required rows={2} className="w-full bg-slate-50 border border-transparent p-3 rounded-lg text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-medium h-20" value={formData.customerAddress} onChange={e => setFormData({ ...formData, customerAddress: e.target.value })} />
+                                    <textarea required rows={2} className="w-full bg-slate-50 border border-transparent p-3 rounded-lg text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-medium h-20" value={formData.customerAddress || ''} onChange={e => setFormData({ ...formData, customerAddress: e.target.value })} />
                                 </div>
                             </div>
                         </div>
@@ -185,17 +175,18 @@ export const Orders: React.FC = () => {
                                     <div key={p.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100">
                                         <div>
                                             <p className="font-bold text-slate-800">{p.name}</p>
-                                            <p className="text-xs text-slate-500">₹{p.price.toLocaleString()}</p>
+                                            <p className="text-xs text-slate-500">₹{(p.pricing?.sellingPrice || 0).toLocaleString()}</p>
                                         </div>
                                         <div className="flex items-center gap-3">
                                             <button type="button" onClick={() => {
+                                                const sellingPrice = p.pricing?.sellingPrice || 0;
                                                 const existing = formData.items?.find(i => i.productId === p.id);
                                                 if (existing) {
-                                                    const newItems = formData.items?.map(i => i.productId === p.id ? { ...i, quantity: i.quantity + 1, total: (i.quantity + 1) * p.price } : i);
-                                                    setFormData({ ...formData, items: newItems, totalAmount: (formData.totalAmount || 0) + p.price });
+                                                    const newItems = formData.items?.map(i => i.productId === p.id ? { ...i, quantity: i.quantity + 1, total: (i.quantity + 1) * sellingPrice } : i);
+                                                    setFormData({ ...formData, items: newItems, totalAmount: (formData.totalAmount || 0) + sellingPrice });
                                                 } else {
-                                                    const newItem = { id: Math.random().toString(), productId: p.id, productName: p.name, quantity: 1, price: p.price, total: p.price };
-                                                    setFormData({ ...formData, items: [...(formData.items || []), newItem], totalAmount: (formData.totalAmount || 0) + p.price });
+                                                    const newItem = { id: Math.random().toString(), productId: p.id, productName: p.name, quantity: 1, price: sellingPrice, total: sellingPrice };
+                                                    setFormData({ ...formData, items: [...(formData.items || []), newItem], totalAmount: (formData.totalAmount || 0) + sellingPrice });
                                                 }
                                             }} className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-blue-600 hover:bg-blue-600 hover:text-white transition-all shadow-sm">
                                                 <Plus size={16} />
@@ -332,7 +323,7 @@ export const Orders: React.FC = () => {
 
     return (
         <div className="space-y-10 animate-fade-in pb-10">
-            <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-3">
                         <div className="w-12 h-12 bg-slate-900 rounded-xl flex items-center justify-center text-white shadow-lg">
@@ -342,9 +333,12 @@ export const Orders: React.FC = () => {
                     </h1>
                     <p className="text-slate-500 text-sm mt-1">Manage and track your customer orders and fulfillment.</p>
                 </div>
-                <button onClick={() => { resetForm(); setView('form'); }} className="bg-slate-900 text-white px-8 py-3.5 rounded-xl font-bold flex items-center gap-2 hover:bg-black transition-all shadow-md text-sm active:scale-95 leading-none">
-                    <Plus size={20} /> Manual Intake
-                </button>
+                <div className="flex items-center gap-4 w-full md:w-auto">
+                    <ViewToggle view={viewMode} onViewChange={setViewMode} />
+                    <button onClick={() => { resetForm(); setView('form'); }} className="bg-slate-900 text-white px-8 py-3.5 rounded-xl font-bold flex items-center gap-2 hover:bg-black transition-all shadow-md text-sm active:scale-95 leading-none flex-1 md:flex-none justify-center">
+                        <Plus size={20} /> Manual Intake
+                    </button>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -376,103 +370,187 @@ export const Orders: React.FC = () => {
                 </div>
             </div>
 
-            <div className="relative group">
-                <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={20} />
-                <input
-                    placeholder="Search by Order ID or Client Name..."
-                    className="w-full bg-white border border-slate-200 pl-16 pr-6 py-4 rounded-xl text-slate-900 outline-none focus:border-blue-500 shadow-sm transition-all font-medium"
-                    value={searchTerm}
-                    onChange={e => setSearchTerm(e.target.value)}
-                />
-            </div>
+            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                <div className="relative group">
+                    <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={20} />
+                    <input
+                        placeholder="Search by Order ID or Client Name..."
+                        className="w-full bg-slate-50 border border-transparent pl-16 pr-6 py-4 rounded-xl text-slate-900 outline-none focus:bg-white focus:border-blue-500 shadow-sm transition-all font-medium"
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                    />
+                </div>
 
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-md overflow-hidden animate-fade-in-up">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                        <thead>
-                            <tr className="bg-slate-50 border-b border-slate-200">
-                                <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Order ID</th>
-                                <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Customer</th>
-                                <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Source</th>
-                                <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
-                                <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Amount</th>
-                                <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                            {loading ? (
-                                <tr>
-                                    <td colSpan={5} className="px-8 py-20 text-center text-slate-300 font-bold uppercase tracking-widest italic animate-pulse">Loading orders...</td>
-                                </tr>
-                            ) : filteredOrders.length > 0 ? filteredOrders.map(o => (
-                                <tr key={o.id} onClick={() => { setSelectedOrder(o); setView('details'); }} className="group hover:bg-slate-50/50 cursor-pointer transition-colors">
-                                    <td className="px-8 py-6">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-lg bg-slate-900 flex items-center justify-center text-white font-bold text-[10px] group-hover:scale-110 transition-transform">
-                                                {o.orderId?.substring(4, 5)}
-                                            </div>
-                                            <div>
-                                                <p className="text-sm font-bold text-slate-800">{o.orderId}</p>
-                                                <p className="text-[10px] text-slate-400 font-medium uppercase">{new Date(o.orderDate).toLocaleDateString()}</p>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-8 py-6">
-                                        <p className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors">{o.customerName}</p>
-                                        <p className="text-xs text-slate-400 group-hover:text-slate-600 transition-colors uppercase font-bold tracking-tight">{o.customerPhone}</p>
-                                    </td>
-                                    <td className="px-8 py-6">
-                                        <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded border border-slate-200 uppercase tracking-widest">{o.source || 'Direct'}</span>
-                                    </td>
-                                    <td className="px-8 py-6">
-                                        <div className="flex items-center gap-3">
-                                            <span className={`px-3 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest border ${getStatusColor(o.orderStatus)}`}>
-                                                {o.orderStatus}
-                                            </span>
-                                            <div className="w-1.5 h-1.5 rounded-full bg-slate-200 group-hover:bg-blue-300"></div>
-                                            <span className={`text-[9px] font-bold uppercase tracking-widest ${o.paymentStatus === 'Paid' ? 'text-emerald-500' : 'text-amber-500'}`}>
-                                                {o.paymentStatus}
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td className="px-8 py-6 text-right">
-                                        <p className="text-lg font-bold text-slate-900 tracking-tighter">₹{o.totalAmount.toLocaleString()}</p>
-                                        <p className="text-[9px] text-slate-400 font-bold uppercase">{o.paymentMethod || 'Manual'}</p>
-                                    </td>
-                                    <td className="px-8 py-6">
-                                        <div className="flex items-center justify-center gap-2">
-                                            {o.orderStatus === OrderStatus.Pending && !o.estimateId && (
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); handleConvertToEstimate(o); }}
-                                                    className="w-8 h-8 rounded-lg bg-slate-50 text-slate-300 hover:text-cyan-600 hover:bg-cyan-50 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100"
-                                                    title="Convert to Estimate"
-                                                >
-                                                    <FileText size={14} />
-                                                </button>
-                                            )}
-                                            <button onClick={(e) => { e.stopPropagation(); handleDelete(o.id); }} className="w-8 h-8 rounded-lg bg-slate-50 text-slate-300 hover:text-red-600 hover:bg-red-50 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100"><Trash2 size={14} /></button>
-                                            <div className="w-8 h-8 rounded-lg bg-slate-50 text-slate-300 hover:text-blue-600 hover:bg-white flex items-center justify-center border border-transparent group-hover:border-slate-100 transition-all"><ChevronRight size={14} /></div>
-                                        </div>
-                                    </td>
-                                </tr>
-                            )) : (
-                                <tr>
-                                    <td colSpan={5} className="px-8 py-40 text-center">
-                                        <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-6 text-slate-200">
-                                            <ShoppingBag size={32} />
-                                        </div>
-                                        <h3 className="text-slate-400 font-bold text-xl uppercase tracking-widest italic">No Acquisitions Record</h3>
-                                        <p className="text-slate-300 text-sm mt-1 mb-8">Initiate your first order protocol to populate the vault.</p>
-                                        <button onClick={() => { resetForm(); setView('form'); }} className="bg-slate-900 text-white px-10 py-3 rounded-xl font-bold hover:bg-black transition-all shadow-md active:scale-95 leading-none text-xs uppercase tracking-widest">
-                                            New Internal Order
-                                        </button>
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Order Status</label>
+                        <select
+                            className="w-full bg-slate-50 border border-transparent p-3 rounded-lg text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-medium appearance-none cursor-pointer"
+                            value={statusFilter}
+                            onChange={e => setStatusFilter(e.target.value)}
+                        >
+                            <option value="All">All Statuses</option>
+                            {Object.values(OrderStatus).map(status => (
+                                <option key={status} value={status}>{status}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Payment</label>
+                        <select
+                            className="w-full bg-slate-50 border border-transparent p-3 rounded-lg text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-medium appearance-none cursor-pointer"
+                            value={paymentFilter}
+                            onChange={e => setPaymentFilter(e.target.value)}
+                        >
+                            <option value="All">All Payments</option>
+                            <option value="Paid">Paid</option>
+                            <option value="Pending">Pending</option>
+                        </select>
+                    </div>
                 </div>
             </div>
+
+            {
+                viewMode === 'grid' ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        {loading ? (
+                            <div className="col-span-full py-40 text-center font-bold text-slate-300 text-xl animate-pulse italic">Syncing Orders...</div>
+                        ) : filteredOrders.length > 0 ? filteredOrders.map(o => (
+                            <div key={o.id} onClick={() => { setSelectedOrder(o); setView('details'); }} className="bg-white p-6 rounded-2xl border border-slate-200 hover:border-blue-400 hover:shadow-xl transition-all group cursor-pointer flex flex-col relative overflow-hidden">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{new Date(o.orderDate).toLocaleDateString()}</span>
+                                        <h3 className="text-lg font-bold text-slate-900 tracking-tight">{o.orderId}</h3>
+                                    </div>
+                                    <span className={`px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest border ${getStatusColor(o.orderStatus)}`}>
+                                        {o.orderStatus}
+                                    </span>
+                                </div>
+
+                                <div className="space-y-4 mb-6">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400">
+                                            <User size={18} />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-bold text-slate-800">{o.customerName}</p>
+                                            <p className="text-[10px] text-slate-400 font-bold uppercase">{o.customerPhone}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider bg-slate-50 p-2 rounded-lg">
+                                        <Package size={12} className="text-blue-500" />
+                                        {o.items.length} {o.items.length === 1 ? 'Item' : 'Items'} • {o.paymentMethod}
+                                    </div>
+                                </div>
+
+                                <div className="pt-4 border-t border-slate-50 mt-auto flex justify-between items-end">
+                                    <div>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Settlement</p>
+                                        <div className="flex items-center gap-2">
+                                            <span className={`text-xl font-bold text-slate-900 tracking-tighter`}>₹{o.totalAmount.toLocaleString()}</span>
+                                            <span className={`text-[9px] font-bold uppercase ${o.paymentStatus === 'Paid' ? 'text-emerald-500' : 'text-amber-500'}`}>{o.paymentStatus}</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                                        <button onClick={(e) => { e.stopPropagation(); handleDelete(o.id); }} className="p-2 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"><Trash2 size={16} /></button>
+                                        <div className="p-2 text-slate-300 hover:text-blue-600 rounded-lg transition-all"><ChevronRight size={16} /></div>
+                                    </div>
+                                </div>
+                            </div>
+                        )) : (
+                            <div className="col-span-full py-40 text-center bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                                <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm text-slate-200">
+                                    <ShoppingBag size={32} />
+                                </div>
+                                <h3 className="text-slate-800 font-bold text-xl mb-2">No Orders Found</h3>
+                                <p className="text-slate-500 text-sm max-w-xs mx-auto mb-8">Your order catalog is currently empty. Start taking orders to see them here.</p>
+                                <button onClick={() => { resetForm(); setView('form'); }} className="bg-slate-900 text-white px-8 py-3 rounded-xl font-bold hover:bg-black transition-all shadow-md active:scale-95 leading-none text-xs uppercase tracking-widest">
+                                    New Internal Order
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    <div className="bg-white rounded-2xl border border-slate-200 shadow-md overflow-hidden animate-fade-in-up">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left">
+                                <thead>
+                                    <tr className="bg-slate-50 border-b border-slate-200">
+                                        <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Order ID</th>
+                                        <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Customer</th>
+                                        <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Source</th>
+                                        <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
+                                        <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Amount</th>
+                                        <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {loading ? (
+                                        <tr>
+                                            <td colSpan={6} className="px-8 py-20 text-center text-slate-300 font-bold uppercase tracking-widest italic animate-pulse">Loading orders...</td>
+                                        </tr>
+                                    ) : filteredOrders.length > 0 ? filteredOrders.map(o => (
+                                        <tr key={o.id} onClick={() => { setSelectedOrder(o); setView('details'); }} className="group hover:bg-slate-50/50 cursor-pointer transition-colors">
+                                            <td className="px-8 py-6">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-lg bg-slate-900 flex items-center justify-center text-white font-bold text-[10px] group-hover:scale-110 transition-transform">
+                                                        {o.orderId?.substring(4, 5)}
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-sm font-bold text-slate-800">{o.orderId}</p>
+                                                        <p className="text-[10px] text-slate-400 font-medium uppercase">{new Date(o.orderDate).toLocaleDateString()}</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-8 py-6">
+                                                <p className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors">{o.customerName}</p>
+                                                <p className="text-xs text-slate-400 group-hover:text-slate-600 transition-colors uppercase font-bold tracking-tight">{o.customerPhone}</p>
+                                            </td>
+                                            <td className="px-8 py-6">
+                                                <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded border border-slate-200 uppercase tracking-widest">{o.source || 'Direct'}</span>
+                                            </td>
+                                            <td className="px-8 py-6">
+                                                <div className="flex items-center gap-3">
+                                                    <span className={`px-3 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest border ${getStatusColor(o.orderStatus)}`}>
+                                                        {o.orderStatus}
+                                                    </span>
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-slate-200 group-hover:bg-blue-300"></div>
+                                                    <span className={`text-[9px] font-bold uppercase tracking-widest ${o.paymentStatus === 'Paid' ? 'text-emerald-500' : 'text-amber-500'}`}>
+                                                        {o.paymentStatus}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className="px-8 py-6 text-right">
+                                                <p className="text-lg font-bold text-slate-900 tracking-tighter">₹{o.totalAmount.toLocaleString()}</p>
+                                                <p className="text-[9px] text-slate-400 font-bold uppercase">{o.paymentMethod || 'Manual'}</p>
+                                            </td>
+                                            <td className="px-8 py-6">
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <button onClick={(e) => { e.stopPropagation(); handleDelete(o.id); }} className="w-8 h-8 rounded-lg bg-slate-50 text-slate-300 hover:text-red-600 hover:bg-red-50 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100"><Trash2 size={14} /></button>
+                                                    <div className="w-8 h-8 rounded-lg bg-slate-50 text-slate-300 hover:text-blue-600 hover:bg-white flex items-center justify-center border border-transparent group-hover:border-slate-100 transition-all"><ChevronRight size={14} /></div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )) : (
+                                        <tr>
+                                            <td colSpan={6} className="px-8 py-40 text-center">
+                                                <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-6 text-slate-200">
+                                                    <ShoppingBag size={32} />
+                                                </div>
+                                                <h3 className="text-slate-400 font-bold text-xl uppercase tracking-widest italic">No Acquisitions Record</h3>
+                                                <p className="text-slate-300 text-sm mt-1 mb-8">Initiate your first order protocol to populate the vault.</p>
+                                                <button onClick={() => { resetForm(); setView('form'); }} className="bg-slate-900 text-white px-10 py-3 rounded-xl font-bold hover:bg-black transition-all shadow-md active:scale-95 leading-none text-xs uppercase tracking-widest">
+                                                    New Internal Order
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )
+            }
 
             <div className="p-8 bg-blue-600 rounded-3xl text-white relative overflow-hidden group">
                 <div className="absolute top-0 right-0 w-96 h-96 bg-white opacity-5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl"></div>
@@ -501,6 +579,6 @@ export const Orders: React.FC = () => {
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     );
 };

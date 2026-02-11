@@ -69,6 +69,8 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
     { label: 'Overdue', path: '/overdue', icon: Clock },
     { label: 'Customers', path: '/customers', icon: Users },
     { label: 'Products', path: '/products', icon: Package },
+    { label: 'Inventory', path: '/inventory-logs', icon: Clock },
+    { label: 'Suppliers', path: '/suppliers', icon: Building2 },
   ];
 
   if (user && user.email === 'muneeswaran@averqon.in') {
@@ -91,7 +93,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
                 A
               </div>
               <span className="text-xl font-bold text-slate-800 hidden sm:block tracking-tight">
-                Arto<span className="text-blue-600">+</span>
+                Averqon<span className="text-blue-600">+</span>
               </span>
             </div>
 

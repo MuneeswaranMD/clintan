@@ -10,8 +10,8 @@ import {
     AlertCircle,
     Zap
 } from 'lucide-react';
-import { authService } from '../../services/authService';
-import { settingsService, UserSettings } from '../../services/settingsService';
+import { authService } from '../services/authService';
+import { settingsService, UserSettings } from '../services/settingsService';
 
 export const SettingsPage: React.FC = () => {
     const [settings, setSettings] = useState<UserSettings>({

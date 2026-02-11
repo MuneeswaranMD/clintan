@@ -267,9 +267,9 @@ export const BillingContent: React.FC<BillingContentProps> = ({ initialTab = 'In
             id: Date.now().toString(),
             productId: product.id,
             productName: product.name,
-            price: product.price,
+            price: product.pricing?.sellingPrice || 0,
             quantity: 1,
-            total: product.price
+            total: product.pricing?.sellingPrice || 0
         };
 
         const newItems = [...(formData.items || []), newItem];
@@ -533,7 +533,7 @@ export const BillingContent: React.FC<BillingContentProps> = ({ initialTab = 'In
                             <h3 className="text-xl font-bold text-white">Items</h3>
                             <select className="bg-[#2C3035] p-2 rounded-xl text-sm outline-none" onChange={(e) => addItem(e.target.value)}>
                                 <option value="">+ Add Item</option>
-                                {products.map(p => <option key={p.id} value={p.id}>{p.name} - ₹{p.price}</option>)}
+                                {products.map(p => <option key={p.id} value={p.id}>{p.name} - ₹{p.pricing?.sellingPrice || 0}</option>)}
                             </select>
                         </div>
                         {formData.items?.map((item, idx) => (

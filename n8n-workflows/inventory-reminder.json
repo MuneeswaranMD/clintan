@@ -1,0 +1,106 @@
+{
+    "name": "Daily Inventory Check & Reminders",
+    "nodes": [
+        {
+            "parameters": {
+                "rule": {
+                    "interval": [
+                        {
+                            "field": "hours",
+                            "value": 9
+                        }
+                    ]
+                }
+            },
+            "name": "Cron Trigger",
+            "type": "n8n-nodes-base.cron",
+            "typeVersion": 1,
+            "position": [
+                100,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "resource": "document",
+                "operation": "getAll",
+                "collection": "products"
+            },
+            "name": "Get All Products",
+            "type": "n8n-nodes-base.googleFirebase",
+            "typeVersion": 1,
+            "position": [
+                300,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "number": [
+                        {
+                            "value1": "={{$json.stock}}",
+                            "operation": "smallerEqual",
+                            "value2": "={{$json.minStockLevel || 5}}"
+                        }
+                    ]
+                }
+            },
+            "name": "Filter Low Stock",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                500,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "chatId": "YOUR_ADMIN_CHAT_ID",
+                "text": "⚠️ *Low Stock Alert*\n\nProduct: {{$json.name}}\nRemaining Stock: {{$json.stock}}\n\nPlease reorder soon."
+            },
+            "name": "WhatsApp Notification",
+            "type": "n8n-nodes-base.telegram",
+            "typeVersion": 1,
+            "position": [
+                700,
+                200
+            ]
+        }
+    ],
+    "connections": {
+        "Cron Trigger": {
+            "main": [
+                [
+                    {
+                        "node": "Get All Products",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Get All Products": {
+            "main": [
+                [
+                    {
+                        "node": "Filter Low Stock",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Filter Low Stock": {
+            "main": [
+                [
+                    {
+                        "node": "WhatsApp Notification",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

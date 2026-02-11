@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { Package, Send, CheckCircle, AlertCircle, ShoppingCart } from 'lucide-react';
-import { productService, orderService } from '../../services/firebaseService';
-import { settingsService } from '../../services/settingsService';
-import { Product, OrderStatus } from '../../types';
+import { productService, orderService } from '../services/firebaseService';
+import { settingsService } from '../services/settingsService';
+import { Product, OrderStatus } from '../types';
 
 export const OrderForm: React.FC = () => {
     const { userId } = useParams<{ userId: string }>();
@@ -33,7 +33,7 @@ export const OrderForm: React.FC = () => {
         }
 
         const unsub = productService.subscribeToProducts(userId, (data) => {
-            setProducts(data.filter(p => p.status !== 'Inactive'));
+            setProducts(data.filter(p => p.inventory?.status !== 'DISABLED'));
             setLoading(false);
         });
 
@@ -48,14 +48,12 @@ export const OrderForm: React.FC = () => {
         try {
             if (!userId) throw new Error('Developer identity missing.');
 
-            console.log('🔵 Order Form: Starting submission for userId:', userId);
-
             // Find selected product details
             const selectedProduct = products.find(p => p.id === formData.productId);
             if (!selectedProduct) throw new Error('Please select a valid product.');
 
+            const sellingPrice = selectedProduct.pricing?.sellingPrice || 0;
             const orderId = `ORD-${Math.floor(100000 + Math.random() * 900000)}`;
-            console.log('🔵 Order Form: Generated Order ID:', orderId);
 
             const orderData = {
                 orderId,
@@ -68,10 +66,10 @@ export const OrderForm: React.FC = () => {
                     productId: selectedProduct.id,
                     productName: selectedProduct.name,
                     quantity: formData.quantity,
-                    price: selectedProduct.price,
-                    total: selectedProduct.price * formData.quantity
+                    price: sellingPrice,
+                    total: sellingPrice * formData.quantity
                 }],
-                totalAmount: selectedProduct.price * formData.quantity,
+                totalAmount: sellingPrice * formData.quantity,
                 paymentStatus: 'Pending' as const,
                 orderStatus: OrderStatus.Pending,
                 orderDate: new Date().toISOString(),
@@ -81,27 +79,15 @@ export const OrderForm: React.FC = () => {
                 userId: userId
             };
 
-            console.log('🔵 Order Form: Submitting order data:', orderData);
-
             // 1. Create Order in CRM (Firebase)
-            try {
-                const docRef = await orderService.createOrder(userId, orderData);
-                console.log('✅ Order Form: Order created successfully with ID:', docRef.id);
-            } catch (firebaseError: any) {
-                console.error('❌ Order Form: Firebase error:', firebaseError);
-                console.error('Error code:', firebaseError.code);
-                console.error('Error message:', firebaseError.message);
-                throw new Error(`Failed to save order: ${firebaseError.message}`);
-            }
+            await orderService.createOrder(userId, orderData);
 
             // 2. Trigger n8n Automation if Webhook URL is configured
             try {
                 const settings = await settingsService.getSettings(userId);
-                // Use configured webhook URL or fallback to hardcoded URL
                 const webhookUrl = settings?.n8nWebhookUrl || 'https://n8n-render-cf3i.onrender.com/webhook-test/order-created';
 
-                console.log('🔵 Order Form: Pushing to n8n webhook:', webhookUrl);
-                const webhookResponse = await fetch(webhookUrl, {
+                await fetch(webhookUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -117,29 +103,21 @@ export const OrderForm: React.FC = () => {
                         product: {
                             id: selectedProduct.id,
                             name: selectedProduct.name,
-                            price: selectedProduct.price
+                            price: sellingPrice
                         },
                         quantity: formData.quantity,
-                        total: selectedProduct.price * formData.quantity,
+                        total: sellingPrice * formData.quantity,
                         source: formData.source,
                         timestamp: new Date().toISOString()
                     })
                 });
-
-                if (webhookResponse.ok) {
-                    console.log('✅ Order Form: n8n webhook triggered successfully');
-                } else {
-                    console.warn('⚠️ Order Form: n8n webhook returned non-OK status:', webhookResponse.status);
-                }
             } catch (webhookErr) {
-                console.error('⚠️ Order Form: n8n webhook failed (order still saved):', webhookErr);
-                // Don't throw - order was saved successfully
+                console.error('⚠️ n8n webhook failed:', webhookErr);
             }
 
-            console.log('✅ Order Form: Submission complete!');
             setSubmitted(true);
         } catch (err: any) {
-            console.error('❌ Order Form: Submission failed:', err);
+            console.error('❌ Submission failed:', err);
             setError(err.message || 'Failed to process order. Please try again.');
         } finally {
             setLoading(false);
@@ -246,7 +224,7 @@ export const OrderForm: React.FC = () => {
                                 >
                                     <option value="">Select a Product / Service</option>
                                     {products.map(p => (
-                                        <option key={p.id} value={p.id}>{p.name} - ₹{p.price.toLocaleString()}</option>
+                                        <option key={p.id} value={p.id}>{p.name} - ₹{(p.pricing?.sellingPrice || 0).toLocaleString()}</option>
                                     ))}
                                 </select>
                                 <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-xl border border-transparent hover:border-slate-200 transition-all">
@@ -288,7 +266,7 @@ export const OrderForm: React.FC = () => {
                             <div className="flex justify-between items-center mb-6">
                                 <span className="text-sm font-bold text-slate-400 uppercase tracking-widest">Order Total</span>
                                 <span className="text-3xl font-bold text-blue-600 tracking-tighter">
-                                    ₹{((products.find(p => p.id === formData.productId)?.price || 0) * formData.quantity).toLocaleString()}
+                                    ₹{((products.find(p => p.id === formData.productId)?.pricing?.sellingPrice || 0) * formData.quantity).toLocaleString()}
                                 </span>
                             </div>
                             <button

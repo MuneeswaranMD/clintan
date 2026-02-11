@@ -1,0 +1,97 @@
+{
+    "name": "Stock Update Logic",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "order-confirmed",
+                "options": {}
+            },
+            "name": "Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                100,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "resource": "document",
+                "operation": "get",
+                "collection": "products",
+                "documentId": "={{$json.body.productId}}"
+            },
+            "name": "Get Product",
+            "type": "n8n-nodes-base.googleFirebase",
+            "typeVersion": 1,
+            "position": [
+                300,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "functionCode": "const currentStock = $json.stock;\nconst orderedQty = $node[\"Webhook\"].json.body.quantity;\n\nreturn [{\n  json: {\n    newStock: currentStock - orderedQty,\n    productId: $node[\"Webhook\"].json.body.productId\n  }\n}];"
+            },
+            "name": "Stock Calculation",
+            "type": "n8n-nodes-base.function",
+            "typeVersion": 1,
+            "position": [
+                500,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "resource": "document",
+                "operation": "update",
+                "collection": "products",
+                "documentId": "={{$json.productId}}",
+                "updateData": "={\n  \"stock\": {{$json.newStock}},\n  \"status\": \"{{$json.newStock <= 0 ? 'OUT_OF_STOCK' : ($json.newStock <= 5 ? 'LOW_STOCK' : 'ACTIVE')}}\"\n}"
+            },
+            "name": "Update Firestore",
+            "type": "n8n-nodes-base.googleFirebase",
+            "typeVersion": 1,
+            "position": [
+                700,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Get Product",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Get Product": {
+            "main": [
+                [
+                    {
+                        "node": "Stock Calculation",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Stock Calculation": {
+            "main": [
+                [
+                    {
+                        "node": "Update Firestore",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

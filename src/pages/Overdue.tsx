@@ -3,9 +3,9 @@ import {
     Clock, Mail, IndianRupee, Bell, AlertTriangle,
     ChevronRight, CheckCircle, Search, Filter, ArrowUpRight
 } from 'lucide-react';
-import { invoiceService } from '../../services/firebaseService';
-import { authService } from '../../services/authService';
-import { Invoice, InvoiceStatus } from '../../types';
+import { invoiceService } from '../services/firebaseService';
+import { authService } from '../services/authService';
+import { Invoice, InvoiceStatus } from '../types';
 
 export const Overdue: React.FC = () => {
     const [invoices, setInvoices] = useState<Invoice[]>([]);

@@ -2,11 +2,13 @@ import React, { useEffect, useState, useMemo } from 'react';
 import {
     CreditCard, Plus, Search, Filter, IndianRupee,
     ArrowUpRight, Download, Trash2, Edit2, CheckCircle2,
-    Wallet, Banknote, X, Calendar, User, ChevronRight, ChevronLeft
+    Wallet, Banknote, X, Calendar, User, ChevronRight, ChevronLeft,
+    FileText
 } from 'lucide-react';
-import { paymentService, customerService, invoiceService } from '../../services/firebaseService';
-import { authService } from '../../services/authService';
-import { Payment, Customer, Invoice } from '../../types';
+import { paymentService, customerService, invoiceService } from '../services/firebaseService';
+import { authService } from '../services/authService';
+import { Payment, Customer, Invoice } from '../types';
+import { ViewToggle } from '../components/ViewToggle';
 
 export const Payments: React.FC = () => {
     const [payments, setPayments] = useState<Payment[]>([]);
@@ -14,6 +16,7 @@ export const Payments: React.FC = () => {
     const [invoices, setInvoices] = useState<Invoice[]>([]);
     const [loading, setLoading] = useState(true);
     const [view, setView] = useState<'list' | 'form'>('list');
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
     const [searchTerm, setSearchTerm] = useState('');
 
     // Form State
@@ -224,6 +227,7 @@ export const Payments: React.FC = () => {
                             <h2 className="text-xl font-bold text-slate-800 leading-none">₹{stats.total.toLocaleString()}</h2>
                         </div>
                     </div>
+                    <ViewToggle view={viewMode} onViewChange={setViewMode} />
                     <button onClick={() => { setFormData({ paymentId: `PAY-${Math.floor(Math.random() * 100000)}`, customerName: '', amount: 0, method: 'UPI', date: new Date().toISOString().split('T')[0], status: 'Success', notes: '' }); setView('form'); }} className="bg-blue-600 text-white px-8 py-3.5 rounded-xl font-bold flex items-center gap-2 hover:bg-blue-700 transition-all shadow-md text-sm">
                         <Plus size={20} /> New Payment
                     </button>
@@ -240,58 +244,116 @@ export const Payments: React.FC = () => {
                 />
             </div>
 
-            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                        <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[11px] border-b border-slate-100">
-                            <tr>
-                                <th className="px-8 py-5">Ref No.</th>
-                                <th className="px-8 py-5">Customer</th>
-                                <th className="px-8 py-5">Date</th>
-                                <th className="px-8 py-5">Method</th>
-                                <th className="px-8 py-5 text-right">Amount</th>
-                                <th className="px-8 py-5 text-center">Status</th>
-                                <th className="px-8 py-5 text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 italic font-medium">
-                            {loading ? (
-                                <tr><td colSpan={7} className="py-20 text-center text-slate-400 animate-pulse font-bold uppercase tracking-widest text-sm">Syncing Ledger...</td></tr>
-                            ) : filtered.length > 0 ? filtered.map(p => (
-                                <tr key={p.id} className="group hover:bg-slate-50/50 transition-all font-medium text-[13px]">
-                                    <td className="px-8 py-6 font-bold text-slate-900">{p.paymentId}</td>
-                                    <td className="px-8 py-6">
-                                        <p className="font-bold text-slate-800">{p.customerName}</p>
-                                        {p.invoiceNumber && <p className="text-[10px] text-blue-600 font-bold mt-1">INV: {p.invoiceNumber}</p>}
-                                    </td>
-                                    <td className="px-8 py-6 text-slate-500">
-                                        {new Date(p.date).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}
-                                    </td>
-                                    <td className="px-8 py-6">
-                                        <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-[10px] font-bold uppercase tracking-wider">{p.method}</span>
-                                    </td>
-                                    <td className="px-8 py-6 text-right font-bold text-slate-900 text-base">₹{p.amount.toLocaleString()}</td>
-                                    <td className="px-8 py-6 text-center">
-                                        <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-bold uppercase tracking-wider">Success</span>
-                                    </td>
-                                    <td className="px-8 py-6 text-right">
-                                        <div className="flex items-center justify-end gap-2">
-                                            <button onClick={(e) => handleDelete(p.id, e)} className="p-2 text-slate-300 hover:text-red-500 transition-colors">
-                                                <Trash2 size={18} />
-                                            </button>
-                                            <button className="p-2 text-slate-300 hover:text-blue-600 transition-colors">
-                                                <ArrowUpRight size={18} />
-                                            </button>
+            {loading ? (
+                <div className="py-40 text-center text-slate-400 font-bold uppercase tracking-widest text-xs animate-pulse italic">Auditing Global Transactions...</div>
+            ) : filtered.length > 0 ? (
+                viewMode === 'grid' ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        {filtered.map(p => (
+                            <div key={p.id} className="bg-white p-6 rounded-2xl border border-slate-200 hover:border-blue-400 hover:shadow-xl transition-all group flex flex-col relative overflow-hidden cursor-default">
+                                <div className="flex justify-between items-start mb-6">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 bg-slate-50 border border-slate-100 rounded-lg flex items-center justify-center text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
+                                            {p.method.toLowerCase().includes('bank') ? <Banknote size={20} /> :
+                                                p.method.toLowerCase().includes('upi') ? <Wallet size={20} /> :
+                                                    <CreditCard size={20} />}
                                         </div>
-                                    </td>
-                                </tr>
-                            )) : (
-                                <tr><td colSpan={7} className="py-20 text-center text-slate-400 font-bold uppercase tracking-wider text-sm">No transactions found</td></tr>
-                            )}
-                        </tbody>
-                    </table>
+                                        <div>
+                                            <h3 className="text-base font-bold text-slate-900 leading-none">#{p.paymentId}</h3>
+                                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">{new Date(p.date).toLocaleDateString()}</p>
+                                        </div>
+                                    </div>
+                                    <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-lg text-[9px] font-bold uppercase tracking-widest border border-emerald-200">Success</span>
+                                </div>
+
+                                <div className="space-y-4 mb-8 flex-1">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400">
+                                            <User size={14} />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-bold text-slate-800 leading-none">{p.customerName}</p>
+                                            {p.invoiceNumber && <p className="text-[10px] text-blue-600 font-bold uppercase mt-1">Invoice: {p.invoiceNumber}</p>}
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider bg-slate-50 p-2 rounded-lg">
+                                        <FileText size={12} className="text-blue-500" />
+                                        Payment Method: {p.method}
+                                    </div>
+                                </div>
+
+                                <div className="pt-4 border-t border-slate-50 flex justify-between items-end">
+                                    <div>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Transactional Value</p>
+                                        <p className="text-2xl font-bold text-slate-900 tracking-tighter">₹{p.amount.toLocaleString()}</p>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button onClick={(e) => handleDelete(p.id, e)} className="p-2 text-slate-300 hover:text-red-500 transition-colors bg-slate-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all">
+                                            <Trash2 size={16} />
+                                        </button>
+                                        <button className="p-2 text-slate-300 hover:text-blue-600 transition-colors bg-slate-50 rounded-lg">
+                                            <ArrowUpRight size={16} />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left">
+                                <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[11px] border-b border-slate-100">
+                                    <tr>
+                                        <th className="px-8 py-5">Ref No.</th>
+                                        <th className="px-8 py-5">Customer</th>
+                                        <th className="px-8 py-5">Date</th>
+                                        <th className="px-8 py-5">Method</th>
+                                        <th className="px-8 py-5 text-right">Amount</th>
+                                        <th className="px-8 py-5 text-center">Status</th>
+                                        <th className="px-8 py-5 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100 italic font-medium">
+                                    {filtered.map(p => (
+                                        <tr key={p.id} className="group hover:bg-slate-50/50 transition-all font-medium text-[13px]">
+                                            <td className="px-8 py-6 font-bold text-slate-900">{p.paymentId}</td>
+                                            <td className="px-8 py-6">
+                                                <p className="font-bold text-slate-800">{p.customerName}</p>
+                                                {p.invoiceNumber && <p className="text-[10px] text-blue-600 font-bold mt-1">INV: {p.invoiceNumber}</p>}
+                                            </td>
+                                            <td className="px-8 py-6 text-slate-500">
+                                                {new Date(p.date).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}
+                                            </td>
+                                            <td className="px-8 py-6">
+                                                <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-[10px] font-bold uppercase tracking-wider">{p.method}</span>
+                                            </td>
+                                            <td className="px-8 py-6 text-right font-bold text-slate-900 text-base">₹{p.amount.toLocaleString()}</td>
+                                            <td className="px-8 py-6 text-center">
+                                                <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-bold uppercase tracking-wider">Success</span>
+                                            </td>
+                                            <td className="px-8 py-6 text-right">
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <button onClick={(e) => handleDelete(p.id, e)} className="p-2 text-slate-300 hover:text-red-500 transition-colors">
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                    <button className="p-2 text-slate-300 hover:text-blue-600 transition-colors">
+                                                        <ArrowUpRight size={18} />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )
+            ) : (
+                <div className="py-20 text-center bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                    <p className="text-slate-400 font-bold uppercase tracking-wider text-sm">No transactions found matching your criteria.</p>
                 </div>
-            </div>
+            )}
         </div>
     );
 };

@@ -3,9 +3,9 @@ import {
     Plus, LayoutGrid, ArrowUpRight, Copy, Share2,
     Link2, ExternalLink, Trash2, Edit2, AlertCircle, X
 } from 'lucide-react';
-import { checkoutLinkService } from '../../services/firebaseService';
-import { authService } from '../../services/authService';
-import { CheckoutLink } from '../../types';
+import { checkoutLinkService } from '../services/firebaseService';
+import { authService } from '../services/authService';
+import { CheckoutLink } from '../types';
 
 export const Checkouts: React.FC = () => {
     const [links, setLinks] = useState<CheckoutLink[]>([]);

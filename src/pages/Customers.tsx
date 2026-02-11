@@ -3,15 +3,17 @@ import {
     Plus, Search, Edit2, Trash2, Mail, Phone,
     Briefcase, MapPin, IndianRupee, FileText, ChevronRight, X, User, ChevronLeft
 } from 'lucide-react';
-import { customerService, invoiceService } from '../../services/firebaseService';
-import { authService } from '../../services/authService';
-import { Customer, Invoice, InvoiceStatus } from '../../types';
+import { customerService, invoiceService } from '../services/firebaseService';
+import { authService } from '../services/authService';
+import { Customer, Invoice, InvoiceStatus } from '../types';
+import { ViewToggle } from '../components/ViewToggle';
 
 export const Customers: React.FC = () => {
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [invoices, setInvoices] = useState<Invoice[]>([]);
     const [loading, setLoading] = useState(true);
     const [view, setView] = useState<'list' | 'form' | 'details'>('list');
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
 
@@ -256,7 +258,7 @@ export const Customers: React.FC = () => {
 
     return (
         <div className="space-y-10 animate-fade-in pb-10">
-            <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-3">
                         <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg">
@@ -266,9 +268,12 @@ export const Customers: React.FC = () => {
                     </h1>
                     <p className="text-slate-500 text-sm mt-1">Manage your customer relationships and contact nodes.</p>
                 </div>
-                <button onClick={() => { setFormData({ name: '', phone: '', address: '', company: '', gst: '' }); setView('form'); }} className="bg-blue-600 text-white px-8 py-3.5 rounded-xl font-bold flex items-center gap-2 hover:bg-blue-700 transition-all shadow-md text-sm active:scale-95">
-                    <Plus size={20} /> Add New Customer
-                </button>
+                <div className="flex items-center gap-4 w-full md:w-auto">
+                    <ViewToggle view={viewMode} onViewChange={setViewMode} />
+                    <button onClick={() => { setFormData({ name: '', phone: '', address: '', company: '', gst: '' }); setView('form'); }} className="bg-blue-600 text-white px-8 py-3.5 rounded-xl font-bold flex items-center gap-2 hover:bg-blue-700 transition-all shadow-md text-sm active:scale-95 flex-1 md:flex-none justify-center">
+                        <Plus size={20} /> Add New Customer
+                    </button>
+                </div>
             </div>
 
             <div className="relative group">
@@ -281,58 +286,103 @@ export const Customers: React.FC = () => {
                 />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {loading ? (
-                    <div className="col-span-full py-40 text-center font-bold text-slate-300 text-xl animate-pulse">Syncing Customer Data...</div>
-                ) : filteredCustomers.length > 0 ? filteredCustomers.map(c => {
-                    const stats = getCustomerStats(c.id);
-                    return (
-                        <div key={c.id} onClick={() => { setSelectedCustomer(c); setView('details'); }} className="bg-white p-8 rounded-xl border border-slate-200 hover:border-blue-400 hover:shadow-md cursor-pointer transition-all flex flex-col group relative overflow-hidden">
-                            <div className="flex justify-between items-start mb-6">
-                                <div className="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center text-2xl font-bold text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
-                                    {c.name[0]}
-                                </div>
-                                <div className="flex gap-2">
-                                    <button onClick={(e) => { e.stopPropagation(); setFormData(c); setView('form'); }} className="w-10 h-10 bg-slate-50 border border-slate-100 rounded-lg flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all"><Edit2 size={16} /></button>
-                                    <button onClick={(e) => handleDelete(c.id, e)} className="w-10 h-10 bg-slate-50 border border-slate-100 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all"><Trash2 size={16} /></button>
-                                </div>
-                            </div>
+            {loading ? (
+                <div className="py-40 text-center font-bold text-slate-300 text-xl animate-pulse">Syncing Customer Data...</div>
+            ) : filteredCustomers.length > 0 ? (
+                viewMode === 'grid' ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        {filteredCustomers.map(c => {
+                            const stats = getCustomerStats(c.id);
+                            return (
+                                <div key={c.id} onClick={() => { setSelectedCustomer(c); setView('details'); }} className="bg-white p-8 rounded-xl border border-slate-200 hover:border-blue-400 hover:shadow-md cursor-pointer transition-all flex flex-col group relative overflow-hidden">
+                                    <div className="flex justify-between items-start mb-6">
+                                        <div className="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center text-2xl font-bold text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
+                                            {c.name[0]}
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <button onClick={(e) => { e.stopPropagation(); setFormData(c); setView('form'); }} className="w-10 h-10 bg-slate-50 border border-slate-100 rounded-lg flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all"><Edit2 size={16} /></button>
+                                            <button onClick={(e) => handleDelete(c.id, e)} className="w-10 h-10 bg-slate-50 border border-slate-100 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all"><Trash2 size={16} /></button>
+                                        </div>
+                                    </div>
 
-                            <div className="space-y-4 mb-8">
-                                <h3 className="text-2xl font-bold text-slate-800 transition-colors group-hover:text-blue-600">{c.name}</h3>
-                                <div className="flex items-center gap-2 text-slate-500 text-[11px] font-bold uppercase tracking-wider">
-                                    <Briefcase size={12} className="text-blue-400" />
-                                    {c.company || 'Private Customer'}
-                                </div>
-                            </div>
+                                    <div className="space-y-4 mb-8">
+                                        <h3 className="text-2xl font-bold text-slate-800 transition-colors group-hover:text-blue-600">{c.name}</h3>
+                                        <div className="flex items-center gap-2 text-slate-500 text-[11px] font-bold uppercase tracking-wider">
+                                            <Briefcase size={12} className="text-blue-400" />
+                                            {c.company || 'Private Customer'}
+                                        </div>
+                                    </div>
 
-                            <div className="grid grid-cols-2 gap-4 pt-6 border-t border-slate-50 mt-auto">
-                                <div>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Invoices</p>
-                                    <div className="font-bold text-slate-700 text-sm">
-                                        {stats.invoiceCount} Total
+                                    <div className="grid grid-cols-2 gap-4 pt-6 border-t border-slate-50 mt-auto">
+                                        <div>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Invoices</p>
+                                            <div className="font-bold text-slate-700 text-sm">
+                                                {stats.invoiceCount} Total
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Total Value</p>
+                                            <p className="text-xl font-bold text-slate-900 tracking-tighter">₹{stats.totalBilled.toLocaleString()}</p>
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="text-right">
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Total Value</p>
-                                    <p className="text-xl font-bold text-slate-900 tracking-tighter">₹{stats.totalBilled.toLocaleString()}</p>
-                                </div>
-                            </div>
-                        </div>
-                    );
-                }) : (
-                    <div className="col-span-full py-40 text-center bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
-                        <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm text-slate-200">
-                            <User size={32} />
-                        </div>
-                        <h3 className="text-slate-800 font-bold text-xl mb-2">No Customers Found</h3>
-                        <p className="text-slate-500 text-sm max-w-xs mx-auto mb-8">Your customer list is currently empty. Add your first customer to get started.</p>
-                        <button onClick={() => setView('form')} className="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-md active:scale-95 inline-flex items-center gap-2">
-                            <Plus size={20} /> Add New Customer
-                        </button>
+                            );
+                        })}
                     </div>
-                )}
-            </div>
+                ) : (
+                    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                        <table className="w-full text-left">
+                            <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200">
+                                <tr>
+                                    <th className="px-8 py-5">Customer</th>
+                                    <th className="px-8 py-5">Company</th>
+                                    <th className="px-8 py-5">Invoices</th>
+                                    <th className="px-8 py-5">Total Billed</th>
+                                    <th className="px-8 py-5 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 italic">
+                                {filteredCustomers.map(c => {
+                                    const stats = getCustomerStats(c.id);
+                                    return (
+                                        <tr key={c.id} onClick={() => { setSelectedCustomer(c); setView('details'); }} className="hover:bg-slate-50/50 transition-all cursor-pointer group text-[13px] font-medium">
+                                            <td className="px-8 py-5">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">
+                                                        {c.name[0]}
+                                                    </div>
+                                                    <span className="font-bold text-slate-800">{c.name}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-8 py-5 text-slate-600">{c.company || '-'}</td>
+                                            <td className="px-8 py-5 text-slate-600">{stats.invoiceCount} Bills</td>
+                                            <td className="px-8 py-5 font-bold text-slate-900">₹{stats.totalBilled.toLocaleString()}</td>
+                                            <td className="px-8 py-5 text-right">
+                                                <div className="flex justify-end gap-2">
+                                                    <button onClick={(e) => { e.stopPropagation(); setFormData(c); setView('form'); }} className="p-2 text-slate-400 hover:text-blue-600 transition-all"><Edit2 size={16} /></button>
+                                                    <button onClick={(e) => handleDelete(c.id, e)} className="p-2 text-slate-400 hover:text-red-600 transition-all"><Trash2 size={16} /></button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                )
+            ) : (
+                <div className="py-40 text-center bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                    <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm text-slate-200">
+                        <User size={32} />
+                    </div>
+                    <h3 className="text-slate-800 font-bold text-xl mb-2">No Customers Found</h3>
+                    <p className="text-slate-500 text-sm max-w-xs mx-auto mb-8">Your customer list is currently empty. Add your first customer to get started.</p>
+                    <button onClick={() => setView('form')} className="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-md active:scale-95 inline-flex items-center gap-2">
+                        <Plus size={20} /> Add New Customer
+                    </button>
+                </div>
+            )}
+
         </div>
     );
 };

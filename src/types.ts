@@ -9,20 +9,45 @@ export interface User {
 export interface Product {
   id: string;
   name: string;
-  price: number;
-  stock: number;
+  category: string;
+  sku: string;
   description?: string;
-  tax?: number;
-  type?: 'Product' | 'Service';
-  category?: string;
-  sku?: string;
-  status?: 'Active' | 'Inactive';
+  type: 'Product' | 'Service';
   imageUrl?: string;
   userId: string;
+
+  pricing: {
+    costPrice: number;
+    sellingPrice: number;
+    taxPercentage: number;
+  };
+
+  inventory: {
+    stock: number;
+    minStockLevel: number;
+    reorderQuantity: number;
+    status: 'ACTIVE' | 'LOW_STOCK' | 'OUT_OF_STOCK' | 'DISABLED';
+  };
+
+  supplierId?: string;
+  lastUpdated: string;
+}
+
+export interface Supplier {
+  id: string;
+  supplierId: string; // Formatting like SUP-101
+  name: string;
+  phone: string;
+  email: string;
+  address: string;
+  status: 'ACTIVE' | 'INACTIVE';
+  userId: string;
+  createdAt: string;
 }
 
 export enum OrderStatus {
   Pending = 'Pending',
+  Confirmed = 'Confirmed',
   EstimateSent = 'Estimate Sent',
   EstimateAccepted = 'Estimate Accepted',
   EstimateRejected = 'Estimate Rejected',
@@ -172,4 +197,19 @@ export interface Customer {
   userId: string;
   gst?: string;
   createdAt?: any;
+}
+
+export type StockMovementType = 'ADD' | 'DEDUCT' | 'ADJUST' | 'RETURN' | 'DAMAGED';
+
+export interface StockLog {
+  id: string;
+  productId: string;
+  orderId?: string;
+  type: StockMovementType;
+  quantity: number;
+  previousStock: number;
+  newStock: number;
+  reason: string;
+  timestamp: string;
+  userId: string;
 }
