@@ -5,7 +5,7 @@ import axios from 'axios';
 
 interface Company {
     id: string;
-    uid: string;
+    userId: string;
     name: string;
     email: string;
     phone?: string;
@@ -182,7 +182,7 @@ export const Companies: React.FC = () => {
                                                 </div>
                                                 <div>
                                                     <span className="font-bold text-slate-800 text-base leading-none block mb-1">{company.name}</span>
-                                                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">UID: {company.uid.substring(0, 12)}...</span>
+                                                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">ID: {company.userId.substring(0, 12)}...</span>
                                                 </div>
                                             </div>
                                         </td>
