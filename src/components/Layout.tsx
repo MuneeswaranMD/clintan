@@ -101,7 +101,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
                 A
               </div>
               <span className="text-xl font-bold text-slate-800 hidden sm:block tracking-tight">
-                Averqon<span className="text-blue-600">+</span>
+                Averqon <span className="text-blue-600">Bills</span>
               </span>
             </div>
 

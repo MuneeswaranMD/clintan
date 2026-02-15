@@ -43,10 +43,10 @@ function App() {
 
   useEffect(() => {
     if (user) {
-      const companyName = user.email === 'muneeswaran@averqon.in' ? 'Averqon' : user.name;
+      const companyName = user.email === 'muneeswaran@averqon.in' ? 'Averqon Bills' : user.name;
       document.title = `${companyName} | CRM`;
     } else {
-      document.title = 'Averqon | Login';
+      document.title = 'Averqon Bills | Login';
     }
   }, [user]);
 

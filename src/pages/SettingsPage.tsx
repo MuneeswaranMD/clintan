@@ -197,6 +197,44 @@ export const SettingsPage: React.FC = () => {
                     </div>
                 </div>
 
+                {/* PDF Template Setup */}
+                <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm space-y-6 md:col-span-2">
+                    <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
+                        <div className="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-600">
+                            <SettingsIcon size={20} />
+                        </div>
+                        <h3 className="text-lg font-bold text-slate-800">Default PDF Template</h3>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {[
+                            { id: 'modern', name: 'Modern UI', color: 'bg-blue-600' },
+                            { id: 'classic', name: 'Classic Letter', color: 'bg-slate-800' },
+                            { id: 'minimal', name: 'Minimalist', color: 'bg-white border-slate-200' },
+                            { id: 'corporate', name: 'Corporate', color: 'bg-indigo-900' }
+                        ].map((tpl) => (
+                            <button
+                                key={tpl.id}
+                                type="button"
+                                onClick={() => setSettings({ ...settings, defaultTemplateId: tpl.id })}
+                                className={`relative p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-3 ${settings.defaultTemplateId === tpl.id
+                                        ? 'border-indigo-600 bg-indigo-50/50 ring-4 ring-indigo-50'
+                                        : 'border-slate-100 hover:border-slate-200 bg-white'
+                                    }`}
+                            >
+                                <div className={`w-full h-24 rounded-lg shadow-sm ${tpl.color} flex items-center justify-center`}>
+                                    <span className={tpl.id === 'minimal' ? 'text-slate-400 text-[10px]' : 'text-white text-[10px] opacity-20'}>PREVIEW</span>
+                                </div>
+                                <span className="text-xs font-bold text-slate-700">{tpl.name}</span>
+                                {settings.defaultTemplateId === tpl.id && (
+                                    <div className="absolute top-2 right-2 w-5 h-5 bg-indigo-600 rounded-full flex items-center justify-center text-white shadow-sm">
+                                        <CheckCircle2 size={12} />
+                                    </div>
+                                )}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
                 <div className="md:col-span-2 pt-6">
                     <button
                         type="submit"

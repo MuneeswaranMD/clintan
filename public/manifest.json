@@ -1,6 +1,6 @@
 {
-    "name": "Averqon+ Business Management",
-    "short_name": "Averqon+",
+    "name": "Averqon Bills Business Management",
+    "short_name": "Averqon Bills",
     "description": "Smart Commerce Operating System for SMEs - From Order to Payment, Everything Connected",
     "start_url": "/",
     "display": "standalone",
@@ -35,7 +35,7 @@
             "url": "/orders",
             "icons": [
                 {
-                    "src": "/icon-192.png",
+                    "src": "/icon-192.svg",
                     "sizes": "192x192"
                 }
             ]
@@ -47,7 +47,7 @@
             "url": "/invoices",
             "icons": [
                 {
-                    "src": "/icon-192.png",
+                    "src": "/icon-192.svg",
                     "sizes": "192x192"
                 }
             ]
@@ -59,7 +59,7 @@
             "url": "/products",
             "icons": [
                 {
-                    "src": "/icon-192.png",
+                    "src": "/icon-192.svg",
                     "sizes": "192x192"
                 }
             ]

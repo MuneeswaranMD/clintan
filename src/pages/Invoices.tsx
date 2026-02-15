@@ -39,6 +39,7 @@ export const Invoices: React.FC = () => {
     tax: 0,
     total: 0,
     customerAddress: '',
+    templateId: undefined,
     notes: ''
   });
 
@@ -105,7 +106,7 @@ export const Invoices: React.FC = () => {
         await invoiceService.createInvoice(user.id, formData as any);
       }
       setView('list');
-      setFormData({ invoiceNumber: `INV - ${Math.floor(Math.random() * 10000)} `, customerName: '', date: new Date().toISOString().split('T')[0], dueDate: new Date().toISOString().split('T')[0], status: InvoiceStatus.Pending, items: [], subtotal: 0, tax: 0, total: 0, customerAddress: '', notes: '' });
+      setFormData({ invoiceNumber: `INV - ${Math.floor(Math.random() * 10000)} `, customerName: '', date: new Date().toISOString().split('T')[0], dueDate: new Date().toISOString().split('T')[0], status: InvoiceStatus.Pending, items: [], subtotal: 0, tax: 0, total: 0, customerAddress: '', templateId: undefined, notes: '' });
     } catch (error) {
       console.error(error);
       await alert('Failed to save invoice', { variant: 'danger' });
@@ -194,6 +195,20 @@ export const Invoices: React.FC = () => {
                   value={formData.date}
                   onChange={e => setFormData({ ...formData, date: e.target.value })}
                 />
+              </div>
+              <div>
+                <label className="block text-[13px] font-bold text-slate-500 mb-2">PDF Design Template</label>
+                <select
+                  className="w-full bg-slate-50 border border-transparent p-2.5 rounded-lg text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-medium appearance-none cursor-pointer"
+                  value={formData.templateId || 'modern'}
+                  onChange={e => setFormData({ ...formData, templateId: e.target.value })}
+                >
+                  <option value="modern">Modern Professional</option>
+                  <option value="classic">Classic Letterhead</option>
+                  <option value="minimal">Clean Minimalist</option>
+                  <option value="corporate">Corporate Elite</option>
+                </select>
+                <p className="text-[10px] text-slate-400 mt-1 italic">Preview changes on download.</p>
               </div>
             </div>
 
@@ -538,7 +553,7 @@ export const Invoices: React.FC = () => {
             </div>
           </div>
           <button
-            onClick={() => { setFormData({ invoiceNumber: `INV - ${Math.floor(Math.random() * 10000)} `, customerName: '', customerAddress: '', date: new Date().toISOString().split('T')[0], dueDate: new Date().toISOString().split('T')[0], status: InvoiceStatus.Pending, items: [], subtotal: 0, tax: 0, total: 0, notes: '' }); setView('form'); }}
+            onClick={() => { setFormData({ invoiceNumber: `INV - ${Math.floor(Math.random() * 10000)} `, customerName: '', customerAddress: '', date: new Date().toISOString().split('T')[0], dueDate: new Date().toISOString().split('T')[0], status: InvoiceStatus.Pending, items: [], subtotal: 0, tax: 0, total: 0, templateId: undefined, notes: '' }); setView('form'); }}
             className="bg-blue-600 text-white px-6 py-3 rounded-lg font-bold flex items-center gap-2 hover:bg-blue-700 transition-all shadow-sm text-sm"
           >
             <Plus size={18} /> New Invoice

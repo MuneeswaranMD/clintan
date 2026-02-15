@@ -36,6 +36,7 @@ export const Estimates: React.FC = () => {
         validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         status: 'Draft',
         customerAddress: '',
+        templateId: undefined,
         items: []
     });
 
@@ -102,7 +103,7 @@ export const Estimates: React.FC = () => {
                 await estimateService.createEstimate(user.id, formData as any);
             }
             setView('list');
-            setFormData({ estimateNumber: `EST-${Math.floor(Math.random() * 10000)}`, customerName: '', amount: 0, date: new Date().toISOString().split('T')[0], validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], status: 'Draft', notes: '', items: [], customerAddress: '' });
+            setFormData({ estimateNumber: `EST-${Math.floor(Math.random() * 10000)}`, customerName: '', amount: 0, date: new Date().toISOString().split('T')[0], validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], status: 'Draft', templateId: undefined, notes: '', items: [], customerAddress: '' });
         } catch (error) {
             console.error(error);
             await alert('Failed to save estimate', { variant: 'danger' });
@@ -337,6 +338,19 @@ export const Estimates: React.FC = () => {
                                     onChange={e => setFormData({ ...formData, estimateNumber: e.target.value })}
                                 />
                             </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">PDF Design Template</label>
+                                <select
+                                    className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-blue-500 bg-white"
+                                    value={formData.templateId || 'modern'}
+                                    onChange={e => setFormData({ ...formData, templateId: e.target.value })}
+                                >
+                                    <option value="modern">Modern Professional</option>
+                                    <option value="classic">Classic Letterhead</option>
+                                    <option value="minimal">Clean Minimalist</option>
+                                    <option value="corporate">Corporate Elite</option>
+                                </select>
+                            </div>
                         </div>
 
                         <div>
@@ -452,7 +466,7 @@ export const Estimates: React.FC = () => {
                     <div className="flex items-center gap-3">
                         <ViewToggle view={viewMode} onViewChange={setViewMode} />
                         <button
-                            onClick={() => { setFormData({ estimateNumber: `EST-${Math.floor(Math.random() * 10000)}`, customerName: '', amount: 0, date: new Date().toISOString().split('T')[0], validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], status: 'Draft', notes: '', items: [] }); setView('form'); }}
+                            onClick={() => { setFormData({ estimateNumber: `EST-${Math.floor(Math.random() * 10000)}`, customerName: '', amount: 0, date: new Date().toISOString().split('T')[0], validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], status: 'Draft', templateId: undefined, notes: '', items: [] }); setView('form'); }}
                             className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 flex items-center gap-2"
                         >
                             <Plus size={20} /> New Estimate
@@ -471,116 +485,118 @@ export const Estimates: React.FC = () => {
                 </div>
             </div>
 
-            {loading ? (
-                <div className="bg-white rounded-lg shadow p-12 text-center">
-                    <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
-                    <p className="text-gray-600">Loading estimates...</p>
-                </div>
-            ) : filtered.length > 0 ? (
-                viewMode === 'grid' ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {filtered.map(est => (
-                            <div key={est.id} onClick={() => { setSelectedEstimate(est); setView('details'); }} className="bg-white p-6 rounded-lg border border-gray-200 hover:border-blue-500 hover:shadow-lg transition-all cursor-pointer">
-                                <div className="flex items-center justify-between mb-4">
-                                    <div className="flex items-center gap-3">
-                                        <ClipboardList size={24} className="text-blue-600" />
-                                        <div>
-                                            <h3 className="text-lg font-bold text-gray-900">#{est.estimateNumber}</h3>
-                                            <p className="text-xs text-gray-500">{new Date(est.date).toLocaleDateString()}</p>
-                                        </div>
-                                    </div>
-                                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${est.status === 'Accepted' ? 'bg-green-100 text-green-700' : est.status === 'Sent' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
-                                        {est.status}
-                                    </span>
-                                </div>
-
-                                <div className="space-y-4">
-                                    <div>
-                                        <p className="text-xs text-gray-500 mb-1">Customer</p>
-                                        <p className="font-semibold text-gray-900">{est.customerName}</p>
-                                    </div>
-
-                                    <div className="pt-4 border-t border-gray-200 flex justify-between items-end">
-                                        <div>
-                                            <p className="text-xs text-gray-500 mb-1">Valid Until</p>
-                                            <p className="text-sm text-gray-700">{new Date(est.validUntil).toLocaleDateString()}</p>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="text-xs text-gray-500 mb-1">Amount</p>
-                                            <p className="text-2xl font-bold text-blue-600">₹{est.amount.toLocaleString()}</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="mt-4 pt-4 border-t border-gray-200 flex gap-2">
-                                    <button
-                                        onClick={(event) => { event.stopPropagation(); sendInvoiceEmail(est, companyName); }}
-                                        className="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700 flex items-center justify-center gap-2 text-sm"
-                                    >
-                                        <Send size={14} /> Send
-                                    </button>
-                                    <button
-                                        onClick={async (event) => {
-                                            event.stopPropagation();
-                                            try {
-                                                await generateInvoicePDF(est, companyName, companyPhone, companyLogo, 'ESTIMATE');
-                                            } catch (e) {
-                                                await alert('Failed to generate PDF', { variant: 'danger' });
-                                            }
-                                        }}
-                                        className="p-2 border border-gray-300 text-gray-600 rounded hover:bg-gray-50"
-                                        title="Download PDF"
-                                    >
-                                        <Download size={18} />
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
+            {
+                loading ? (
+                    <div className="bg-white rounded-lg shadow p-12 text-center">
+                        <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
+                        <p className="text-gray-600">Loading estimates...</p>
                     </div>
-                ) : (
-                    <div className="bg-white rounded-lg shadow overflow-hidden">
-                        <div className="overflow-x-auto">
-                            <table className="w-full">
-                                <thead className="bg-gray-50 border-b border-gray-200">
-                                    <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Estimate #</th>
-                                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Customer</th>
-                                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Date</th>
-                                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Valid Until</th>
-                                        <th className="px-6 py-3 text-right text-xs font-semibold text-gray-700 uppercase">Amount</th>
-                                        <th className="px-6 py-3 text-center text-xs font-semibold text-gray-700 uppercase">Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-200">
-                                    {filtered.map(est => (
-                                        <tr key={est.id} onClick={() => { setSelectedEstimate(est); setView('details'); }} className="hover:bg-gray-50 cursor-pointer">
-                                            <td className="px-6 py-4 font-semibold text-gray-900">{est.estimateNumber}</td>
-                                            <td className="px-6 py-4 text-gray-700">{est.customerName}</td>
-                                            <td className="px-6 py-4 text-gray-600 text-sm">{new Date(est.date).toLocaleDateString()}</td>
-                                            <td className="px-6 py-4 text-gray-600 text-sm">{new Date(est.validUntil).toLocaleDateString()}</td>
-                                            <td className="px-6 py-4 text-right font-bold text-blue-600">₹{est.amount.toLocaleString()}</td>
-                                            <td className="px-6 py-4 text-center">
-                                                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${est.status === 'Accepted' ? 'bg-green-100 text-green-700' : est.status === 'Sent' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
-                                                    {est.status}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                ) : filtered.length > 0 ? (
+                    viewMode === 'grid' ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {filtered.map(est => (
+                                <div key={est.id} onClick={() => { setSelectedEstimate(est); setView('details'); }} className="bg-white p-6 rounded-lg border border-gray-200 hover:border-blue-500 hover:shadow-lg transition-all cursor-pointer">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="flex items-center gap-3">
+                                            <ClipboardList size={24} className="text-blue-600" />
+                                            <div>
+                                                <h3 className="text-lg font-bold text-gray-900">#{est.estimateNumber}</h3>
+                                                <p className="text-xs text-gray-500">{new Date(est.date).toLocaleDateString()}</p>
+                                            </div>
+                                        </div>
+                                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${est.status === 'Accepted' ? 'bg-green-100 text-green-700' : est.status === 'Sent' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
+                                            {est.status}
+                                        </span>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <div>
+                                            <p className="text-xs text-gray-500 mb-1">Customer</p>
+                                            <p className="font-semibold text-gray-900">{est.customerName}</p>
+                                        </div>
+
+                                        <div className="pt-4 border-t border-gray-200 flex justify-between items-end">
+                                            <div>
+                                                <p className="text-xs text-gray-500 mb-1">Valid Until</p>
+                                                <p className="text-sm text-gray-700">{new Date(est.validUntil).toLocaleDateString()}</p>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-xs text-gray-500 mb-1">Amount</p>
+                                                <p className="text-2xl font-bold text-blue-600">₹{est.amount.toLocaleString()}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-4 pt-4 border-t border-gray-200 flex gap-2">
+                                        <button
+                                            onClick={(event) => { event.stopPropagation(); sendInvoiceEmail(est, companyName); }}
+                                            className="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700 flex items-center justify-center gap-2 text-sm"
+                                        >
+                                            <Send size={14} /> Send
+                                        </button>
+                                        <button
+                                            onClick={async (event) => {
+                                                event.stopPropagation();
+                                                try {
+                                                    await generateInvoicePDF(est, companyName, companyPhone, companyLogo, 'ESTIMATE');
+                                                } catch (e) {
+                                                    await alert('Failed to generate PDF', { variant: 'danger' });
+                                                }
+                                            }}
+                                            className="p-2 border border-gray-300 text-gray-600 rounded hover:bg-gray-50"
+                                            title="Download PDF"
+                                        >
+                                            <Download size={18} />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
+                    ) : (
+                        <div className="bg-white rounded-lg shadow overflow-hidden">
+                            <div className="overflow-x-auto">
+                                <table className="w-full">
+                                    <thead className="bg-gray-50 border-b border-gray-200">
+                                        <tr>
+                                            <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Estimate #</th>
+                                            <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Customer</th>
+                                            <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Date</th>
+                                            <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Valid Until</th>
+                                            <th className="px-6 py-3 text-right text-xs font-semibold text-gray-700 uppercase">Amount</th>
+                                            <th className="px-6 py-3 text-center text-xs font-semibold text-gray-700 uppercase">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-200">
+                                        {filtered.map(est => (
+                                            <tr key={est.id} onClick={() => { setSelectedEstimate(est); setView('details'); }} className="hover:bg-gray-50 cursor-pointer">
+                                                <td className="px-6 py-4 font-semibold text-gray-900">{est.estimateNumber}</td>
+                                                <td className="px-6 py-4 text-gray-700">{est.customerName}</td>
+                                                <td className="px-6 py-4 text-gray-600 text-sm">{new Date(est.date).toLocaleDateString()}</td>
+                                                <td className="px-6 py-4 text-gray-600 text-sm">{new Date(est.validUntil).toLocaleDateString()}</td>
+                                                <td className="px-6 py-4 text-right font-bold text-blue-600">₹{est.amount.toLocaleString()}</td>
+                                                <td className="px-6 py-4 text-center">
+                                                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${est.status === 'Accepted' ? 'bg-green-100 text-green-700' : est.status === 'Sent' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
+                                                        {est.status}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )
+                ) : (
+                    <div className="bg-white rounded-lg shadow p-12 text-center">
+                        <ClipboardList size={48} className="mx-auto text-gray-300 mb-4" />
+                        <h3 className="text-lg font-bold text-gray-900 mb-2">No Estimates Found</h3>
+                        <p className="text-gray-600 mb-6">Create your first estimate to get started</p>
+                        <button onClick={() => setView('form')} className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 inline-flex items-center gap-2">
+                            <Plus size={20} /> Create Estimate
+                        </button>
                     </div>
                 )
-            ) : (
-                <div className="bg-white rounded-lg shadow p-12 text-center">
-                    <ClipboardList size={48} className="mx-auto text-gray-300 mb-4" />
-                    <h3 className="text-lg font-bold text-gray-900 mb-2">No Estimates Found</h3>
-                    <p className="text-gray-600 mb-6">Create your first estimate to get started</p>
-                    <button onClick={() => setView('form')} className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 inline-flex items-center gap-2">
-                        <Plus size={20} /> Create Estimate
-                    </button>
-                </div>
-            )}
-        </div>
+            }
+        </div >
     );
 };

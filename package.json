@@ -1,7 +1,7 @@
 {
-  "name": "sivajoy-creatives-ai",
+  "name": "averqon-bills",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "main": "electron/main.cjs",
   "homepage": "./",
@@ -43,8 +43,8 @@
     "wait-on": "^9.0.3"
   },
   "build": {
-    "appId": "com.sivajoy.billing",
-    "productName": "Sivajoy Billing",
+    "appId": "com.averqon.bills",
+    "productName": "Averqon Bills",
     "directories": {
       "output": "release"
     },

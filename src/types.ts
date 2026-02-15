@@ -205,6 +205,7 @@ export interface Invoice {
   customerAddress?: string;
   customerEmail?: string;
   notes?: string;
+  templateId?: string;
   userId: string;
 }
 
@@ -236,6 +237,7 @@ export interface Estimate {
   customerPhone?: string;
   customerEmail?: string;
   orderId?: string; // Link to source order if created from order
+  templateId?: string;
   userId: string;
 }
 
@@ -317,5 +319,6 @@ export interface Settings {
   whatsappPhoneId?: string;
   whatsappToken?: string;
   emailFrom?: string;
+  defaultTemplateId?: string;
   userId: string;
 }
