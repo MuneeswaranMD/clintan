@@ -15,6 +15,7 @@ import { settingsService } from '../services/settingsService';
 import { Settings } from '../types';
 import { NotificationPreferences } from '../components/NotificationPreferences';
 import { TestNotifications } from '../components/TestNotifications';
+import { automationService } from '../services/automationService';
 
 export const SettingsPage: React.FC = () => {
     const [settings, setSettings] = useState<Partial<Settings>>({
@@ -27,6 +28,7 @@ export const SettingsPage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+    const [backendStatus, setBackendStatus] = useState<{ status: string; timestamp: string } | null>(null);
 
     useEffect(() => {
         const fetchSettings = async () => {
@@ -39,7 +41,16 @@ export const SettingsPage: React.FC = () => {
             }
             setLoading(false);
         };
+
+        const checkBackend = async () => {
+            const status = await automationService.checkStatus();
+            if (status) {
+                setBackendStatus(status);
+            }
+        };
+
         fetchSettings();
+        checkBackend();
     }, []);
 
     const handleSave = async (e: React.FormEvent) => {
@@ -84,6 +95,12 @@ export const SettingsPage: React.FC = () => {
                         Automation Control Center
                     </h1>
                     <p className="text-slate-500 text-sm mt-1">Configure your n8n workflows, payment gateways, and messaging nodes.</p>
+                </div>
+                <div className="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-full border border-slate-200">
+                    <div className={`w-2 h-2 rounded-full ${backendStatus ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`}></div>
+                    <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">
+                        Node Server: {backendStatus ? 'Online' : 'Offline'}
+                    </span>
                 </div>
             </div>
 
@@ -217,8 +234,8 @@ export const SettingsPage: React.FC = () => {
                                 type="button"
                                 onClick={() => setSettings({ ...settings, defaultTemplateId: tpl.id })}
                                 className={`relative p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-3 ${settings.defaultTemplateId === tpl.id
-                                        ? 'border-indigo-600 bg-indigo-50/50 ring-4 ring-indigo-50'
-                                        : 'border-slate-100 hover:border-slate-200 bg-white'
+                                    ? 'border-indigo-600 bg-indigo-50/50 ring-4 ring-indigo-50'
+                                    : 'border-slate-100 hover:border-slate-200 bg-white'
                                     }`}
                             >
                                 <div className={`w-full h-24 rounded-lg shadow-sm ${tpl.color} flex items-center justify-center`}>
