@@ -5,6 +5,7 @@ const morgan = require('morgan');
 
 const webhookRoutes = require('./routes/webhookRoutes');
 const automationRoutes = require('./routes/automationRoutes');
+const whatsappWebhookController = require('./controllers/whatsappWebhookController');
 
 const app = express();
 
@@ -41,6 +42,10 @@ app.get('/health', (req, res) => {
 // API Routes
 app.use('/api/webhook', webhookRoutes);
 app.use('/api/automation', automationRoutes);
+
+// WhatsApp Webhook
+app.get('/api/whatsapp-webhook', whatsappWebhookController.verifyWebhook);
+app.post('/api/whatsapp-webhook', whatsappWebhookController.handleWebhook);
 
 // 404 handler
 app.use((req, res) => {

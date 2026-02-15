@@ -95,6 +95,76 @@ class WhatsAppService {
     }
   }
 
+  async sendDocument({ to, url, fileName, caption }) {
+    try {
+      const response = await axios.post(
+        `${this.baseUrl}/${this.phoneNumberId}/messages`,
+        {
+          messaging_product: 'whatsapp',
+          to: to,
+          type: 'document',
+          document: {
+            link: url,
+            filename: fileName || 'document.pdf',
+            caption: caption
+          }
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${this.accessToken}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      console.log('✅ WhatsApp document sent:', response.data.messages[0].id);
+      return { success: true, messageId: response.data.messages[0].id };
+
+    } catch (error) {
+      console.error('❌ WhatsApp document failed:', error.response?.data || error.message);
+      throw error;
+    }
+  }
+
+  async sendInteractiveButtons({ to, text, buttons }) {
+    try {
+      const response = await axios.post(
+        `${this.baseUrl}/${this.phoneNumberId}/messages`,
+        {
+          messaging_product: 'whatsapp',
+          to: to,
+          type: 'interactive',
+          interactive: {
+            type: 'button',
+            body: { text: text },
+            action: {
+              buttons: buttons.map((btn, index) => ({
+                type: 'reply',
+                reply: {
+                  id: btn.id || `btn_${index}`,
+                  title: btn.title
+                }
+              }))
+            }
+          }
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${this.accessToken}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      console.log('✅ WhatsApp interactive sent:', response.data.messages[0].id);
+      return { success: true, messageId: response.data.messages[0].id };
+
+    } catch (error) {
+      console.error('❌ WhatsApp interactive failed:', error.response?.data || error.message);
+      throw error;
+    }
+  }
+
   // Test with hello_world template
   async testMessage(phoneNumber) {
     return this.sendTemplate({

@@ -18,6 +18,7 @@ import {
 import { db } from './firebase';
 import { Invoice, Product, Estimate, Payment, RecurringInvoice, CheckoutLink, Customer, Order, OrderStatus, StockLog, Supplier, StockMovementType, OrderFormConfig, PurchaseOrder, SupplierPayment } from '../types';
 import { createOrderNotification, createStockNotification, createPaymentNotification, createPurchaseOrderNotification } from './notificationService';
+import { automationService } from './automationService';
 
 // ... (existing constants)
 const INVOICES_COLLECTION = 'invoices';
@@ -53,6 +54,10 @@ export const invoiceService = {
             createdAt: Timestamp.now(),
             updatedAt: Timestamp.now()
         });
+
+        // Trigger automation backend
+        automationService.triggerInvoiceCreated(userId, { ...invoice, id: docRef.id });
+
         return docRef.id;
     },
     updateInvoice: async (invoiceId: string, updates: Partial<Invoice>): Promise<void> => {
@@ -425,7 +430,12 @@ export const estimateService = {
         });
     },
     createEstimate: async (userId: string, estimate: Omit<Estimate, 'id'>) => {
-        return addDoc(collection(db, 'estimates'), { ...estimate, userId, createdAt: Timestamp.now() });
+        const docRef = await addDoc(collection(db, 'estimates'), { ...estimate, userId, createdAt: Timestamp.now() });
+
+        // Trigger automation backend
+        automationService.triggerEstimateCreated(userId, { ...estimate, id: docRef.id });
+
+        return docRef;
     },
     updateEstimate: async (id: string, updates: Partial<Estimate>) => {
         await updateDoc(doc(db, 'estimates', id), updates);
@@ -518,5 +528,3 @@ export const checkoutLinkService = {
         await deleteDoc(doc(db, 'checkout_links', id));
     }
 };
-
-// ... (other services remain unchanged but I will update the entire block for consistency)

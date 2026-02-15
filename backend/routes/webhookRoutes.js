@@ -4,6 +4,7 @@ const webhookController = require('../controllers/webhookController');
 
 // Webhook endpoints
 router.post('/invoice-created', webhookController.handleInvoiceCreated);
+router.post('/estimate-created', webhookController.handleEstimateCreated);
 router.post('/order-placed', webhookController.handleOrderPlaced);
 router.post('/payment-received', webhookController.handlePaymentReceived);
 

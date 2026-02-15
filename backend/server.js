@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log('\n🚀 ========================================');
-  console.log(`   Clintan Automation Backend`);
+  console.log(`   Averqon Automation Backend`);
   console.log('   ========================================');
   console.log(`   🌐 Server: http://localhost:${PORT}`);
   console.log(`   📧 Email: ${process.env.GMAIL_USER ? '✅ Configured' : '❌ Not configured'}`);

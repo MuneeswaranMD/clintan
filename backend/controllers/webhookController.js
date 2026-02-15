@@ -11,15 +11,17 @@ exports.handleInvoiceCreated = async (req, res) => {
 
     console.log(`📨 Webhook received: INVOICE_CREATED`);
     console.log(`   Invoice: ${invoice.invoiceNumber}`);
-    console.log(`   Customer: ${invoice.customerEmail}`);
 
     // Add to queue
     await addNotificationJob('INVOICE_CREATED', {
       email: invoice.customerEmail,
+      phone: invoice.customerPhone || invoice.phone,
       customer_name: invoice.customerName,
       invoice_number: invoice.invoiceNumber,
       amount: invoice.total,
       due_date: invoice.dueDate,
+      items: invoice.items,
+      customer_address: invoice.customerAddress,
       userId
     });
 
@@ -27,6 +29,39 @@ exports.handleInvoiceCreated = async (req, res) => {
       success: true, 
       message: 'Invoice notification queued',
       invoice: invoice.invoiceNumber
+    });
+
+  } catch (error) {
+    console.error('Webhook error:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Webhook: Estimate Created
+exports.handleEstimateCreated = async (req, res) => {
+  try {
+    const { estimate, userId } = req.body;
+
+    if (!estimate) {
+      return res.status(400).json({ error: 'Estimate data is required' });
+    }
+
+    console.log(`📨 Webhook received: ESTIMATE_CREATED`);
+
+    await addNotificationJob('ESTIMATE_CREATED', {
+      email: estimate.customerEmail,
+      phone: estimate.customerPhone || estimate.phone,
+      customer_name: estimate.customerName,
+      estimate_number: estimate.estimateNumber,
+      amount: estimate.amount,
+      items: estimate.items,
+      userId
+    });
+
+    res.json({ 
+      success: true, 
+      message: 'Estimate notification queued',
+      estimate: estimate.estimateNumber
     });
 
   } catch (error) {
@@ -45,13 +80,12 @@ exports.handleOrderPlaced = async (req, res) => {
     }
 
     console.log(`📨 Webhook received: ORDER_PLACED`);
-    console.log(`   Order: ${order.orderNumber}`);
-    console.log(`   Customer: ${order.customerEmail}`);
 
     await addNotificationJob('ORDER_PLACED', {
       email: order.customerEmail,
+      phone: order.customerPhone,
       customer_name: order.customerName,
-      order_number: order.orderNumber,
+      order_number: order.orderId || order.orderNumber,
       amount: order.totalAmount,
       userId
     });
@@ -59,7 +93,7 @@ exports.handleOrderPlaced = async (req, res) => {
     res.json({ 
       success: true, 
       message: 'Order notification queued',
-      order: order.orderNumber
+      order: order.orderId || order.orderNumber
     });
 
   } catch (error) {
@@ -67,6 +101,8 @@ exports.handleOrderPlaced = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+// ... (remaining handlers)
 
 // Webhook: Payment Received
 exports.handlePaymentReceived = async (req, res) => {
