@@ -9,8 +9,10 @@ import { productService, supplierService, stockService } from '../services/fireb
 import { authService } from '../services/authService';
 import { Product, Supplier, StockMovementType } from '../types';
 import { ViewToggle } from '../components/ViewToggle';
+import { useDialog } from '../context/DialogContext';
 
 export const Products: React.FC = () => {
+  const { confirm, alert } = useDialog();
   const [products, setProducts] = useState<Product[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
@@ -114,12 +116,12 @@ export const Products: React.FC = () => {
       });
     } catch (error) {
       console.error(error);
-      alert('Failed to save product');
+      await alert('Failed to save product', { variant: 'danger' });
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('Delete this product?')) {
+    if (await confirm('Delete this product?', { variant: 'danger' })) {
       await productService.deleteProduct(id);
     }
   };
@@ -142,7 +144,7 @@ export const Products: React.FC = () => {
       setSelectedProduct(null);
     } catch (error) {
       console.error(error);
-      alert('Failed to adjust stock');
+      await alert('Failed to adjust stock', { variant: 'danger' });
     }
   };
 

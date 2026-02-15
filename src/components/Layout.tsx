@@ -18,12 +18,17 @@ import {
   Search,
   Bell,
   Settings,
+  TrendingUp,
   Plus,
   HelpCircle,
   ChevronDown,
-  ShoppingBag
+  ShoppingBag,
+  PackageOpen,
+  Truck,
+  Activity
 } from 'lucide-react';
 import { User } from '../types';
+import { NotificationBell } from './NotificationBell';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -60,6 +65,8 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
 
   const navItems = [
     { label: 'Overview', path: '/', icon: LayoutDashboard },
+    { label: 'Analytics', path: '/analytics', icon: TrendingUp },
+    { label: 'Business Intelligence', path: '/advanced-analytics', icon: Activity },
     { label: 'Estimates', path: '/estimates', icon: ClipboardList },
     { label: 'Invoices', path: '/invoices', icon: FileText },
     { label: 'Orders', path: '/orders', icon: ShoppingBag },
@@ -69,7 +76,8 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
     { label: 'Overdue', path: '/overdue', icon: Clock },
     { label: 'Customers', path: '/customers', icon: Users },
     { label: 'Products', path: '/products', icon: Package },
-    { label: 'Inventory', path: '/inventory-logs', icon: Clock },
+    { label: 'Purchase Orders', path: '/purchase-orders', icon: Truck },
+    { label: 'Inventory', path: '/inventory-logs', icon: PackageOpen },
     { label: 'Suppliers', path: '/suppliers', icon: Building2 },
   ];
 
@@ -121,10 +129,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
           </div>
 
           <div className="flex items-center gap-3">
-            <button className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all relative">
-              <Bell size={20} />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-            </button>
+            <NotificationBell />
             <NavLink
               to="/settings"
               className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"

@@ -3,6 +3,7 @@ import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { Layout } from './components/Layout';
 import { Auth } from './pages/Auth';
 import { Dashboard } from './pages/Dashboard';
+import { Analytics } from './pages/Analytics';
 import { Invoices } from './pages/Invoices';
 import { Estimates } from './pages/Estimates';
 import { Payments } from './pages/Payments';
@@ -14,13 +15,18 @@ import { Products } from './pages/Products';
 import { Orders } from './pages/Orders';
 import { Companies } from './pages/Companies';
 import { Suppliers } from './pages/Suppliers';
+import { PurchaseOrders } from './pages/PurchaseOrders';
 import { InventoryLogs } from './pages/Inventory/InventoryLogs';
 import { OrderForm } from './pages/OrderForm';
 import { SettingsPage } from './pages/SettingsPage';
+import { Notifications } from './pages/Notifications';
+import { AdvancedAnalyticsPage } from './pages/AdvancedAnalyticsPage';
 import { authService } from './services/authService';
 import { User } from './types';
+import { DialogProvider } from './context/DialogContext';
 
 function App() {
+  // Main App Component
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -63,43 +69,49 @@ function App() {
 
   return (
     <Router>
-      <Routes>
-        <Route
-          path="/login"
-          element={!user ? <Auth onLogin={handleLogin} /> : <Navigate to="/" replace />}
-        />
+      <DialogProvider>
+        <Routes>
+          <Route
+            path="/login"
+            element={!user ? <Auth onLogin={handleLogin} /> : <Navigate to="/" replace />}
+          />
 
-        <Route path="/order-form/:userId" element={<OrderForm />} />
+          <Route path="/order-form/:userId" element={<OrderForm />} />
 
-        <Route
-          path="/*"
-          element={
-            user ? (
-              <Layout user={user} onLogout={handleLogout}>
-                <Routes>
-                  <Route path="/" element={<Dashboard />} />
-                  <Route path="/invoices" element={<Invoices />} />
-                  <Route path="/estimates" element={<Estimates />} />
-                  <Route path="/payments" element={<Payments />} />
-                  <Route path="/recurring" element={<Recurring />} />
-                  <Route path="/checkouts" element={<Checkouts />} />
-                  <Route path="/overdue" element={<Overdue />} />
-                  <Route path="/customers" element={<Customers />} />
-                  <Route path="/products" element={<Products />} />
-                  <Route path="/orders" element={<Orders />} />
-                  <Route path="/suppliers" element={<Suppliers />} />
-                  <Route path="/inventory-logs" element={<InventoryLogs />} />
-                  <Route path="/companies" element={<Companies />} />
-                  <Route path="/settings" element={<SettingsPage />} />
-                  <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
-              </Layout>
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          }
-        />
-      </Routes>
+          <Route
+            path="/*"
+            element={
+              user ? (
+                <Layout user={user} onLogout={handleLogout}>
+                  <Routes>
+                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/analytics" element={<Analytics />} />
+                    <Route path="/advanced-analytics" element={<AdvancedAnalyticsPage />} />
+                    <Route path="/invoices" element={<Invoices />} />
+                    <Route path="/estimates" element={<Estimates />} />
+                    <Route path="/payments" element={<Payments />} />
+                    <Route path="/recurring" element={<Recurring />} />
+                    <Route path="/checkouts" element={<Checkouts />} />
+                    <Route path="/overdue" element={<Overdue />} />
+                    <Route path="/customers" element={<Customers />} />
+                    <Route path="/products" element={<Products />} />
+                    <Route path="/orders" element={<Orders />} />
+                    <Route path="/purchase-orders" element={<PurchaseOrders />} />
+                    <Route path="/suppliers" element={<Suppliers />} />
+                    <Route path="/inventory-logs" element={<InventoryLogs />} />
+                    <Route path="/companies" element={<Companies />} />
+                    <Route path="/settings" element={<SettingsPage />} />
+                    <Route path="/notifications" element={<Notifications />} />
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                  </Routes>
+                </Layout>
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            }
+          />
+        </Routes>
+      </DialogProvider>
     </Router>
   );
 }

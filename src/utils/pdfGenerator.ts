@@ -221,7 +221,7 @@ export const generateInvoicePDF = async (invoice: Invoice, companyNameArg: strin
         pdf.save(`${documentType}_${invoice.invoiceNumber}.pdf`);
     } catch (error) {
         console.error('Error generating PDF:', error);
-        alert('Failed to generate PDF. Please try again.');
+        throw new Error('Failed to generate PDF');
     } finally {
         document.body.removeChild(element);
     }

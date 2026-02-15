@@ -9,8 +9,10 @@ import { paymentService, customerService, invoiceService } from '../services/fir
 import { authService } from '../services/authService';
 import { Payment, Customer, Invoice } from '../types';
 import { ViewToggle } from '../components/ViewToggle';
+import { useDialog } from '../context/DialogContext';
 
 export const Payments: React.FC = () => {
+    const { confirm, alert } = useDialog();
     const [payments, setPayments] = useState<Payment[]>([]);
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -87,13 +89,13 @@ export const Payments: React.FC = () => {
             setFormData({ paymentId: `PAY-${Math.floor(Math.random() * 100000)}`, customerName: '', amount: 0, method: 'UPI', date: new Date().toISOString().split('T')[0], status: 'Success', notes: '' });
         } catch (error) {
             console.error(error);
-            alert('Failed to save payment');
+            await alert('Failed to save payment', { variant: 'danger' });
         }
     };
 
     const handleDelete = async (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
-        if (confirm('Delete this payment record? This won\'t revert the invoice status automatically.')) {
+        if (await confirm('Delete this payment record? This won\'t revert the invoice status automatically.', { variant: 'danger' })) {
             await paymentService.deletePayment(id);
         }
     };

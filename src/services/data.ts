@@ -105,6 +105,7 @@ const generateMockInvoices = (): Invoice[] => {
       subtotal: 1500,
       tax: 150,
       total: 1650,
+      userId: 'mock-user'
     });
   }
   return invoices;

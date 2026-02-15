@@ -7,8 +7,10 @@ import { customerService, invoiceService } from '../services/firebaseService';
 import { authService } from '../services/authService';
 import { Customer, Invoice, InvoiceStatus } from '../types';
 import { ViewToggle } from '../components/ViewToggle';
+import { useDialog } from '../context/DialogContext';
 
 export const Customers: React.FC = () => {
+    const { confirm, alert } = useDialog();
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [invoices, setInvoices] = useState<Invoice[]>([]);
     const [loading, setLoading] = useState(true);
@@ -79,13 +81,13 @@ export const Customers: React.FC = () => {
             setFormData({ name: '', phone: '', address: '', company: '', gst: '' });
         } catch (error) {
             console.error(error);
-            alert('Failed to save customer');
+            await alert('Failed to save customer', { variant: 'danger' });
         }
     };
 
     const handleDelete = async (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
-        if (confirm('Delete this customer? All history will remain but customer won\'t be in selection.')) {
+        if (await confirm('Delete this customer? All history will remain but customer won\'t be in selection.', { variant: 'danger' })) {
             await customerService.deleteCustomer(id);
         }
     };

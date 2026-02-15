@@ -7,7 +7,10 @@ import { invoiceService } from '../services/firebaseService';
 import { authService } from '../services/authService';
 import { Invoice, InvoiceStatus } from '../types';
 
+import { useDialog } from '../context/DialogContext';
+
 export const Overdue: React.FC = () => {
+    const { confirm } = useDialog();
     const [invoices, setInvoices] = useState<Invoice[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -108,7 +111,7 @@ export const Overdue: React.FC = () => {
                                 <Mail size={16} /> Remind
                             </button>
                             <button onClick={async () => {
-                                if (confirm('Mark this invoice as fully paid?')) {
+                                if (await confirm('Mark this invoice as fully paid?', { title: 'Mark as Paid' })) {
                                     await invoiceService.updateInvoice(inv.id, { status: InvoiceStatus.Paid, paidAmount: inv.total });
                                 }
                             }} className="flex-1 lg:flex-none h-12 bg-white border border-slate-200 text-slate-600 font-bold px-6 rounded-xl flex items-center justify-center gap-2 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 transition-all text-[11px] uppercase tracking-widest shadow-sm active:scale-95 leading-none">

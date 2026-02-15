@@ -7,8 +7,10 @@ import { recurringInvoiceService, customerService } from '../services/firebaseSe
 import { authService } from '../services/authService';
 import { RecurringInvoice, Customer } from '../types';
 import { ViewToggle } from '../components/ViewToggle';
+import { useDialog } from '../context/DialogContext';
 
 export const Recurring: React.FC = () => {
+    const { confirm, alert } = useDialog();
     const [recurring, setRecurring] = useState<RecurringInvoice[]>([]);
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [loading, setLoading] = useState(true);
@@ -60,12 +62,12 @@ export const Recurring: React.FC = () => {
             });
         } catch (error) {
             console.error(error);
-            alert('Failed to save template');
+            await alert('Failed to save template', { variant: 'danger' });
         }
     };
 
     const handleDelete = async (id: string) => {
-        if (confirm('Delete this recurring template? No future invoices will be generated.')) {
+        if (await confirm('Delete this recurring template? No future invoices will be generated.', { variant: 'danger' })) {
             await recurringInvoiceService.deleteRecurring(id);
         }
     };

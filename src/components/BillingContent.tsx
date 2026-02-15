@@ -9,6 +9,7 @@ import { Invoice, InvoiceItem, InvoiceStatus, Product, Estimate, Payment, Recurr
 import { invoiceService, productService, estimateService, paymentService, recurringInvoiceService, checkoutLinkService, customerService } from '../services/firebaseService';
 import { settingsService } from '../services/settingsService';
 import { authService } from '../services/authService';
+import { useDialog } from '../context/DialogContext';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -19,6 +20,7 @@ interface BillingContentProps {
 
 export const BillingContent: React.FC<BillingContentProps> = ({ initialTab = 'Invoices', filterStatus }) => {
     const navigate = useNavigate();
+    const { confirm, alert } = useDialog();
     const location = useLocation();
     const [invoices, setInvoices] = useState<Invoice[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
@@ -87,10 +89,10 @@ export const BillingContent: React.FC<BillingContentProps> = ({ initialTab = 'In
         return { subtotal, tax, total: subtotal + tax };
     };
 
-    const handleCreate = () => {
+    const handleCreate = async () => {
         const user = authService.getCurrentUser();
         if (!user) {
-            alert("Please log in first.");
+            await alert("Please log in first.", { variant: 'danger' });
             return;
         }
 
@@ -165,7 +167,7 @@ export const BillingContent: React.FC<BillingContentProps> = ({ initialTab = 'In
     };
 
     const handleDelete = async (id: string) => {
-        if (confirm('Are you sure you want to delete this item?')) {
+        if (await confirm('Are you sure you want to delete this item?', { variant: 'danger' })) {
             try {
                 if (activeTab === 'Payments') await paymentService.deletePayment(id);
                 else if (activeTab === 'Checkouts') await checkoutLinkService.deleteCheckout(id);
@@ -177,7 +179,7 @@ export const BillingContent: React.FC<BillingContentProps> = ({ initialTab = 'In
                 if (selectedInvoice && selectedInvoice.id === id) setSelectedInvoice(null);
             } catch (error) {
                 console.error('Error deleting:', error);
-                alert('Failed to delete');
+                await alert('Failed to delete', { variant: 'danger' });
             }
         }
     };
@@ -186,7 +188,7 @@ export const BillingContent: React.FC<BillingContentProps> = ({ initialTab = 'In
         e.preventDefault();
         const user = authService.getCurrentUser();
         if (!user) {
-            alert('Please log in to save.');
+            await alert('Please log in to save.', { variant: 'danger' });
             return;
         }
 
@@ -227,7 +229,7 @@ export const BillingContent: React.FC<BillingContentProps> = ({ initialTab = 'In
             setView('list');
         } catch (error) {
             console.error('Error saving:', error);
-            alert('Failed to save');
+            await alert('Failed to save', { variant: 'danger' });
         }
     };
 
@@ -235,7 +237,7 @@ export const BillingContent: React.FC<BillingContentProps> = ({ initialTab = 'In
         const user = authService.getCurrentUser();
         if (!user) return;
 
-        if (!confirm('Convert this estimate to an invoice?')) return;
+        if (!await confirm('Convert this estimate to an invoice?', { title: 'Convert Estimate' })) return;
 
         try {
             const invoiceData: Omit<Invoice, 'id' | 'userId'> = {
@@ -256,11 +258,11 @@ export const BillingContent: React.FC<BillingContentProps> = ({ initialTab = 'In
             await invoiceService.createInvoice(user.id, invoiceData);
             await estimateService.updateEstimate(estimate.id, { status: 'Accepted' });
 
-            alert('Successfully converted to invoice!');
+            await alert('Successfully converted to invoice!', { variant: 'success' });
             navigate('/invoices');
         } catch (error) {
             console.error(error);
-            alert('Conversion failed');
+            await alert('Conversion failed', { variant: 'danger' });
         }
     };
 
@@ -321,7 +323,7 @@ export const BillingContent: React.FC<BillingContentProps> = ({ initialTab = 'In
             pdf.save(`${activeTab === 'Estimates' ? 'Estimate' : 'Invoice'}-${invoice.invoiceNumber}.pdf`);
         } catch (error) {
             console.error('PDF Generation Error:', error);
-            alert('Failed to generate PDF');
+            await alert('Failed to generate PDF', { variant: 'danger' });
         }
     };
 
@@ -492,7 +494,7 @@ export const BillingContent: React.FC<BillingContentProps> = ({ initialTab = 'In
                     </div>
 
                     {/* Payment Details */}
-                    
+
                     {/* Footer Copyright */}
                     <div className="absolute bottom-0 left-0 right-0 p-8 border-t border-slate-100 text-center text-[10px] text-slate-400">
                         <p>© {new Date().getFullYear()} {settings?.companyName || 'Your Company'}. All rights reserved.</p>

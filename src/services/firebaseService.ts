@@ -16,7 +16,8 @@ import {
     setDoc
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { Invoice, Product, Estimate, Payment, RecurringInvoice, CheckoutLink, Customer, Order, OrderStatus, StockLog, Supplier, StockMovementType, OrderFormConfig } from '../types';
+import { Invoice, Product, Estimate, Payment, RecurringInvoice, CheckoutLink, Customer, Order, OrderStatus, StockLog, Supplier, StockMovementType, OrderFormConfig, PurchaseOrder, SupplierPayment } from '../types';
+import { createOrderNotification, createStockNotification, createPaymentNotification, createPurchaseOrderNotification } from './notificationService';
 
 // ... (existing constants)
 const INVOICES_COLLECTION = 'invoices';
@@ -122,6 +123,92 @@ export const supplierService = {
     }
 };
 
+// ========== PURCHASE ORDER OPERATIONS ==========
+export const purchaseOrderService = {
+    subscribeToPurchaseOrders: (userId: string, callback: (pos: PurchaseOrder[]) => void) => {
+        const q = query(collection(db, 'purchase_orders'), where('userId', '==', userId), orderBy('date', 'desc'));
+        return onSnapshot(q, (snapshot) => {
+            const pos: PurchaseOrder[] = [];
+            snapshot.forEach((doc) => pos.push({ id: doc.id, ...doc.data() } as PurchaseOrder));
+            callback(pos);
+        });
+    },
+    createPurchaseOrder: async (userId: string, po: Omit<PurchaseOrder, 'id'>) => {
+        return addDoc(collection(db, 'purchase_orders'), { ...po, userId, createdAt: new Date().toISOString() });
+    },
+    updatePurchaseOrder: async (id: string, updates: Partial<PurchaseOrder>) => {
+        await updateDoc(doc(db, 'purchase_orders', id), updates);
+    },
+    deletePurchaseOrder: async (id: string) => {
+        await deleteDoc(doc(db, 'purchase_orders', id));
+    },
+    receivePurchaseOrder: async (userId: string, poId: string) => {
+        const poRef = doc(db, 'purchase_orders', poId);
+        const poSnap = await getDoc(poRef);
+        if (!poSnap.exists()) throw new Error('PO not found');
+
+        const po = poSnap.data() as PurchaseOrder;
+        if (po.status === 'Received') return; // Already received
+
+        const batch = writeBatch(db);
+
+        // Update PO Status
+        batch.update(poRef, { status: 'Received' });
+
+        // Update Stock
+        for (const item of po.items) {
+            const productRef = doc(db, PRODUCTS_COLLECTION, item.productId);
+            const productSnap = await getDoc(productRef);
+            if (productSnap.exists()) {
+                const product = productSnap.data() as Product;
+                const currentStock = product.inventory?.stock || 0;
+                const newStock = currentStock + item.quantity;
+
+                batch.update(productRef, {
+                    'inventory.stock': newStock,
+                    'inventory.lastUpdated': new Date().toISOString()
+                });
+
+                // Log the stock movement
+                const logRef = doc(collection(db, 'stock_logs'));
+                batch.set(logRef, {
+                    productId: item.productId,
+                    type: 'ADD', // Re-stock
+                    quantity: item.quantity,
+                    previousStock: currentStock,
+                    newStock: newStock,
+                    reason: `PO Received: ${po.poId}`,
+                    timestamp: new Date().toISOString(),
+                    userId: userId,
+                    createdAt: Timestamp.now()
+                });
+            }
+        }
+        await batch.commit();
+    }
+};
+
+// ========== SUPPLIER PAYMENT OPERATIONS ==========
+export const supplierPaymentService = {
+    subscribeToSupplierPayments: (userId: string, callback: (payments: SupplierPayment[]) => void) => {
+        const q = query(collection(db, 'supplier_payments'), where('userId', '==', userId), orderBy('date', 'desc'));
+        return onSnapshot(q, (snapshot) => {
+            const payments: SupplierPayment[] = [];
+            snapshot.forEach((doc) => payments.push({ id: doc.id, ...doc.data() } as SupplierPayment));
+            callback(payments);
+        });
+    },
+    createSupplierPayment: async (userId: string, payment: Omit<SupplierPayment, 'id'>) => {
+        return addDoc(collection(db, 'supplier_payments'), { ...payment, userId, createdAt: new Date().toISOString() });
+    },
+    updateSupplierPayment: async (id: string, updates: Partial<SupplierPayment>) => {
+        await updateDoc(doc(db, 'supplier_payments', id), updates);
+    },
+    deleteSupplierPayment: async (id: string) => {
+        await deleteDoc(doc(db, 'supplier_payments', id));
+    }
+};
+
 // ========== ORDER OPERATIONS ==========
 export const orderService = {
     subscribeToOrders: (userId: string, callback: (orders: Order[]) => void) => {
@@ -133,7 +220,21 @@ export const orderService = {
         });
     },
     createOrder: async (userId: string, order: Omit<Order, 'id'>) => {
-        return addDoc(collection(db, ORDERS_COLLECTION), { ...order, userId, createdAt: Timestamp.now() });
+        const docRef = await addDoc(collection(db, ORDERS_COLLECTION), { ...order, userId, createdAt: Timestamp.now() });
+
+        // Create notification for new order
+        try {
+            await createOrderNotification(userId, docRef.id, order.orderId, 'NEW_ORDER');
+        } catch (error) {
+            console.error('Failed to create order notification:', error);
+        }
+
+        // Automatically deduct stock for manual orders created with Confirmed/Paid status
+        if (order.orderStatus === OrderStatus.Confirmed || order.paymentStatus === 'Paid') {
+            const fullOrder = { ...order, id: docRef.id, userId } as Order;
+            await orderService.processStockReduction(fullOrder);
+        }
+        return docRef;
     },
     updateOrder: async (id: string, updates: Partial<Order>) => {
         const orderRef = doc(db, ORDERS_COLLECTION, id);
@@ -153,12 +254,20 @@ export const orderService = {
         if (orderSnap.exists()) await orderService.processStockReduction(orderSnap.data() as Order);
     },
     processStockReduction: async (order: Order) => {
+        if (order.stockDeducted) {
+            console.log('Stock already deducted for order:', order.orderId);
+            return;
+        }
+
         const batch = writeBatch(db);
+        const orderRef = doc(db, ORDERS_COLLECTION, order.id);
         const stockLogs: Omit<StockLog, 'id'>[] = [];
+        let anyStockUpdated = false;
 
         for (const item of order.items) {
             // Only deduct stock for tracked products
-            if (item.type === 'PRODUCT' && item.itemId) {
+            // Using loose equality for type to handle potential undefined if missing in legacy data but itemId exists
+            if ((item.type === 'PRODUCT' || (!item.type && item.itemId)) && item.itemId) {
                 const productRef = doc(db, PRODUCTS_COLLECTION, item.itemId);
                 const productSnap = await getDoc(productRef);
 
@@ -169,6 +278,7 @@ export const orderService = {
 
                     const currentStock = product.inventory.stock || 0;
                     const newStock = currentStock - item.quantity;
+                    anyStockUpdated = true;
 
                     let newStatus = product.inventory.status || 'ACTIVE';
                     if (newStock <= 0) newStatus = 'OUT_OF_STOCK';
@@ -191,8 +301,24 @@ export const orderService = {
                         timestamp: new Date().toISOString(),
                         userId: order.userId
                     });
+
+                    // Create stock notifications if needed
+                    try {
+                        if (newStock <= 0 && currentStock > 0) {
+                            await createStockNotification(order.userId, item.itemId, product.name, 'OUT_OF_STOCK', newStock);
+                        } else if (newStock <= (product.inventory.minStockLevel || 0) && currentStock > (product.inventory.minStockLevel || 0)) {
+                            await createStockNotification(order.userId, item.itemId, product.name, 'LOW_STOCK', newStock);
+                        }
+                    } catch (error) {
+                        console.error('Failed to create stock notification:', error);
+                    }
                 }
             }
+        }
+
+        // Mark order as stock deducted
+        if (anyStockUpdated) {
+            batch.update(orderRef, { stockDeducted: true });
         }
 
         // Commit all updates and create logs
@@ -269,6 +395,22 @@ export const stockService = {
         });
 
         await batch.commit();
+
+        // Create notifications based on stock status
+        try {
+            if (newStatus === 'OUT_OF_STOCK') {
+                await createStockNotification(userId, productId, product.name, 'OUT_OF_STOCK', newStock);
+            } else if (newStatus === 'LOW_STOCK' && currentStock > (product.inventory?.minStockLevel || 0)) {
+                // Only notify if transitioning to low stock (not already low)
+                await createStockNotification(userId, productId, product.name, 'LOW_STOCK', newStock);
+            } else if (type === 'ADD' || type === 'RETURN') {
+                await createStockNotification(userId, productId, product.name, 'STOCK_REPLENISHED', newStock);
+            } else if (type === 'ADJUST') {
+                await createStockNotification(userId, productId, product.name, 'STOCK_ADJUSTED', newStock);
+            }
+        } catch (error) {
+            console.error('Failed to create stock notification:', error);
+        }
     }
 };
 

@@ -1,24 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
-import { ShoppingCart, Send, CheckCircle, AlertCircle, Loader, MapPin, Phone, Mail, User } from 'lucide-react';
+import { ShoppingCart, Send, CheckCircle, AlertCircle, Loader, Plus, Minus, Trash2 } from 'lucide-react';
 import { productService, orderService } from '../services/firebaseService';
 import { orderFormService } from '../services/orderFormService';
 import { settingsService } from '../services/settingsService';
 import { Product, OrderStatus, OrderFormConfig } from '../types';
 
+interface CartItem {
+    product: Product;
+    quantity: number;
+}
+
 export const OrderForm: React.FC = () => {
     const { userId } = useParams<{ userId: string }>();
     const [searchParams] = useSearchParams();
 
-    // State
     const [config, setConfig] = useState<OrderFormConfig | null>(null);
     const [products, setProducts] = useState<Product[]>([]);
+    const [cart, setCart] = useState<CartItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [submitted, setSubmitted] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [countryCode, setCountryCode] = useState('+91');
 
-    // Omnichannel Tracking
     const channelParam = searchParams.get('channel') || searchParams.get('source');
     const channel: any = channelParam ? channelParam.toUpperCase() : 'WEBSITE';
 
@@ -27,8 +30,6 @@ export const OrderForm: React.FC = () => {
         customerPhone: '',
         customerEmail: '',
         customerAddress: '',
-        productId: '',
-        quantity: 1,
         notes: '',
         source: searchParams.get('source') || 'Public Link'
     });
@@ -42,14 +43,12 @@ export const OrderForm: React.FC = () => {
 
         const loadData = async () => {
             try {
-                // Load Config
                 const formConfig = await orderFormService.getPublicConfig(userId);
                 setConfig(formConfig);
 
-                // Load Products
                 const unsub = productService.subscribeToProducts(userId, (data) => {
                     setProducts(data.filter(p => p.inventory?.status !== 'DISABLED'));
-                    setLoading(false); // Set loading false only after everything is ready
+                    setLoading(false);
                 });
 
                 return () => unsub();
@@ -63,6 +62,57 @@ export const OrderForm: React.FC = () => {
         loadData();
     }, [userId]);
 
+    const addToCart = (product: Product) => {
+        const existingItem = cart.find(item => item.product.id === product.id);
+
+        if (existingItem) {
+            updateQuantity(product.id, existingItem.quantity + 1);
+        } else {
+            setCart([...cart, { product, quantity: 1 }]);
+        }
+    };
+
+    const updateQuantity = (productId: string, newQuantity: number) => {
+        if (newQuantity < 1) {
+            removeFromCart(productId);
+            return;
+        }
+
+        const product = products.find(p => p.id === productId);
+        if (config?.enableStock && product?.inventory) {
+            if (newQuantity > product.inventory.stock) {
+                setError(`Only ${product.inventory.stock} units available`);
+                return;
+            }
+        }
+
+        setCart(cart.map(item =>
+            item.product.id === productId ? { ...item, quantity: newQuantity } : item
+        ));
+        setError(null);
+    };
+
+    const removeFromCart = (productId: string) => {
+        setCart(cart.filter(item => item.product.id !== productId));
+    };
+
+    const calculateTotals = () => {
+        let subtotal = 0;
+        let taxTotal = 0;
+
+        cart.forEach(item => {
+            const itemPrice = item.product.pricing?.sellingPrice || 0;
+            const itemSubtotal = itemPrice * item.quantity;
+            const taxPercentage = item.product.pricing?.taxPercentage || config?.defaultTaxPercentage || 0;
+            const itemTax = config?.enableTax ? (itemSubtotal * taxPercentage) / 100 : 0;
+
+            subtotal += itemSubtotal;
+            taxTotal += itemTax;
+        });
+
+        return { subtotal, taxTotal, grandTotal: subtotal + taxTotal };
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -70,50 +120,44 @@ export const OrderForm: React.FC = () => {
 
         try {
             if (!userId) throw new Error('Seller identity missing.');
+            if (cart.length === 0) throw new Error('Please add items to your cart.');
 
-            // Find selected product details
-            const selectedProduct = products.find(p => p.id === formData.productId);
-            if (!selectedProduct) throw new Error('Please select a valid product.');
-
-            const sellingPrice = selectedProduct.pricing?.sellingPrice || 0;
-            const taxPercentage = selectedProduct.pricing?.taxPercentage || config?.defaultTaxPercentage || 0;
             const orderId = `ORD-${Math.floor(100000 + Math.random() * 900000)}`;
+            const totals = calculateTotals();
 
-            // Check stock if enabled
-            if (config?.enableStock && selectedProduct.inventory) {
-                if (selectedProduct.inventory.stock < formData.quantity) {
-                    throw new Error(`Insufficient stock. Only ${selectedProduct.inventory.stock} available.`);
-                }
-            }
+            const orderItems = cart.map(item => {
+                const sellingPrice = item.product.pricing?.sellingPrice || 0;
+                const taxPercentage = item.product.pricing?.taxPercentage || config?.defaultTaxPercentage || 0;
+                const itemSubtotal = sellingPrice * item.quantity;
+                const itemTax = config?.enableTax ? (itemSubtotal * taxPercentage) / 100 : 0;
 
-            // Calculate Totals
-            const subtotal = sellingPrice * formData.quantity;
-            const taxAmount = config?.enableTax ? (subtotal * taxPercentage) / 100 : 0;
-            const totalAmount = subtotal + taxAmount;
+                return {
+                    id: Math.random().toString(),
+                    itemId: item.product.id,
+                    name: item.product.name,
+                    type: 'PRODUCT', // Explicitly set type to ensure stock tracking works
+                    quantity: item.quantity,
+                    price: sellingPrice,
+                    taxPercentage: config?.enableTax ? taxPercentage : 0,
+                    discount: 0,
+                    subtotal: itemSubtotal,
+                    total: itemSubtotal + itemTax
+                };
+            });
 
             const orderData = {
                 orderId,
                 customerName: formData.customerName,
-                customerPhone: `${countryCode}${formData.customerPhone}`,
+                customerPhone: formData.customerPhone,
                 customerEmail: formData.customerEmail,
                 customerAddress: formData.customerAddress,
-                items: [{
-                    id: Math.random().toString(),
-                    itemId: selectedProduct.id, // Ensure stock deduction works
-                    name: selectedProduct.name,
-                    quantity: formData.quantity,
-                    price: sellingPrice,
-                    taxPercentage: config?.enableTax ? taxPercentage : 0,
-                    discount: 0,
-                    subtotal: subtotal,
-                    total: totalAmount / formData.quantity // per item total? Simplified for now.
-                }],
-                totalAmount: totalAmount,
+                items: orderItems,
+                totalAmount: totals.grandTotal,
                 pricingSummary: {
-                    subTotal: subtotal,
-                    taxTotal: taxAmount,
+                    subTotal: totals.subtotal,
+                    taxTotal: totals.taxTotal,
                     discountTotal: 0,
-                    grandTotal: totalAmount
+                    grandTotal: totals.grandTotal
                 },
                 paymentStatus: 'Pending' as const,
                 orderStatus: OrderStatus.Pending,
@@ -125,10 +169,8 @@ export const OrderForm: React.FC = () => {
                 userId: userId
             };
 
-            // 1. Create Order in CRM
             await orderService.createOrder(userId, orderData as any);
 
-            // 2. Trigger n8n Automation (Optional)
             try {
                 const settings = await settingsService.getSettings(userId);
                 const webhookUrl = settings?.n8nWebhookUrl;
@@ -137,10 +179,7 @@ export const OrderForm: React.FC = () => {
                     await fetch(webhookUrl, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            event: 'order_created',
-                            ...orderData
-                        })
+                        body: JSON.stringify({ event: 'order_created', ...orderData })
                     });
                 }
             } catch (webhookErr) {
@@ -148,6 +187,7 @@ export const OrderForm: React.FC = () => {
             }
 
             setSubmitted(true);
+            setCart([]);
         } catch (err: any) {
             console.error('Submission failed:', err);
             setError(err.message || 'Failed to process order.');
@@ -158,10 +198,10 @@ export const OrderForm: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-                <div className="flex flex-col items-center gap-4">
-                    <Loader className="animate-spin text-blue-600" size={32} />
-                    <p className="text-slate-500 font-medium animate-pulse">Loading Order Form...</p>
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="text-center">
+                    <Loader className="animate-spin text-blue-600 mx-auto mb-3" size={40} />
+                    <p className="text-gray-600">Loading...</p>
                 </div>
             </div>
         );
@@ -169,21 +209,17 @@ export const OrderForm: React.FC = () => {
 
     if (submitted) {
         return (
-            <div className="min-h-screen bg-white flex items-center justify-center p-6 animate-fade-in">
-                <div className="max-w-md w-full text-center space-y-6">
-                    <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto text-emerald-500 shadow-sm border border-emerald-100">
-                        <CheckCircle size={40} />
-                    </div>
-                    <div className="space-y-2">
-                        <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Order Received!</h2>
-                        <p className="text-slate-500 font-medium">Thank you for your business. We've received your request and will process it shortly.</p>
-                    </div>
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+                <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
+                    <CheckCircle size={60} className="text-green-500 mx-auto mb-4" />
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Order Placed!</h2>
+                    <p className="text-gray-600 mb-6">Thank you for your order. We'll contact you soon.</p>
                     <button
                         onClick={() => {
                             setSubmitted(false);
-                            setFormData({ ...formData, quantity: 1, productId: '', notes: '' });
+                            setFormData({ ...formData, notes: '' });
                         }}
-                        className="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-md active:scale-95"
+                        className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
                     >
                         Place Another Order
                     </button>
@@ -192,198 +228,203 @@ export const OrderForm: React.FC = () => {
         );
     }
 
-    return (
-        <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 md:p-10 font-sans selection:bg-blue-100">
-            <div className="max-w-xl w-full bg-white rounded-3xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] border border-slate-200 overflow-hidden animate-fade-in">
+    const totals = calculateTotals();
 
+    return (
+        <div className="min-h-screen bg-gray-50 p-4">
+            <div className="max-w-6xl mx-auto">
                 {/* Header */}
-                <div className="bg-slate-900 p-8 text-white relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600 opacity-20 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl italic"></div>
-                    <div className="relative z-10 flex items-center gap-4">
+                <div className="bg-white rounded-lg shadow mb-6 p-4">
+                    <div className="flex items-center gap-3">
                         {config?.logoUrl ? (
-                            <img src={config.logoUrl} alt="Logo" className="w-16 h-16 rounded-xl object-contain bg-white p-1" />
+                            <img src={config.logoUrl} alt="Logo" className="h-12 w-auto" />
                         ) : (
-                            <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg">
-                                <ShoppingCart size={22} />
-                            </div>
+                            <ShoppingCart size={32} className="text-blue-600" />
                         )}
                         <div>
-                            <h1 className="text-xl font-bold tracking-tight leading-none mb-1">{config?.formName || 'Secure Order Form'}</h1>
-                            <p className="text-slate-400 text-xs font-medium uppercase tracking-widest">Powered by Averqon</p>
+                            <h1 className="text-xl font-bold text-gray-900">{config?.formName || 'Order Form'}</h1>
+                            <p className="text-sm text-gray-500">Select products and checkout</p>
                         </div>
                     </div>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-8 space-y-8">
-                    {error && (
-                        <div className="bg-red-50 border border-red-100 p-4 rounded-xl flex items-center gap-3 text-red-600 animate-shake">
-                            <AlertCircle size={20} />
-                            <p className="text-sm font-bold">{error}</p>
-                        </div>
-                    )}
+                {error && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 flex items-center gap-2">
+                        <AlertCircle size={20} className="text-red-600" />
+                        <p className="text-red-800">{error}</p>
+                    </div>
+                )}
 
-                    <div className="space-y-6">
-                        {/* Dynamic Customer Fields */}
-                        <div>
-                            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Your Details</label>
-                            <div className="space-y-4">
-                                {/* Hardcoded for now but could be dynamic based on config.fields */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="relative">
-                                        <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Products */}
+                    <div className="lg:col-span-2">
+                        <div className="bg-white rounded-lg shadow p-6">
+                            <h2 className="text-lg font-bold text-gray-900 mb-4">Products ({products.length})</h2>
+                            <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2 scroll-smooth">
+                                {products.map(product => {
+                                    const inCart = cart.find(item => item.product.id === product.id);
+                                    const isOutOfStock = config?.enableStock && product.inventory?.status === 'OUT_OF_STOCK';
+
+                                    return (
+                                        <div
+                                            key={product.id}
+                                            className={`border rounded-lg p-4 ${inCart ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+                                                } ${isOutOfStock ? 'opacity-50' : ''}`}
+                                        >
+                                            <div className="flex justify-between items-start">
+                                                <div className="flex-1">
+                                                    <h3 className="font-semibold text-gray-900">{product.name}</h3>
+                                                    {product.description && (
+                                                        <p className="text-sm text-gray-600 mt-1">{product.description}</p>
+                                                    )}
+                                                    <p className="text-lg font-bold text-blue-600 mt-2">
+                                                        {config?.currency || '₹'}{(product.pricing?.sellingPrice || 0).toLocaleString()}
+                                                    </p>
+                                                </div>
+                                                {!isOutOfStock && (
+                                                    <button
+                                                        onClick={() => addToCart(product)}
+                                                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 flex items-center gap-1"
+                                                    >
+                                                        <Plus size={16} />
+                                                        Add
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Cart */}
+                    <div>
+                        <div className="bg-white rounded-lg shadow p-6 sticky top-4">
+                            <h2 className="text-lg font-bold text-gray-900 mb-4">Cart ({cart.length})</h2>
+
+                            {cart.length === 0 ? (
+                                <div className="text-center py-8 text-gray-400">
+                                    <ShoppingCart size={48} className="mx-auto mb-2" />
+                                    <p className="text-sm">Cart is empty</p>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="space-y-3 mb-4 max-h-[300px] overflow-y-auto pr-2 scroll-smooth">
+                                        {cart.map(item => (
+                                            <div key={item.product.id} className="border border-gray-200 rounded p-3">
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <h4 className="font-semibold text-sm">{item.product.name}</h4>
+                                                    <button
+                                                        onClick={() => removeFromCart(item.product.id)}
+                                                        className="text-red-500 hover:text-red-700"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                                <div className="flex justify-between items-center">
+                                                    <div className="flex items-center gap-2">
+                                                        <button
+                                                            onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
+                                                            className="w-7 h-7 border border-gray-300 rounded flex items-center justify-center hover:bg-gray-100"
+                                                        >
+                                                            <Minus size={14} />
+                                                        </button>
+                                                        <span className="w-8 text-center font-semibold">{item.quantity}</span>
+                                                        <button
+                                                            onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
+                                                            className="w-7 h-7 border border-gray-300 rounded flex items-center justify-center hover:bg-gray-100"
+                                                        >
+                                                            <Plus size={14} />
+                                                        </button>
+                                                    </div>
+                                                    <span className="font-bold text-blue-600">
+                                                        {config?.currency || '₹'}{((item.product.pricing?.sellingPrice || 0) * item.quantity).toLocaleString()}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    <div className="border-t pt-3 space-y-2 mb-4">
+                                        <div className="flex justify-between text-sm">
+                                            <span>Subtotal</span>
+                                            <span className="font-semibold">{config?.currency || '₹'}{totals.subtotal.toLocaleString()}</span>
+                                        </div>
+                                        {config?.enableTax && (
+                                            <div className="flex justify-between text-sm">
+                                                <span>Tax</span>
+                                                <span className="font-semibold">{config?.currency || '₹'}{totals.taxTotal.toLocaleString()}</span>
+                                            </div>
+                                        )}
+                                        <div className="flex justify-between text-lg font-bold border-t pt-2">
+                                            <span>Total</span>
+                                            <span className="text-blue-600">{config?.currency || '₹'}{totals.grandTotal.toLocaleString()}</span>
+                                        </div>
+                                    </div>
+
+                                    <form onSubmit={handleSubmit} className="space-y-3">
                                         <input
                                             required
                                             type="text"
                                             placeholder="Full Name"
-                                            className="w-full bg-slate-50 border border-transparent pl-10 p-3.5 rounded-xl text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-medium shadow-sm"
+                                            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-blue-500"
                                             value={formData.customerName}
                                             onChange={e => setFormData({ ...formData, customerName: e.target.value })}
                                         />
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <select
-                                            className="bg-slate-50 border border-transparent p-3.5 rounded-xl text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-medium shadow-sm w-[90px]"
-                                            value={countryCode}
-                                            onChange={e => setCountryCode(e.target.value)}
-                                        >
-                                            <option value="+91">🇮🇳 +91</option>
-                                            <option value="+1">🇺🇸 +1</option>
-                                            <option value="+44">🇬🇧 +44</option>
-                                            <option value="+971">🇦🇪 +971</option>
-                                        </select>
-                                        <div className="relative flex-1">
-                                            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                                            <input
-                                                required
-                                                type="tel"
-                                                placeholder="Mobile Number"
-                                                className="w-full bg-slate-50 border border-transparent pl-10 p-3.5 rounded-xl text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-medium shadow-sm"
-                                                value={formData.customerPhone}
-                                                onChange={e => setFormData({ ...formData, customerPhone: e.target.value })}
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="relative md:col-span-2">
-                                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                                        <input
+                                            required
+                                            type="tel"
+                                            placeholder="Phone Number"
+                                            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-blue-500"
+                                            value={formData.customerPhone}
+                                            onChange={e => setFormData({ ...formData, customerPhone: e.target.value })}
+                                        />
                                         <input
                                             type="email"
-                                            placeholder="Email Address (Optional)"
-                                            className="w-full bg-slate-50 border border-transparent pl-10 p-3.5 rounded-xl text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-medium shadow-sm"
+                                            placeholder="Email (Optional)"
+                                            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-blue-500"
                                             value={formData.customerEmail}
                                             onChange={e => setFormData({ ...formData, customerEmail: e.target.value })}
                                         />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                                        <textarea
+                                            required
+                                            placeholder="Delivery Address"
+                                            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-blue-500 resize-none"
+                                            rows={3}
+                                            value={formData.customerAddress}
+                                            onChange={e => setFormData({ ...formData, customerAddress: e.target.value })}
+                                        />
+                                        <textarea
+                                            placeholder="Notes (Optional)"
+                                            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-blue-500 resize-none"
+                                            rows={2}
+                                            value={formData.notes}
+                                            onChange={e => setFormData({ ...formData, notes: e.target.value })}
+                                        />
 
-                        {/* Order Selection */}
-                        <div>
-                            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Select Items</label>
-                            <div className="space-y-4">
-                                <select
-                                    required
-                                    className="w-full bg-slate-50 border border-transparent p-3.5 rounded-xl text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-bold shadow-sm appearance-none cursor-pointer"
-                                    value={formData.productId}
-                                    onChange={e => setFormData({ ...formData, productId: e.target.value })}
-                                >
-                                    <option value="">-- Choose a Product --</option>
-                                    {products.map(p => (
-                                        <option key={p.id} value={p.id} disabled={config?.enableStock && p.inventory?.status === 'OUT_OF_STOCK'}>
-                                            {p.name} - {config?.currency || '₹'} {(p.pricing?.sellingPrice || 0).toLocaleString()}
-                                            {config?.enableStock && p.inventory?.status === 'OUT_OF_STOCK' ? ' (Sold Out)' : ''}
-                                        </option>
-                                    ))}
-                                </select>
-
-                                {formData.productId && (
-                                    <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-xl border border-transparent">
-                                        <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Quantity</span>
-                                        <div className="flex items-center gap-4 bg-white rounded-lg border border-slate-200 p-1">
-                                            <button
-                                                type="button"
-                                                onClick={() => setFormData({ ...formData, quantity: Math.max(1, formData.quantity - 1) })}
-                                                className="w-8 h-8 rounded-md flex items-center justify-center font-bold text-slate-500 hover:bg-slate-50 transition-all"
-                                            >
-                                                -
-                                            </button>
-                                            <span className="font-bold text-slate-800 w-6 text-center">{formData.quantity}</span>
-                                            <button
-                                                type="button"
-                                                onClick={() => setFormData({ ...formData, quantity: formData.quantity + 1 })}
-                                                className="w-8 h-8 rounded-md flex items-center justify-center font-bold text-slate-500 hover:bg-slate-50 transition-all"
-                                            >
-                                                +
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Delivery */}
-                        <div>
-                            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Delivery Address</label>
-                            <div className="relative">
-                                <MapPin className="absolute left-3 top-4 text-slate-400" size={18} />
-                                <textarea
-                                    required
-                                    placeholder="Complete Address (House No, Street, City, Pincode)"
-                                    rows={3}
-                                    className="w-full bg-slate-50 border border-transparent pl-10 p-3.5 rounded-xl text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-medium shadow-sm"
-                                    value={formData.customerAddress}
-                                    onChange={e => setFormData({ ...formData, customerAddress: e.target.value })}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Notes */}
-                        {config?.allowCustomItems && ( // Using allowCustomItems as proxy for 'enableNotes' or add specific field?
-                            <div>
-                                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Order Notes (Optional)</label>
-                                <textarea
-                                    placeholder="Any special instructions?"
-                                    rows={2}
-                                    className="w-full bg-slate-50 border border-transparent p-3.5 rounded-xl text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-medium shadow-sm"
-                                    value={formData.notes}
-                                    onChange={e => setFormData({ ...formData, notes: e.target.value })}
-                                />
-                            </div>
-                        )}
-
-                        <div className="pt-6 border-t border-slate-100">
-                            <div className="flex justify-between items-center mb-6">
-                                <div>
-                                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest block">Total Payable</span>
-                                    {config?.enableTax && <span className="text-[10px] text-slate-400 font-medium">Includes Tax</span>}
-                                </div>
-                                <span className="text-3xl font-bold text-slate-900 tracking-tighter">
-                                    {config?.currency || '₹'}
-                                    {formData.productId
-                                        ? (((products.find(p => p.id === formData.productId)?.pricing?.sellingPrice || 0) * formData.quantity) * (1 + (config?.enableTax ? ((products.find(p => p.id === formData.productId)?.pricing?.taxPercentage || config?.defaultTaxPercentage || 0) / 100) : 0))).toLocaleString(undefined, { maximumFractionDigits: 2 })
-                                        : '0'
-                                    }
-                                </span>
-                            </div>
-                            <button
-                                type="submit"
-                                disabled={loading}
-                                className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                {loading ? 'Processing...' : (
-                                    <>
-                                        Confirm & Pay <Send size={18} />
-                                    </>
-                                )}
-                            </button>
+                                        <button
+                                            type="submit"
+                                            disabled={loading || cart.length === 0}
+                                            className="w-full bg-blue-600 text-white py-3 rounded font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                        >
+                                            {loading ? (
+                                                <>
+                                                    <Loader className="animate-spin" size={18} />
+                                                    Processing...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Send size={18} />
+                                                    Place Order
+                                                </>
+                                            )}
+                                        </button>
+                                    </form>
+                                </>
+                            )}
                         </div>
                     </div>
-                </form>
-
-                {/* Footer Info */}
-                <div className="bg-slate-50 p-6 flex flex-col items-center justify-center gap-2 border-t border-slate-100">
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">{config?.formName} • Powered by Averqon</p>
-                    {config?.termsAndConditions && <p className="text-[10px] text-slate-400 underline cursor-pointer">Terms & Conditions</p>}
                 </div>
             </div>
         </div>

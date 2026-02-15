@@ -37,12 +37,49 @@ export interface Supplier {
   id: string;
   supplierId: string; // Formatting like SUP-101
   name: string;
+  contactPerson?: string;
   phone: string;
   email: string;
   address: string;
+  gstNumber?: string;
   status: 'ACTIVE' | 'INACTIVE';
   userId: string;
   createdAt: string;
+}
+
+export interface PurchaseOrderItem {
+  productId: string;
+  name: string;
+  quantity: number;
+  costPrice: number;
+  total: number;
+}
+
+export interface PurchaseOrder {
+  id: string;
+  poId: string; // PO-1001
+  supplierId: string;
+  supplierName: string;
+  date: string;
+  expectedDeliveryDate?: string;
+  items: PurchaseOrderItem[];
+  totalAmount: number;
+  status: 'Draft' | 'Sent' | 'Partial' | 'Received' | 'Cancelled';
+  notes?: string;
+  userId: string;
+  createdAt: string;
+}
+
+export interface SupplierPayment {
+  id: string;
+  paymentId: string; // SP-1001
+  poId: string;
+  supplierId: string;
+  amount: number;
+  status: 'Pending' | 'Completed' | 'Failed';
+  paymentMethod: string;
+  date: string;
+  userId: string;
 }
 
 export enum OrderStatus {
@@ -132,6 +169,7 @@ export interface Order {
   discount?: number;
   channel?: 'WEBSITE' | 'WHATSAPP' | 'INSTAGRAM' | 'FACEBOOK' | 'MANUAL_ENTRY' | 'API'; // Omnichannel tracking
   createdAt?: string;
+  stockDeducted?: boolean; // Track if stock has been deducted for this order
 }
 
 export enum InvoiceStatus {
@@ -275,5 +313,9 @@ export interface Settings {
   upiId?: string;
   defaultTaxPercentage?: number;
   n8nWebhookUrl?: string;
+  razorpayKey?: string;
+  whatsappPhoneId?: string;
+  whatsappToken?: string;
+  emailFrom?: string;
   userId: string;
 }

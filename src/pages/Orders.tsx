@@ -10,8 +10,10 @@ import { Order, OrderStatus, Product, OrderItem, OrderFormConfig } from '../type
 import { ViewToggle } from '../components/ViewToggle';
 import { orderFormService } from '../services/orderFormService';
 import { Settings } from 'lucide-react';
+import { useDialog } from '../context/DialogContext';
 
 export const Orders: React.FC = () => {
+    const { confirm, alert } = useDialog();
     const [orders, setOrders] = useState<Order[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
@@ -104,18 +106,42 @@ export const Orders: React.FC = () => {
             resetForm();
         } catch (error) {
             console.error(error);
-            alert('Failed to save order');
+            await alert('Failed to save order', { variant: 'danger' });
         }
     };
 
     const handleDelete = async (id: string) => {
-        if (confirm('Are you sure you want to delete this order?')) {
+        if (await confirm('Are you sure you want to delete this order?', { variant: 'danger', confirmText: 'Delete Order' })) {
             try {
                 await orderService.deleteOrder(id);
             } catch (error) {
                 console.error(error);
-                alert('Failed to delete order');
+                await alert('Failed to delete order', { variant: 'danger' });
             }
+        }
+    };
+
+    const handleStatusChange = async (orderId: string, newStatus: OrderStatus) => {
+        if (newStatus === OrderStatus.Confirmed) {
+            if (!(await confirm('Are you sure you want to verify this order? This will mark it as Confirmed and update inventory.', { title: 'Verify Order' }))) return;
+        } else if (newStatus === OrderStatus.Shipped) {
+            if (!(await confirm('Prepare shipment? This will update the order status to Shipped.', { title: 'Ship Order' }))) return;
+        } else if (newStatus === OrderStatus.Delivered) {
+            if (!(await confirm('Confirm delivery? This will mark the order as fully Delivered.', { title: 'Confirm Delivery', variant: 'success' }))) return;
+        }
+
+        try {
+            await orderService.updateOrder(orderId, { orderStatus: newStatus });
+            if (newStatus === OrderStatus.Confirmed) {
+                await alert('Order verified successfully!', { variant: 'success' });
+            } else if (newStatus === OrderStatus.Shipped) {
+                await alert('Order marked as shipped!', { variant: 'success' });
+            } else if (newStatus === OrderStatus.Delivered) {
+                await alert('Order marked as delivered!', { variant: 'success' });
+            }
+        } catch (error) {
+            console.error('Failed to update status:', error);
+            await alert('Failed to update status', { variant: 'danger' });
         }
     };
 
@@ -723,13 +749,13 @@ export const Orders: React.FC = () => {
                     </div>
 
                     <div className="p-10 border-t border-slate-100 bg-slate-50 flex flex-wrap gap-4">
-                        <button className="flex-1 min-w-[200px] h-14 bg-white border border-slate-200 rounded-2xl flex items-center justify-center gap-3 font-bold text-slate-600 hover:text-blue-600 hover:border-blue-600 transition-all text-sm group">
-                            <Clock size={18} className="group-hover:rotate-12 transition-transform" /> Dispatch Processing
+                        <button onClick={() => handleStatusChange(selectedOrder.id, OrderStatus.Confirmed)} className="flex-1 min-w-[200px] h-14 bg-white border border-slate-200 rounded-2xl flex items-center justify-center gap-3 font-bold text-slate-600 hover:text-blue-600 hover:border-blue-600 transition-all text-sm group">
+                            <CheckCircle2 size={18} className="group-hover:scale-110 transition-transform" /> Verify Order
                         </button>
-                        <button className="flex-1 min-w-[200px] h-14 bg-white border border-slate-200 rounded-2xl flex items-center justify-center gap-3 font-bold text-slate-600 hover:text-purple-600 hover:border-purple-600 transition-all text-sm group">
+                        <button onClick={() => handleStatusChange(selectedOrder.id, OrderStatus.Shipped)} className="flex-1 min-w-[200px] h-14 bg-white border border-slate-200 rounded-2xl flex items-center justify-center gap-3 font-bold text-slate-600 hover:text-purple-600 hover:border-purple-600 transition-all text-sm group">
                             <Truck size={18} className="group-hover:translate-x-1 transition-transform" /> Mark as Shipped
                         </button>
-                        <button className="flex-1 min-w-[200px] h-14 bg-blue-600 text-white rounded-2xl flex items-center justify-center gap-3 font-bold hover:bg-black transition-all text-sm shadow-xl shadow-blue-100">
+                        <button onClick={() => handleStatusChange(selectedOrder.id, OrderStatus.Delivered)} className="flex-1 min-w-[200px] h-14 bg-blue-600 text-white rounded-2xl flex items-center justify-center gap-3 font-bold hover:bg-black transition-all text-sm shadow-xl shadow-blue-100">
                             <CheckCircle2 size={18} /> Final Delivery
                         </button>
                     </div>
@@ -839,9 +865,16 @@ export const Orders: React.FC = () => {
                                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{new Date(o.orderDate).toLocaleDateString()}</span>
                                         <h3 className="text-lg font-bold text-slate-900 tracking-tight">{o.orderId}</h3>
                                     </div>
-                                    <span className={`px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest border ${getStatusColor(o.orderStatus)}`}>
-                                        {o.orderStatus}
-                                    </span>
+                                    <select
+                                        value={o.orderStatus}
+                                        onClick={(e) => e.stopPropagation()}
+                                        onChange={(e) => handleStatusChange(o.id, e.target.value as OrderStatus)}
+                                        className={`px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest border outline-none cursor-pointer appearance-none text-center ${getStatusColor(o.orderStatus)} hover:opacity-80 transition-opacity`}
+                                    >
+                                        {Object.values(OrderStatus).map(s => (
+                                            <option key={s} value={s} className="bg-white text-slate-800 font-bold text-xs">{s}</option>
+                                        ))}
+                                    </select>
                                 </div>
 
                                 <div className="space-y-4 mb-6">
@@ -937,9 +970,16 @@ export const Orders: React.FC = () => {
                                             </td>
                                             <td className="px-8 py-6">
                                                 <div className="flex items-center gap-3">
-                                                    <span className={`px-3 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest border ${getStatusColor(o.orderStatus)}`}>
-                                                        {o.orderStatus}
-                                                    </span>
+                                                    <select
+                                                        value={o.orderStatus}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        onChange={(e) => handleStatusChange(o.id, e.target.value as OrderStatus)}
+                                                        className={`px-3 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest border outline-none cursor-pointer appearance-none text-center ${getStatusColor(o.orderStatus)} hover:opacity-80 transition-opacity`}
+                                                    >
+                                                        {Object.values(OrderStatus).map(s => (
+                                                            <option key={s} value={s} className="bg-white text-slate-800 font-bold text-xs">{s}</option>
+                                                        ))}
+                                                    </select>
                                                     <div className="w-1.5 h-1.5 rounded-full bg-slate-200 group-hover:bg-blue-300"></div>
                                                     <span className={`text-[9px] font-bold uppercase tracking-widest ${o.paymentStatus === 'Paid' ? 'text-emerald-500' : 'text-amber-500'}`}>
                                                         {o.paymentStatus}
@@ -991,12 +1031,12 @@ export const Orders: React.FC = () => {
                     </div>
                     <div className="flex gap-4">
                         <button
-                            onClick={() => {
+                            onClick={async () => {
                                 const user = authService.getCurrentUser();
                                 if (!user) return;
                                 const url = `${window.location.origin}/#/order-form/${user.id}`;
-                                navigator.clipboard.writeText(url);
-                                alert('Order form link copied to clipboard!');
+                                await navigator.clipboard.writeText(url);
+                                await alert('Order form link copied to clipboard!', { variant: 'success' });
                             }}
                             className="h-14 bg-white text-blue-600 px-8 rounded-2xl font-bold flex items-center gap-3 hover:bg-slate-50 transition-all text-sm shadow-xl shadow-blue-800/20 active:scale-95"
                         >

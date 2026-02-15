@@ -6,8 +6,11 @@ import {
 import { checkoutLinkService } from '../services/firebaseService';
 import { authService } from '../services/authService';
 import { CheckoutLink } from '../types';
+import { ViewToggle } from '../components/ViewToggle';
+import { useDialog } from '../context/DialogContext';
 
 export const Checkouts: React.FC = () => {
+    const { confirm, alert } = useDialog();
     const [links, setLinks] = useState<CheckoutLink[]>([]);
     const [loading, setLoading] = useState(true);
     const [view, setView] = useState<'list' | 'form'>('list');
@@ -49,19 +52,19 @@ export const Checkouts: React.FC = () => {
             setFormData({ name: '', amount: 0, currency: 'INR', status: 'Active', views: 0, sales: 0 });
         } catch (error) {
             console.error(error);
-            alert('Failed to save checkout');
+            await alert('Failed to save checkout', { variant: 'danger' });
         }
     };
 
     const handleDelete = async (id: string) => {
-        if (confirm('Deactivate this checkout link?')) {
+        if (await confirm('Deactivate this checkout link?', { variant: 'danger' })) {
             await checkoutLinkService.deleteCheckout(id);
         }
     };
 
-    const copyToClipboard = (text: string) => {
+    const copyToClipboard = async (text: string) => {
         navigator.clipboard.writeText(text);
-        alert('Link copied!');
+        await alert('Link copied!', { variant: 'success' });
     };
 
     if (view === 'form') {

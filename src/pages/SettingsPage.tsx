@@ -11,10 +11,13 @@ import {
     Zap
 } from 'lucide-react';
 import { authService } from '../services/authService';
-import { settingsService, UserSettings } from '../services/settingsService';
+import { settingsService } from '../services/settingsService';
+import { Settings } from '../types';
+import { NotificationPreferences } from '../components/NotificationPreferences';
+import { TestNotifications } from '../components/TestNotifications';
 
 export const SettingsPage: React.FC = () => {
-    const [settings, setSettings] = useState<UserSettings>({
+    const [settings, setSettings] = useState<Partial<Settings>>({
         n8nWebhookUrl: '',
         razorpayKey: '',
         whatsappPhoneId: '',
@@ -86,8 +89,8 @@ export const SettingsPage: React.FC = () => {
 
             {message && (
                 <div className={`p-4 rounded-xl flex items-center gap-3 border shadow-sm ${message.type === 'success'
-                        ? 'bg-emerald-50 border-emerald-100 text-emerald-600'
-                        : 'bg-red-50 border-red-100 text-red-600'
+                    ? 'bg-emerald-50 border-emerald-100 text-emerald-600'
+                    : 'bg-red-50 border-red-100 text-red-600'
                     }`}>
                     {message.type === 'success' ? <CheckCircle2 size={20} /> : <AlertCircle size={20} />}
                     <p className="text-sm font-bold uppercase tracking-widest">{message.text}</p>
@@ -210,7 +213,17 @@ export const SettingsPage: React.FC = () => {
                 </div>
             </form>
 
-            <div className="bg-blue-600 p-10 rounded-3xl text-white relative overflow-hidden group shadow-2xl">
+            {/* Notification Preferences Section */}
+            <div className="mt-8">
+                <NotificationPreferences />
+            </div>
+
+            {/* Test Notifications Section */}
+            <div className="mt-8">
+                <TestNotifications />
+            </div>
+
+            <div className="bg-blue-600 p-10 rounded-3xl text-white relative overflow-hidden group shadow-2xl mt-8">
                 <div className="absolute top-0 right-0 w-96 h-96 bg-white opacity-5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl"></div>
                 <div className="relative z-10 space-y-4">
                     <h2 className="text-2xl font-bold tracking-tight">n8n Workflow Blueprint</h2>

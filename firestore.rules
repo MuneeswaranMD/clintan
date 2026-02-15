@@ -1,106 +1,132 @@
-  rules_version = '2';
+rules_version = '2';
 
-  service cloud.firestore {
-    match /databases/{database}/documents {
-      
-      // ========== ORDERS ==========
-      match /orders/{orderId} {
-        allow create: if request.resource.data.userId != null 
-                      && request.resource.data.userId is string;
-        allow read, update, delete: if request.auth != null 
-                                    && request.auth.uid == resource.data.userId;
-      }
-      
-      // ========== PRODUCTS ==========
-      match /products/{productId} {
-        allow read: if true;
-        allow create, update, delete: if request.auth != null 
-                                      && request.auth.uid == request.resource.data.userId;
-      }
-      
-      // ========== INVOICES ==========
-      match /invoices/{invoiceId} {
-        allow read, write: if request.auth != null 
-                          && request.auth.uid == resource.data.userId;
-        allow create: if request.auth != null 
-                      && request.auth.uid == request.resource.data.userId;
-      }
-      
-      // ========== CUSTOMERS ==========
-      match /customers/{customerId} {
-        allow read, write: if request.auth != null 
-                          && request.auth.uid == resource.data.userId;
-        allow create: if request.auth != null 
-                      && request.auth.uid == request.resource.data.userId;
-      }
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check ownership
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
 
-      // ========== SUPPLIERS ==========
-      match /suppliers/{supplierId} {
-        allow read, write: if request.auth != null 
-                          && request.auth.uid == resource.data.userId;
-        allow create: if request.auth != null 
-                      && request.auth.uid == request.resource.data.userId;
-      }
-      
-      // ========== COMPANIES ==========
-      match /companies/{companyId} {
-        allow read, write: if request.auth != null && (
-          request.auth.uid == resource.data.userId || 
-          request.auth.token.email == 'muneeswaran@averqon.in'
-        );
-        allow create: if request.auth != null; 
-      }
-      
-      // ========== SETTINGS ==========
-      match /settings/{userId} {
-        allow read, write: if request.auth != null 
-                          && request.auth.uid == userId;
-      }
-      
-      // ========== PAYMENTS ==========
-      match /payments/{paymentId} {
-        allow read, write: if request.auth != null 
-                          && request.auth.uid == resource.data.userId;
-        allow create: if request.auth != null 
-                      && request.auth.uid == request.resource.data.userId;
-      }
-      
-      // ========== RECURRING INVOICES ==========
-      match /recurring_invoices/{id} {
-        allow read, write: if request.auth != null 
-                          && request.auth.uid == resource.data.userId;
-        allow create: if request.auth != null 
-                      && request.auth.uid == request.resource.data.userId;
-      }
-      
-      // ========== CHECKOUT LINKS ==========
-      match /checkout_links/{id} {
-        allow read, write: if request.auth != null 
-                          && request.auth.uid == resource.data.userId;
-        allow create: if request.auth != null 
-                      && request.auth.uid == request.resource.data.userId;
-      }
-      
-      // ========== ESTIMATES ==========
-      match /estimates/{estimateId} {
-        allow read, write: if request.auth != null 
-                          && request.auth.uid == resource.data.userId;
-        allow create: if request.auth != null 
-                      && request.auth.uid == request.resource.data.userId;
-      }
+    function isResourceOwner() {
+      return request.auth != null && request.auth.uid == resource.data.userId;
+    }
 
-      // ========== STOCK LOGS ==========
-      match /stock_logs/{logId} {
-        allow read: if request.auth != null 
-                    && request.auth.uid == resource.data.userId;
-        allow create: if request.auth != null 
-                      && request.auth.uid == request.resource.data.userId;
-      }
-      
-      // ========== ORDER FORM CONFIG ==========
-      match /order_form_config/{userId} {
-        allow read: if true; // Public access for order form rendering
-        allow write: if request.auth != null && request.auth.uid == userId;
-      }
+    // ========== ORDERS ==========
+    match /orders/{orderId} {
+      allow create: if isOwner(request.resource.data.userId);
+      allow read, update, delete: if isResourceOwner();
+    }
+    
+    // ========== PRODUCTS ==========
+    match /products/{productId} {
+      allow read: if true;
+      allow create: if isOwner(request.resource.data.userId);
+      allow update, delete: if isResourceOwner();
+    }
+    
+    // ========== INVOICES ==========
+    match /invoices/{invoiceId} {
+      allow create: if isOwner(request.resource.data.userId);
+      allow read, update, delete: if isResourceOwner();
+    }
+    
+    // ========== CUSTOMERS ==========
+    match /customers/{customerId} {
+      allow create: if isOwner(request.resource.data.userId);
+      allow read, update, delete: if isResourceOwner();
+    }
+
+    // ========== SUPPLIERS ==========
+    match /suppliers/{supplierId} {
+      allow create: if isOwner(request.resource.data.userId);
+      allow read, update, delete: if isResourceOwner();
+    }
+    
+    // ========== PURCHASE ORDERS ==========
+    match /purchase_orders/{poId} {
+      allow create: if isOwner(request.resource.data.userId);
+      allow read, update, delete: if isResourceOwner();
+    }
+    
+    // ========== SUPPLIER PAYMENTS ==========
+    match /supplier_payments/{paymentId} {
+      allow create: if isOwner(request.resource.data.userId);
+      allow read, update, delete: if isResourceOwner();
+    }
+    
+    // ========== COMPANIES ==========
+    match /companies/{companyId} {
+      allow create: if request.auth != null;
+      allow read, update, delete: if isResourceOwner() || 
+        (request.auth != null && request.auth.token.email == 'muneeswaran@averqon.in');
+    }
+    
+    // ========== SETTINGS ==========
+    match /settings/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+    
+    // ========== PAYMENTS ==========
+    match /payments/{paymentId} {
+      allow create: if isOwner(request.resource.data.userId);
+      allow read, update, delete: if isResourceOwner();
+    }
+    
+    // ========== RECURRING INVOICES ==========
+    match /recurring_invoices/{id} {
+      allow create: if isOwner(request.resource.data.userId);
+      allow read, update, delete: if isResourceOwner();
+    }
+    
+    // ========== CHECKOUT LINKS ==========
+    match /checkout_links/{id} {
+      allow create: if isOwner(request.resource.data.userId);
+      allow read, update, delete: if isResourceOwner();
+    }
+    
+    // ========== ESTIMATES ==========
+    match /estimates/{estimateId} {
+      allow create: if isOwner(request.resource.data.userId);
+      allow read, update, delete: if isResourceOwner();
+    }
+
+    // ========== STOCK LOGS ==========
+    match /stock_logs/{logId} {
+      allow create: if isOwner(request.resource.data.userId);
+      allow read: if isResourceOwner();
+    }
+    
+    // ========== ORDER FORM CONFIG ==========
+    match /order_form_config/{userId} {
+      allow read: if true; // Public access
+      allow write: if isOwner(userId);
+    }
+    
+    // ========== CUSTOM FORMS ==========
+    match /customForms/{formId} {
+      allow read: if resource.data.status == 'published' || isResourceOwner();
+      allow create: if isOwner(request.resource.data.userId);
+      allow update, delete: if isResourceOwner();
+    }
+    
+    
+    // ========== NOTIFICATIONS ==========
+    match /notifications/{notificationId} {
+      allow create: if isOwner(request.resource.data.userId);
+      allow read, update, delete: if isResourceOwner();
+    }
+    
+    // ========== NOTIFICATION PREFERENCES ==========
+    match /notification_preferences/{prefId} {
+      allow create: if isOwner(request.resource.data.userId);
+      allow read, update, delete: if isResourceOwner();
+    }
+    
+    // ========== FORM SUBMISSIONS ==========
+    match /formSubmissions/{submissionId} {
+      allow create: if request.resource.data.formId != null;
+      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
     }
   }
+}

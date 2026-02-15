@@ -11,9 +11,12 @@ import { useNavigate } from 'react-router-dom';
 import { generateInvoicePDF } from '../utils/pdfGenerator';
 import { sendInvoiceEmail } from '../services/mailService';
 import { ViewToggle } from '../components/ViewToggle';
+import { CustomerSearchModal } from '../components/CustomerSearchModal';
+import { useDialog } from '../context/DialogContext';
 
 export const Invoices: React.FC = () => {
   const navigate = useNavigate();
+  const { confirm, alert } = useDialog();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -22,6 +25,7 @@ export const Invoices: React.FC = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showCustomerSearch, setShowCustomerSearch] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState<Partial<Invoice>>({
@@ -104,7 +108,7 @@ export const Invoices: React.FC = () => {
       setFormData({ invoiceNumber: `INV - ${Math.floor(Math.random() * 10000)} `, customerName: '', date: new Date().toISOString().split('T')[0], dueDate: new Date().toISOString().split('T')[0], status: InvoiceStatus.Pending, items: [], subtotal: 0, tax: 0, total: 0, customerAddress: '', notes: '' });
     } catch (error) {
       console.error(error);
-      alert('Failed to save invoice');
+      await alert('Failed to save invoice', { variant: 'danger' });
     }
   };
 
@@ -132,9 +136,24 @@ export const Invoices: React.FC = () => {
     setFormData({ ...formData, items: newItems, subtotal, tax: itemTaxTotal, total: subtotal + itemTaxTotal });
   };
 
+  const handleCustomerSelect = (customer: Customer) => {
+    setFormData({
+      ...formData,
+      customerName: customer.name,
+      customerAddress: customer.address,
+      customerEmail: (customer as any).email || ''
+    });
+  };
+
   if (view === 'form') {
     return (
       <div className="max-w-6xl mx-auto animate-fade-in pb-20">
+        <CustomerSearchModal
+          isOpen={showCustomerSearch}
+          onClose={() => setShowCustomerSearch(false)}
+          customers={customers}
+          onSelect={handleCustomerSelect}
+        />
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-2xl font-bold text-slate-800">{formData.id ? 'Modify Invoice' : 'Sales & Invoice Management'}</h1>
@@ -184,25 +203,21 @@ export const Invoices: React.FC = () => {
                 <h3 className="font-bold text-slate-800 flex items-center gap-2">
                   Customer Information
                 </h3>
-                <button type="button" className="text-blue-600 text-xs font-bold flex items-center gap-1 hover:underline">
+                <button type="button" onClick={() => setShowCustomerSearch(true)} className="text-blue-600 text-xs font-bold flex items-center gap-1 hover:underline">
                   <Search size={14} /> Search Existing
                 </button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="col-span-full">
                   <label className="block text-[13px] font-bold text-slate-500 mb-2">Customer Name</label>
-                  <select
+                  <input
                     required
-                    className="w-full bg-slate-50 border border-transparent p-2.5 rounded-lg text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-medium appearance-none cursor-pointer"
+                    type="text"
+                    placeholder="Enter or Search Customer Name"
+                    className="w-full bg-slate-50 border border-transparent p-2.5 rounded-lg text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-medium"
                     value={formData.customerName}
-                    onChange={e => {
-                      const selectedCust = customers.find(c => c.name === e.target.value);
-                      setFormData({ ...formData, customerName: e.target.value, customerAddress: selectedCust?.address });
-                    }}
-                  >
-                    <option value="">Enter Customer Name</option>
-                    {customers.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                  </select>
+                    onChange={e => setFormData({ ...formData, customerName: e.target.value })}
+                  />
                 </div>
                 <div>
                   <label className="block text-[13px] font-bold text-slate-500 mb-2">Due Date</label>
@@ -218,10 +233,10 @@ export const Invoices: React.FC = () => {
                   <label className="block text-[13px] font-bold text-slate-500 mb-2">Customer Address</label>
                   <input
                     type="text"
-                    readOnly
-                    placeholder="Auto-populated address"
-                    className="w-full bg-slate-50 border border-transparent p-2.5 rounded-lg text-slate-500 outline-none font-medium"
+                    placeholder="Enter Customer Address"
+                    className="w-full bg-slate-50 border border-transparent p-2.5 rounded-lg text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-medium"
                     value={formData.customerAddress || ''}
+                    onChange={e => setFormData({ ...formData, customerAddress: e.target.value })}
                   />
                 </div>
               </div>
@@ -370,7 +385,13 @@ export const Invoices: React.FC = () => {
             <button onClick={() => sendInvoiceEmail(inv, companyName)} className="bg-white border border-slate-200 text-slate-700 px-6 py-2.5 rounded-lg font-bold flex items-center gap-2 hover:bg-slate-50 transition-all text-sm shadow-sm">
               <Send size={16} className="text-blue-600" /> Send Email
             </button>
-            <button onClick={() => generateInvoicePDF({ ...inv, customerAddress: inv.customerAddress || customers.find(c => c.name === inv.customerName)?.address }, companyName, companyPhone, companyLogo)} className="bg-blue-600 text-white px-6 py-2.5 rounded-lg font-bold flex items-center gap-2 hover:bg-blue-700 transition-all text-sm shadow-md">
+            <button onClick={async () => {
+              try {
+                await generateInvoicePDF({ ...inv, customerAddress: inv.customerAddress || customers.find(c => c.name === inv.customerName)?.address }, companyName, companyPhone, companyLogo);
+              } catch (e) {
+                await alert('Failed to generate PDF', { variant: 'danger' });
+              }
+            }} className="bg-blue-600 text-white px-6 py-2.5 rounded-lg font-bold flex items-center gap-2 hover:bg-blue-700 transition-all text-sm shadow-md">
               <Download size={16} /> Download PDF
             </button>
           </div>
@@ -413,6 +434,22 @@ export const Invoices: React.FC = () => {
                 <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Settlement Due</p>
                 <p className="font-bold text-slate-800 text-lg">{new Date(inv.dueDate).toLocaleDateString(undefined, { day: '2-digit', month: 'long', year: 'numeric' })}</p>
               </div>
+              {inv.status !== 'Paid' && (
+                <button onClick={async () => {
+                  if (await confirm('Mark this invoice as fully paid?', { title: 'Confirm Payment', variant: 'success' })) {
+                    try {
+                      await invoiceService.updateInvoice(inv.id, { status: InvoiceStatus.Paid });
+                      await alert('Invoice marked as paid!', { variant: 'success' });
+                      setInvoices(invoices.map(i => i.id === inv.id ? { ...i, status: InvoiceStatus.Paid } : i));
+                      setSelectedInvoice({ ...inv, status: InvoiceStatus.Paid });
+                    } catch (e) {
+                      await alert('Failed to update invoice status', { variant: 'danger' });
+                    }
+                  }
+                }} className="bg-emerald-600 text-white px-6 py-2.5 rounded-lg font-bold flex items-center gap-2 hover:bg-emerald-700 transition-all text-sm shadow-md">
+                  <CheckCircle2 size={16} /> Mark as Paid
+                </button>
+              )}
               <div className="bg-blue-50 px-4 py-2 rounded-lg inline-block border border-blue-100">
                 <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Payment Method: Bank Transfer / UPI</p>
               </div>
@@ -538,7 +575,16 @@ export const Invoices: React.FC = () => {
                   </div>
                   <div className="flex gap-2">
                     <button onClick={(e) => { e.stopPropagation(); setFormData(inv); setView('form'); }} className="p-2 text-slate-300 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all"><Edit2 size={16} /></button>
-                    <button onClick={(e) => { e.stopPropagation(); if (confirm('Delete this invoice?')) invoiceService.deleteInvoice(inv.id); }} className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"><Trash2 size={16} /></button>
+                    <button onClick={async (e) => {
+                      e.stopPropagation();
+                      if (await confirm('Delete this invoice?', { variant: 'danger' })) {
+                        try {
+                          await invoiceService.deleteInvoice(inv.id);
+                        } catch (e) {
+                          await alert('Failed to delete invoice', { variant: 'danger' });
+                        }
+                      }
+                    }} className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"><Trash2 size={16} /></button>
                   </div>
                 </div>
 
@@ -569,7 +615,14 @@ export const Invoices: React.FC = () => {
                     <Send size={14} /> Send Email
                   </button>
                   <button
-                    onClick={(e) => { e.stopPropagation(); generateInvoicePDF({ ...inv, customerAddress: inv.customerAddress || customers.find(c => c.name === inv.customerName)?.address }, companyName, companyPhone, companyLogo); }}
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      try {
+                        await generateInvoicePDF({ ...inv, customerAddress: inv.customerAddress || customers.find(c => c.name === inv.customerName)?.address }, companyName, companyPhone, companyLogo);
+                      } catch (e) {
+                        await alert('Failed to generate PDF', { variant: 'danger' });
+                      }
+                    }}
                     className="flex-1 bg-slate-50 text-slate-600 font-bold py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-blue-600 hover:text-white transition-all text-xs border border-transparent hover:border-blue-600"
                   >
                     <Download size={14} /> Download PDF
@@ -604,7 +657,16 @@ export const Invoices: React.FC = () => {
                     <td className="px-8 py-5 text-right">
                       <div className="flex justify-end gap-2">
                         <button onClick={(e) => { e.stopPropagation(); setFormData(inv); setView('form'); }} className="p-2 text-slate-400 hover:text-blue-600 transition-all"><Edit2 size={16} /></button>
-                        <button onClick={(e) => { e.stopPropagation(); if (confirm('Delete invoice?')) invoiceService.deleteInvoice(inv.id); }} className="p-2 text-slate-400 hover:text-red-600 transition-all"><Trash2 size={16} /></button>
+                        <button onClick={async (e) => {
+                          e.stopPropagation();
+                          if (await confirm('Delete invoice?', { variant: 'danger' })) {
+                            try {
+                              await invoiceService.deleteInvoice(inv.id);
+                            } catch (e) {
+                              await alert('Failed to delete invoice', { variant: 'danger' });
+                            }
+                          }
+                        }} className="p-2 text-slate-400 hover:text-red-600 transition-all"><Trash2 size={16} /></button>
                         <div className="p-2 text-slate-300 group-hover:text-blue-500 transition-all"><ChevronRight size={16} /></div>
                       </div>
                     </td>
