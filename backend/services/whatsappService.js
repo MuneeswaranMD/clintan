@@ -1,178 +1,97 @@
 const axios = require('axios');
 
-class WhatsAppService {
-  constructor() {
-    this.baseUrl = 'https://graph.facebook.com/v22.0';
-    this.phoneNumberId = process.env.WHATSAPP_PHONE_ID;
-    this.accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
+const getHeaders = () => ({
+    'Authorization': `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`,
+    'Content-Type': 'application/json'
+});
 
-    if (this.phoneNumberId && this.accessToken) {
-      console.log('✅ WhatsApp service configured');
-      console.log(`   Phone Number ID: ${this.phoneNumberId}`);
-    } else {
-      console.log('⚠️  WhatsApp service not configured');
-    }
-  }
+const getUrl = () => `https://graph.facebook.com/v19.0/${process.env.WHATSAPP_PHONE_ID}/messages`;
 
-  async sendTemplate({ to, templateName, templateParams = [] }) {
+exports.sendWhatsAppTemplate = async (to, templateName, components) => {
     try {
-      // Prepare template components
-      const components = templateParams.length > 0 ? [{
-        type: 'body',
-        parameters: templateParams.map(param => ({
-          type: 'text',
-          text: String(param)
-        }))
-      }] : [];
-
-      const response = await axios.post(
-        `${this.baseUrl}/${this.phoneNumberId}/messages`,
-        {
-          messaging_product: 'whatsapp',
-          to: to,
-          type: 'template',
-          template: {
-            name: templateName,
-            language: { code: 'en_US' },
-            components: components
-          }
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${this.accessToken}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      console.log('✅ WhatsApp sent:', response.data.messages[0].id);
-      console.log(`   To: ${to}`);
-      console.log(`   Template: ${templateName}`);
-
-      return { 
-        success: true, 
-        messageId: response.data.messages[0].id,
-        recipient: to
-      };
-
-    } catch (error) {
-      console.error('❌ WhatsApp failed:', error.response?.data || error.message);
-      
-      if (error.response?.data) {
-        const errorData = error.response.data.error;
-        console.error(`   Error Code: ${errorData.code}`);
-        console.error(`   Error Message: ${errorData.message}`);
-      }
-
-      throw error;
-    }
-  }
-
-  async sendText({ to, message }) {
-    try {
-      const response = await axios.post(
-        `${this.baseUrl}/${this.phoneNumberId}/messages`,
-        {
-          messaging_product: 'whatsapp',
-          to: to,
-          type: 'text',
-          text: { body: message }
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${this.accessToken}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      console.log('✅ WhatsApp text sent:', response.data.messages[0].id);
-      return { success: true, messageId: response.data.messages[0].id };
-
-    } catch (error) {
-      console.error('❌ WhatsApp text failed:', error.response?.data || error.message);
-      throw error;
-    }
-  }
-
-  async sendDocument({ to, url, fileName, caption }) {
-    try {
-      const response = await axios.post(
-        `${this.baseUrl}/${this.phoneNumberId}/messages`,
-        {
-          messaging_product: 'whatsapp',
-          to: to,
-          type: 'document',
-          document: {
-            link: url,
-            filename: fileName || 'document.pdf',
-            caption: caption
-          }
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${this.accessToken}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      console.log('✅ WhatsApp document sent:', response.data.messages[0].id);
-      return { success: true, messageId: response.data.messages[0].id };
-
-    } catch (error) {
-      console.error('❌ WhatsApp document failed:', error.response?.data || error.message);
-      throw error;
-    }
-  }
-
-  async sendInteractiveButtons({ to, text, buttons }) {
-    try {
-      const response = await axios.post(
-        `${this.baseUrl}/${this.phoneNumberId}/messages`,
-        {
-          messaging_product: 'whatsapp',
-          to: to,
-          type: 'interactive',
-          interactive: {
-            type: 'button',
-            body: { text: text },
-            action: {
-              buttons: buttons.map((btn, index) => ({
-                type: 'reply',
-                reply: {
-                  id: btn.id || `btn_${index}`,
-                  title: btn.title
-                }
-              }))
+        const data = {
+            messaging_product: 'whatsapp',
+            to: to,
+            type: 'template',
+            template: {
+                name: templateName,
+                language: { code: 'en_US' },
+                components: components || []
             }
-          }
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${this.accessToken}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
+        };
 
-      console.log('✅ WhatsApp interactive sent:', response.data.messages[0].id);
-      return { success: true, messageId: response.data.messages[0].id };
-
+        const response = await axios.post(getUrl(), data, { headers: getHeaders() });
+        console.log(`✅ WhatsApp sent to ${to}: ${templateName}`);
+        return response.data;
     } catch (error) {
-      console.error('❌ WhatsApp interactive failed:', error.response?.data || error.message);
-      throw error;
+        console.error('❌ WhatsApp Template Error:', error.response?.data || error.message);
+        // throw error; // Don't crash the worker
     }
-  }
+};
 
-  // Test with hello_world template
-  async testMessage(phoneNumber) {
-    return this.sendTemplate({
-      to: phoneNumber,
-      templateName: 'hello_world',
-      templateParams: []
-    });
-  }
-}
+exports.sendTextMessage = async (to, text) => {
+    try {
+        await axios.post(getUrl(), {
+            messaging_product: 'whatsapp',
+            recipient_type: "individual",
+            to: to,
+            type: "text",
+            text: { preview_url: false, body: text }
+        }, { headers: getHeaders() });
+        console.log(`✅ WhatsApp text sent to ${to}`);
+    } catch (error) {
+         console.error('❌ WhatsApp Text Error:', error.response?.data || error.message);
+    }
+};
 
-module.exports = new WhatsAppService();
+// Functions expected by notificationWorker.js
+
+exports.sendText = async ({ to, message }) => {
+    return exports.sendTextMessage(to, message);
+};
+
+exports.sendInteractiveButtons = async ({ to, text, buttons }) => {
+    try {
+        const buttonComponents = buttons.map(b => ({
+            type: "reply",
+            reply: {
+                id: b.id,
+                title: b.title
+            }
+        }));
+
+        await axios.post(getUrl(), {
+            messaging_product: 'whatsapp',
+            recipient_type: "individual",
+            to: to,
+            type: "interactive",
+            interactive: {
+                type: "button",
+                body: { text: text },
+                action: { buttons: buttonComponents }
+            }
+        }, { headers: getHeaders() });
+        console.log(`✅ WhatsApp Buttons sent to ${to}`);
+    } catch (error) {
+        console.error('❌ WhatsApp Buttons Error:', error.response?.data || error.message);
+    }
+};
+
+exports.sendDocument = async ({ to, url, fileName, caption }) => {
+    try {
+        await axios.post(getUrl(), {
+            messaging_product: 'whatsapp',
+            recipient_type: "individual",
+            to: to,
+            type: "document",
+            document: {
+                link: url,
+                filename: fileName,
+                caption: caption
+            }
+        }, { headers: getHeaders() });
+        console.log(`✅ WhatsApp Document sent to ${to}`);
+    } catch (error) {
+        console.error('❌ WhatsApp Document Error:', error.response?.data || error.message);
+    }
+};

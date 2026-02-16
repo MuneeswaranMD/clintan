@@ -373,9 +373,9 @@ export const PurchaseOrders: React.FC = () => {
                     </h1>
                     <p className="text-slate-500 text-sm mt-1">Track and manage inventory replenishment.</p>
                 </div>
-                <div className="flex items-center gap-4 w-full md:w-auto">
+                <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto mt-4 sm:mt-0">
                     <ViewToggle view={viewMode} onViewChange={setViewMode} />
-                    <button onClick={() => { resetForm(); setView('form'); }} className="bg-indigo-600 text-white px-8 py-3.5 rounded-xl font-bold flex items-center gap-2 hover:bg-indigo-700 transition-all shadow-md text-sm active:scale-95 flex-1 md:flex-none justify-center">
+                    <button onClick={() => { resetForm(); setView('form'); }} className="bg-indigo-600 text-white px-8 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all shadow-md text-sm active:scale-95 w-full sm:w-auto">
                         <Plus size={20} /> New Purchase Order
                     </button>
                 </div>
@@ -432,8 +432,8 @@ export const PurchaseOrders: React.FC = () => {
                         ))}
                     </div>
                 ) : (
-                    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-                        <table className="w-full text-left">
+                    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm table-responsive">
+                        <table className="w-full text-left min-w-[1000px]">
                             <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200">
                                 <tr>
                                     <th className="px-8 py-5">PO Number</th>

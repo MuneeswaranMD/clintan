@@ -125,7 +125,7 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 md:gap-6">
         <DashboardStatCard title="Potential Revenue" value={`₹${stockStats.totalValue.toLocaleString()}`} icon={ShoppingBag} bgColor="bg-indigo-50" iconColor="text-indigo-600" description="Total stock worth" />
         <DashboardStatCard title="Capital Locked" value={`₹${stockStats.capitalLocked.toLocaleString()}`} icon={Wallet} bgColor="bg-slate-50" iconColor="text-slate-600" description="Procurement cost" />
         <DashboardStatCard title="Low Stock Assets" value={stockStats.lowStock} icon={AlertCircle} bgColor="bg-amber-50" iconColor="text-amber-600" description="Below threshold" />
@@ -135,7 +135,7 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* Quick Action Nodes */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
         <button onClick={() => navigate('/invoices')} className="group flex flex-col items-start p-8 bg-white border border-slate-200 rounded-xl hover:border-blue-400 hover:shadow-md transition-all relative overflow-hidden shadow-sm">
           <div className="absolute top-0 right-0 p-8 opacity-[0.03] text-blue-600 group-hover:scale-110 transition-transform"><FileText size={80} /></div>
           <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 mb-6 group-hover:bg-blue-600 group-hover:text-white transition-all"><Plus size={20} /></div>

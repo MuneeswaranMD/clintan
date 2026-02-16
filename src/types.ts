@@ -1,9 +1,40 @@
+export type UserRole =
+  | 'SUPER_ADMIN'      // Platform owner
+  | 'COMPANY_ADMIN'    // Company owner
+  | 'BRANCH_MANAGER'   // Branch manager
+  | 'ACCOUNTANT'       // Finance team
+  | 'SALES'            // Sales team
+  | 'WAREHOUSE'        // Inventory team
+  | 'VIEWER';          // Read-only access
+
+export interface Branch {
+  id: string;
+  name: string;
+  address?: string;
+  phone?: string;
+  isActive: boolean;
+}
+
 export interface User {
   id: string;
   name: string;
   email: string;
   isAuthenticated: boolean;
   logoUrl?: string;
+
+  // Role & Permissions
+  role: UserRole;
+  companyId?: string;
+  branchId?: string;
+
+  // Multi-Branch Support (for admins)
+  allowedBranches?: Branch[];
+
+  // Enabled Modules (from company config)
+  enabledModules?: string[];
+
+  // Subscription Plan
+  plan?: 'BASIC' | 'PRO' | 'ENTERPRISE';
 }
 
 export interface Product {
@@ -31,6 +62,7 @@ export interface Product {
 
   supplierId?: string;
   lastUpdated: string;
+  customFields?: Record<string, any>; // Extensible fields
 }
 
 export interface Supplier {
@@ -128,6 +160,11 @@ export interface OrderFieldConfig {
   required: boolean;
   options?: string[]; // For select inputs
   placeholder?: string;
+  section?: 'basic' | 'project' | 'shipping' | 'custom';
+  visibleIf?: {
+    field: string;
+    value: any;
+  };
 }
 
 export interface OrderFormConfig {
@@ -135,11 +172,18 @@ export interface OrderFormConfig {
   userId: string; // Creates the 'Per Company' link
   companyName?: string;
   fields: OrderFieldConfig[];
-  allowMultipleProducts: boolean;
-  allowCustomItems: boolean;
+
+  // Modular Sections Toggle
+  enableProducts: boolean;
+  enableServices: boolean;
+  enableCustomItems: boolean;
   enableTax: boolean;
   enableDiscount: boolean;
   enableStock: boolean;
+  enableDispatch: boolean;
+  enableAttachments: boolean;
+  enableProjectDetails: boolean;
+
   currency: string;
   defaultTaxPercentage?: number;
   termsAndConditions?: string;
@@ -207,6 +251,7 @@ export interface Invoice {
   notes?: string;
   templateId?: string;
   userId: string;
+  customFields?: Record<string, any>;
 }
 
 export interface SalesData {
@@ -239,6 +284,7 @@ export interface Estimate {
   orderId?: string; // Link to source order if created from order
   templateId?: string;
   userId: string;
+  customFields?: Record<string, any>;
 }
 
 export interface Payment {
@@ -285,6 +331,7 @@ export interface Customer {
   userId: string;
   gst?: string;
   createdAt?: any;
+  customFields?: Record<string, any>;
 }
 
 export type StockMovementType = 'ADD' | 'DEDUCT' | 'ADJUST' | 'RETURN' | 'DAMAGED';
@@ -321,4 +368,90 @@ export interface Settings {
   emailFrom?: string;
   defaultTemplateId?: string;
   userId: string;
+}
+export interface CartItem {
+  product: Product;
+  quantity: number;
+}
+interface Cart {
+  items: CartItem[];
+  total: number;
+}
+
+// SaaS Configuration Types
+
+export interface CustomFieldDefinition {
+  key: string;
+  label: string;
+  type: 'text' | 'number' | 'date' | 'select' | 'boolean';
+  options?: string[]; // For select type
+  required?: boolean;
+  defaultValue?: any;
+}
+
+export interface FeatureToggles {
+  // Core Modules (Always Available)
+  enableDashboard: boolean; // Always true
+  enableOrders: boolean; // Always true
+  enableInvoices: boolean; // Always true
+  enablePayments: boolean; // Always true
+  enableCustomers: boolean; // Always true
+  enableAnalytics: boolean; // Always true
+  enableExpenses: boolean; // Always true
+  enableSettings: boolean; // Always true
+
+  // Conditional Modules (Industry-Specific)
+  enableEstimates: boolean; // Construction, Agency, Wholesale
+  enableInventory: boolean; // Retail, Manufacturing, Wholesale
+  enableSuppliers: boolean; // Retail, Manufacturing, Wholesale
+  enablePurchaseManagement: boolean; // Manufacturing, Retail
+  enableDispatch: boolean; // Retail, Wholesale
+
+  // Advanced Modules (Optional)
+  enableAutomation: boolean; // All (Premium feature)
+  enableEmployees: boolean; // Growing businesses
+
+  // Feature Flags
+  enableManufacturing: boolean; // BOM, Production tracking
+  enableRecurringBilling: boolean; // Subscription businesses
+  enableLoyaltyPoints: boolean; // Retail
+  enableAdvancedAnalytics: boolean; // Premium tier
+  enableMultiBranch: boolean; // Enterprise
+  enableWhatsAppIntegration: boolean; // All
+  enablePaymentGateway: boolean; // All
+}
+
+export interface WorkflowStep {
+  id: string;
+  name: string;
+  status: string;
+  nextSteps: string[]; // IDs of allowed next steps
+  color?: string;
+}
+
+export interface BusinessConfig {
+  userId: string;
+  industry: 'Freelancer' | 'Retail' | 'Manufacturing' | 'Tours' | 'Service' | 'Wholesale' | 'Construction' | 'Clinic' | 'Generic';
+  currency: string;
+  dateFormat: string;
+
+  // Feature Flags
+  features: FeatureToggles;
+
+  // Custom Field Definitions
+  customFields: {
+    product?: CustomFieldDefinition[];
+    invoice?: CustomFieldDefinition[];
+    estimate?: CustomFieldDefinition[];
+    customer?: CustomFieldDefinition[];
+  };
+
+  // Workflow Configuration
+  workflows: {
+    order?: WorkflowStep[];
+    estimate?: WorkflowStep[];
+  };
+
+  taxName: string; // GST, VAT, Sales Tax
+  orderFormConfig?: OrderFormConfig;
 }

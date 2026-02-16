@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { Layout } from './components/Layout';
+import { SidebarLayout as Layout } from './components/SidebarLayout';
 import { Auth } from './pages/Auth';
 import { Dashboard } from './pages/Dashboard';
 import { Analytics } from './pages/Analytics';
@@ -21,9 +21,35 @@ import { OrderForm } from './pages/OrderForm';
 import { SettingsPage } from './pages/SettingsPage';
 import { Notifications } from './pages/Notifications';
 import { AdvancedAnalyticsPage } from './pages/AdvancedAnalyticsPage';
+import { SaaSConfig } from './pages/SaaSConfig';
+import { Reports } from './pages/Reports';
+import { POS } from './pages/retail/POS';
+import { Appointments } from './pages/service/Appointments';
+import { BillOfMaterials } from './pages/manufacturing/BillOfMaterials';
+import { SuperAdminLayout } from './components/SuperAdminLayout';
+import { SuperAdminDashboard } from './pages/super-admin/SuperAdminDashboard';
+import { SuperAdminTenants } from './pages/super-admin/SuperAdminTenants';
+import { SuperAdminIndustries } from './pages/super-admin/SuperAdminIndustries';
+import { SuperAdminPlans } from './pages/super-admin/SuperAdminPlans';
+import { SuperAdminRevenue } from './pages/super-admin/SuperAdminRevenue';
+import { SuperAdminUsers } from './pages/super-admin/SuperAdminUsers';
+import { SuperAdminFeatureFlags } from './pages/super-admin/SuperAdminFeatureFlags';
+import { SuperAdminSettings } from './pages/super-admin/SuperAdminSettings';
+import { SuperAdminNotifications } from './pages/super-admin/SuperAdminNotifications';
+import { SuperAdminAnalytics } from './pages/super-admin/SuperAdminAnalytics';
+import { SuperAdminModules } from './pages/super-admin/SuperAdminModules';
+import { SuperAdminBranches } from './pages/super-admin/SuperAdminBranches';
+import { SuperAdminComms } from './pages/super-admin/SuperAdminComms';
+import { SuperAdminGrowth } from './pages/super-admin/SuperAdminGrowth';
+import { SuperAdminAutomation } from './pages/super-admin/SuperAdminAutomation';
+import { SuperAdminInfra } from './pages/super-admin/SuperAdminInfra';
+import { SuperAdminLogs } from './pages/super-admin/SuperAdminLogs';
+import { SuperAdminPlaceholder } from './pages/super-admin/SuperAdminPlaceholder';
+import { SuperAdminGuard } from './components/guards/SuperAdminGuard';
 import { authService } from './services/authService';
 import { User } from './types';
 import { DialogProvider } from './context/DialogContext';
+import { ShopProvider } from './context/ShopContext';
 
 function App() {
   // Main App Component
@@ -70,47 +96,89 @@ function App() {
   return (
     <Router>
       <DialogProvider>
-        <Routes>
-          <Route
-            path="/login"
-            element={!user ? <Auth onLogin={handleLogin} /> : <Navigate to="/" replace />}
-          />
+        <ShopProvider>
+          <Routes>
+            <Route
+              path="/login"
+              element={!user ? <Auth onLogin={handleLogin} /> : <Navigate to="/" replace />}
+            />
 
-          <Route path="/order-form/:userId" element={<OrderForm />} />
+            <Route path="/order-form/:userId" element={<OrderForm />} />
 
-          <Route
-            path="/*"
-            element={
-              user ? (
-                <Layout user={user} onLogout={handleLogout}>
-                  <Routes>
-                    <Route path="/" element={<Dashboard />} />
-                    <Route path="/analytics" element={<Analytics />} />
-                    <Route path="/advanced-analytics" element={<AdvancedAnalyticsPage />} />
-                    <Route path="/invoices" element={<Invoices />} />
-                    <Route path="/estimates" element={<Estimates />} />
-                    <Route path="/payments" element={<Payments />} />
-                    <Route path="/recurring" element={<Recurring />} />
-                    <Route path="/checkouts" element={<Checkouts />} />
-                    <Route path="/overdue" element={<Overdue />} />
-                    <Route path="/customers" element={<Customers />} />
-                    <Route path="/products" element={<Products />} />
-                    <Route path="/orders" element={<Orders />} />
-                    <Route path="/purchase-orders" element={<PurchaseOrders />} />
-                    <Route path="/suppliers" element={<Suppliers />} />
-                    <Route path="/inventory-logs" element={<InventoryLogs />} />
-                    <Route path="/companies" element={<Companies />} />
-                    <Route path="/settings" element={<SettingsPage />} />
-                    <Route path="/notifications" element={<Notifications />} />
-                    <Route path="*" element={<Navigate to="/" replace />} />
-                  </Routes>
-                </Layout>
-              ) : (
-                <Navigate to="/login" replace />
-              )
-            }
-          />
-        </Routes>
+            <Route
+              path="/super/*"
+              element={
+                <SuperAdminGuard user={user}>
+                  <SuperAdminLayout onLogout={handleLogout}>
+                    <Routes>
+                      <Route path="dashboard" element={<SuperAdminDashboard />} />
+                      <Route path="tenants" element={<SuperAdminTenants />} />
+                      <Route path="industries" element={<SuperAdminIndustries />} />
+                      <Route path="plans" element={<SuperAdminPlans />} />
+                      <Route path="revenue" element={<SuperAdminRevenue />} />
+                      <Route path="users" element={<SuperAdminUsers />} />
+                      <Route path="analytics" element={<SuperAdminAnalytics />} />
+                      <Route path="modules" element={<SuperAdminModules />} />
+                      <Route path="feature-flags" element={<SuperAdminFeatureFlags />} />
+                      <Route path="settings" element={<SuperAdminSettings />} />
+                      <Route path="notifications" element={<SuperAdminNotifications />} />
+                      <Route path="branches" element={<SuperAdminBranches />} />
+                      <Route path="comms" element={<SuperAdminComms />} />
+                      <Route path="growth" element={<SuperAdminGrowth />} />
+                      <Route path="infra" element={<SuperAdminInfra />} />
+                      <Route path="automation" element={<SuperAdminAutomation />} />
+                      <Route path="logs" element={<SuperAdminLogs />} />
+                      <Route path="*" element={<Navigate to="dashboard" replace />} />
+                    </Routes>
+                  </SuperAdminLayout>
+                </SuperAdminGuard>
+              }
+            />
+
+            <Route
+              path="/*"
+              element={
+                user ? (
+                  <Layout user={user} onLogout={handleLogout}>
+                    <Routes>
+                      <Route path="/" element={<Dashboard />} />
+                      <Route path="/analytics" element={<Analytics />} />
+                      <Route path="/advanced-analytics" element={<AdvancedAnalyticsPage />} />
+                      <Route path="/invoices" element={<Invoices />} />
+                      <Route path="/estimates" element={<Estimates />} />
+                      <Route path="/payments" element={<Payments />} />
+                      <Route path="/recurring" element={<Recurring />} />
+                      <Route path="/checkouts" element={<Checkouts />} />
+                      <Route path="/overdue" element={<Overdue />} />
+                      <Route path="/customers" element={<Customers />} />
+                      <Route path="/products" element={<Products />} />
+                      <Route path="/orders" element={<Orders />} />
+                      <Route path="/purchase-orders" element={<PurchaseOrders />} />
+                      <Route path="/suppliers" element={<Suppliers />} />
+                      <Route path="/inventory-logs" element={<InventoryLogs />} />
+                      <Route path="/companies" element={user?.email === 'muneeswaran@averqon.in' ? <Companies /> : <Navigate to="/" replace />} />
+                      <Route path="/settings" element={<SettingsPage />} />
+                      <Route path="/saas-config" element={user?.email === 'muneeswaran@averqon.in' ? <SaaSConfig /> : <Navigate to="/" replace />} />
+                      <Route path="/notifications" element={<Notifications />} />
+
+                      {/* Universal Pages */}
+                      <Route path="/reports" element={<Reports />} />
+
+                      {/* Industry-Specific Pages */}
+                      <Route path="/pos" element={<POS />} />
+                      <Route path="/appointments" element={<Appointments />} />
+                      <Route path="/bom" element={<BillOfMaterials />} />
+
+                      <Route path="*" element={<Navigate to="/" replace />} />
+                    </Routes>
+                  </Layout>
+                ) : (
+                  <Navigate to="/login" replace />
+                )
+              }
+            />
+          </Routes>
+        </ShopProvider>
       </DialogProvider>
     </Router>
   );

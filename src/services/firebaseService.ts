@@ -13,7 +13,10 @@ import {
     onSnapshot,
     getDoc,
     writeBatch,
-    setDoc
+    setDoc,
+    limit,
+    startAfter,
+    DocumentSnapshot
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { Invoice, Product, Estimate, Payment, RecurringInvoice, CheckoutLink, Customer, Order, OrderStatus, StockLog, Supplier, StockMovementType, OrderFormConfig, PurchaseOrder, SupplierPayment } from '../types';
@@ -87,6 +90,31 @@ export const productService = {
         const products: Product[] = [];
         snapshot.forEach((doc) => products.push({ id: doc.id, ...doc.data() } as Product));
         return products;
+    },
+    getProductsPaginated: async (
+        userId: string,
+        pageSize: number,
+        lastDoc?: DocumentSnapshot
+    ): Promise<{ products: Product[], lastDoc: DocumentSnapshot | null }> => {
+        let q = query(
+            collection(db, PRODUCTS_COLLECTION),
+            where('userId', '==', userId),
+            orderBy('name'),
+            limit(pageSize)
+        );
+
+        if (lastDoc) {
+            q = query(q, startAfter(lastDoc));
+        }
+
+        const snapshot = await getDocs(q);
+        const products: Product[] = [];
+        snapshot.forEach((doc) => products.push({ id: doc.id, ...doc.data() } as Product));
+
+        return {
+            products,
+            lastDoc: snapshot.docs.length > 0 ? snapshot.docs[snapshot.docs.length - 1] : null
+        };
     },
     subscribeToProducts: (userId: string, callback: (products: Product[]) => void) => {
         const q = query(collection(db, PRODUCTS_COLLECTION), where('userId', '==', userId));

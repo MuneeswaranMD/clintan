@@ -26,7 +26,7 @@ export const companyService = {
         throw new Error("Password required");
     },
 
-    createCompanyWithPassword: async (name: string, email: string, password: string, logoUrl: string = '', phone: string = '') => {
+    createCompanyWithPassword: async (name: string, email: string, password: string, logoUrl: string = '', phone: string = '', config: any = {}) => {
         const auth2 = getSecondaryAuth();
 
         // Create the user in Auth
@@ -46,7 +46,8 @@ export const companyService = {
             phone: phone,
             logoUrl: logoUrl,
             createdAt: serverTimestamp(),
-            createdBy: 'SuperAdmin' // or current user ID if passed
+            createdBy: 'SuperAdmin', // or current user ID if passed
+            config: config
         });
 
         return user;
@@ -71,5 +72,18 @@ export const companyService = {
         const { doc, updateDoc } = await import('firebase/firestore');
         const companyRef = doc(db, 'companies', id);
         await updateDoc(companyRef, data);
+    },
+
+    updateCompanyConfig: async (id: string, config: any) => {
+        const { doc, updateDoc } = await import('firebase/firestore');
+        const companyRef = doc(db, 'companies', id);
+        await updateDoc(companyRef, { config });
+    },
+
+    // Delete company
+    deleteCompany: async (id: string) => {
+        const { doc, deleteDoc } = await import('firebase/firestore');
+        const companyRef = doc(db, 'companies', id);
+        await deleteDoc(companyRef);
     }
 };

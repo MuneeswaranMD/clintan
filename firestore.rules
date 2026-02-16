@@ -58,8 +58,14 @@ service cloud.firestore {
     // ========== COMPANIES ==========
     match /companies/{companyId} {
       allow create: if request.auth != null;
-      allow read, update, delete: if isResourceOwner() || 
-        (request.auth != null && request.auth.token.email == 'muneeswaran@averqon.in');
+      allow read: if request.auth != null && (
+        resource.data.userId == request.auth.uid || 
+        request.auth.token.email == 'muneeswaran@averqon.in'
+      );
+      allow update, delete: if request.auth != null && (
+        resource.data.userId == request.auth.uid || 
+        request.auth.token.email == 'muneeswaran@averqon.in'
+      );
     }
     
     // ========== SETTINGS ==========
@@ -127,6 +133,11 @@ service cloud.firestore {
     match /formSubmissions/{submissionId} {
       allow create: if request.resource.data.formId != null;
       allow read: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
+
+    // ========== PUSH TOKENS ==========
+    match /push_tokens/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
   }
 }

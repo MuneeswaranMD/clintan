@@ -42,6 +42,7 @@ app.get('/health', (req, res) => {
 // API Routes
 app.use('/api/webhook', webhookRoutes);
 app.use('/api/automation', automationRoutes);
+app.use('/api/orders', require('./routes/orderRoutes'));
 
 // WhatsApp Webhook
 app.get('/api/whatsapp-webhook', whatsappWebhookController.verifyWebhook);

@@ -647,8 +647,8 @@ export const Invoices: React.FC = () => {
             ))}
           </div>
         ) : (
-          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-            <table className="w-full text-left">
+          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm table-responsive">
+            <table className="w-full text-left min-w-[1000px]">
               <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200">
                 <tr>
                   <th className="px-8 py-5">Invoice Details</th>

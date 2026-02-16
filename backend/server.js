@@ -2,7 +2,15 @@ require('dotenv').config();
 const app = require('./app');
 
 // Start notification worker
+// Start notification worker
 require('./workers/notificationWorker');
+
+// Connect to Database
+const connectDB = require('./config/db');
+connectDB();
+
+// Initialize Event Handlers
+require('./utils/orderEventHandler');
 
 const PORT = process.env.PORT || 5000;
 

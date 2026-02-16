@@ -88,8 +88,8 @@ self.addEventListener('push', function(event) {
   const title = data.title || data.notification?.title || 'Averqon+ Notification';
   const options = {
     body: data.body || data.notification?.body || 'You have a new notification',
-    icon: data.icon || data.notification?.icon || '/icon-192.svg',
-    badge: '/icon-192.svg',
+    icon: data.icon || data.notification?.icon || '/icon-192.png',
+    badge: '/icon-192.png',
     vibrate: [200, 100, 200],
     tag: data.tag || 'averqon-notification',
     requireInteraction: data.priority === 'HIGH',

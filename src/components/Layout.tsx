@@ -25,10 +25,18 @@ import {
   ShoppingBag,
   PackageOpen,
   Truck,
-  Activity
+  Activity,
+  Sparkles,
+  Shield
 } from 'lucide-react';
 import { User } from '../types';
 import { NotificationBell } from './NotificationBell';
+import { GlobalCartDrawer } from './shop/GlobalCartDrawer';
+import { FloatingCartButton } from './shop/FloatingCartButton';
+import { BranchSelector } from './BranchSelector';
+import { useShop } from '../context/ShopContext';
+import { getFilteredNavItems } from '../config/navigationConfig';
+
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -63,147 +71,186 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
     fetchCompanyDetails();
   }, [user]);
 
-  const navItems = [
-    { label: 'Overview', path: '/', icon: LayoutDashboard },
-    { label: 'Analytics', path: '/analytics', icon: TrendingUp },
-    { label: 'Business Intelligence', path: '/advanced-analytics', icon: Activity },
-    { label: 'Estimates', path: '/estimates', icon: ClipboardList },
-    { label: 'Invoices', path: '/invoices', icon: FileText },
-    { label: 'Orders', path: '/orders', icon: ShoppingBag },
-    { label: 'Payments', path: '/payments', icon: CreditCard },
-    { label: 'Recurring', path: '/recurring', icon: Repeat },
-    { label: 'Checkouts', path: '/checkouts', icon: LayoutGrid },
-    { label: 'Overdue', path: '/overdue', icon: Clock },
-    { label: 'Customers', path: '/customers', icon: Users },
-    { label: 'Products', path: '/products', icon: Package },
-    { label: 'Purchase Orders', path: '/purchase-orders', icon: Truck },
-    { label: 'Inventory', path: '/inventory-logs', icon: PackageOpen },
-    { label: 'Suppliers', path: '/suppliers', icon: Building2 },
-  ];
+  const { mode, businessConfig } = useShop();
+  const navigate = useNavigate();
 
-  if (user && user.email === 'muneeswaran@averqon.in') {
-    if (!navItems.find(item => item.path === '/companies')) {
-      navItems.unshift({ label: 'Companies', path: '/companies', icon: Building2 });
-    }
-  }
+  const handleCheckout = () => {
+    navigate('/checkouts');
+  };
+
+  // Dynamic navigation based on enabled features
+  const isSuperAdmin = user && user.email === 'muneeswaran@averqon.in';
+  const navItems = React.useMemo(() => {
+    return getFilteredNavItems(businessConfig.features, isSuperAdmin);
+  }, [businessConfig.features, isSuperAdmin]);
 
   const effectiveCompanyName = user.email === 'muneeswaran@averqon.in' ? 'Averqon' : (dbCompanyName || user.name);
   const displayLogo = logoUrl || (user as any).photoURL || (user as any).logoUrl;
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-900">
-      {/* Top Header Row */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
-        <div className="max-w-[1600px] mx-auto px-4 lg:px-6 py-3 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-slate-50 flex flex-col font-sans text-slate-900">
+      {/* Premium Top Header with Glassmorphism */}
+      <header className="bg-white/90 backdrop-blur-xl border-b border-slate-200/60 sticky top-0 z-50 shadow-sm">
+        <div className="max-w-[1600px] mx-auto px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between gap-6">
+            {/* Left: Premium Branding */}
+            <div className="flex items-center gap-8">
+              <div className="flex items-center gap-3 group cursor-pointer">
+                <div className="relative">
+                  <div className="w-11 h-11 bg-gradient-to-br from-blue-600 via-blue-600 to-blue-700 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-lg shadow-blue-200/50 group-hover:shadow-xl group-hover:shadow-blue-300/50 transition-all group-hover:scale-105">
+                    A
+                  </div>
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+                </div>
+                <div className="hidden sm:block">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-2xl font-black text-slate-900 tracking-tight">
+                      Averqon
+                    </span>
+                    <span className="text-2xl font-black bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent">
+                      Bills
+                    </span>
+                  </div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider -mt-1">Business OS</p>
+                </div>
+              </div>
+
+              {/* User & Company Pills */}
+              <div className="hidden lg:flex items-center gap-3">
+                <div className="flex items-center gap-2.5 px-4 py-2.5 bg-gradient-to-br from-slate-50 to-white border border-slate-200/80 rounded-xl hover:shadow-md hover:border-slate-300 transition-all cursor-pointer group">
+                  <div className="w-8 h-8 bg-gradient-to-br from-blue-100 to-blue-50 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <UserIcon size={16} className="text-blue-600" />
+                  </div>
+                  <span className="text-sm font-bold text-slate-700 group-hover:text-blue-600 transition-colors">{user.name}</span>
+                  <ChevronDown size={14} className="text-slate-400 group-hover:text-blue-600 group-hover:translate-y-0.5 transition-all" />
+                </div>
+
+                <div className="flex items-center gap-2.5 px-4 py-2.5 bg-gradient-to-br from-blue-50/80 to-white border border-blue-200/80 rounded-xl hover:shadow-md hover:border-blue-300 transition-all cursor-pointer group">
+                  <Building2 size={16} className="text-blue-600 group-hover:scale-110 transition-transform" />
+                  <span className="text-sm font-bold text-slate-700 group-hover:text-blue-600 transition-colors">{effectiveCompanyName}</span>
+                  <ChevronDown size={14} className="text-slate-400 group-hover:text-blue-600 group-hover:translate-y-0.5 transition-all" />
+                </div>
+
+                {/* Branch Selector */}
+                {user.allowedBranches && user.allowedBranches.length > 1 && (
+                  <BranchSelector
+                    branches={user.allowedBranches}
+                    currentBranchId={user.branchId}
+                    onBranchChange={(branchId) => {
+                      console.log('Branch changed to:', branchId);
+                    }}
+                  />
+                )}
+              </div>
+            </div>
+
+            {/* Center: Premium Search */}
+            <div className="flex-1 max-w-2xl hidden md:block">
+              <div className="relative group">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors z-10" size={20} />
+                <input
+                  type="text"
+                  placeholder="Search anything... (⌘K)"
+                  className="w-full bg-slate-50/80 border-2 border-slate-200/80 rounded-2xl py-3.5 pl-12 pr-4 outline-none focus:bg-white focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all text-sm font-medium placeholder:text-slate-400 hover:border-slate-300"
+                />
+              </div>
+            </div>
+
+            {/* Right: Premium Actions */}
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-xl shadow-md">
-                A
+              <NotificationBell />
+
+              <NavLink
+                to="/settings"
+                className="p-2.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all hover:scale-105"
+              >
+                <Settings size={20} />
+              </NavLink>
+
+              {/* Super Admin Button - Only for muneeswaran@averqon.in */}
+              {isSuperAdmin && (
+                <NavLink
+                  to="/super/dashboard"
+                  className="relative group p-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-xl transition-all hover:shadow-lg hover:shadow-cyan-500/50 hover:scale-105"
+                  title="Super Admin Control Center"
+                >
+                  <Shield size={20} className="relative z-10" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-xl opacity-0 group-hover:opacity-100 blur transition-opacity"></div>
+                </NavLink>
+              )}
+
+              <div className="h-8 w-px bg-slate-200 mx-2 hidden sm:block"></div>
+
+              {/* Premium Plan Badge */}
+              <div className="hidden sm:flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-purple-50 via-blue-50 to-purple-50 border border-purple-200/60 rounded-full shadow-sm">
+                <Sparkles size={12} className="text-purple-600" />
+                <span className="text-[10px] font-black text-purple-700 uppercase tracking-wider">Enterprise</span>
               </div>
-              <span className="text-xl font-bold text-slate-800 hidden sm:block tracking-tight">
-                Averqon <span className="text-blue-600">Bills</span>
-              </span>
+
+              <button className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:shadow-lg hover:shadow-blue-200/50 hover:-translate-y-0.5 active:translate-y-0 transition-all text-sm whitespace-nowrap">
+                <Plus size={18} strokeWidth={2.5} />
+                <span className="hidden sm:inline">New</span>
+              </button>
+
+              <button
+                onClick={onLogout}
+                className="p-2.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all hover:scale-105"
+                title="Sign Out"
+              >
+                <LogOut size={20} />
+              </button>
             </div>
-
-            <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-100 rounded-lg cursor-pointer hover:bg-slate-100 transition-colors">
-              <span className="text-sm font-bold text-slate-700">{user.name}</span>
-              <ChevronDown size={14} className="text-slate-400" />
-            </div>
-
-            <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-100 rounded-lg cursor-pointer hover:bg-slate-100 transition-colors">
-              <LayoutGrid size={16} className="text-blue-600" />
-              <span className="text-sm font-bold text-slate-700">{effectiveCompanyName}</span>
-              <ChevronDown size={14} className="text-slate-400" />
-            </div>
-          </div>
-
-          <div className="flex-1 max-w-2xl hidden md:block">
-            <div className="relative group">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={18} />
-              <input
-                type="text"
-                placeholder="Search anything..."
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 pl-10 pr-4 outline-none focus:bg-white focus:border-blue-600 transition-all text-sm font-medium"
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <NotificationBell />
-            <NavLink
-              to="/settings"
-              className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
-            >
-              <Settings size={20} />
-            </NavLink>
-
-            <div className="h-8 w-px bg-slate-200 mx-1 hidden sm:block"></div>
-
-            <div className="flex items-center gap-2 mr-2 hidden sm:flex">
-              <div className="w-10 h-5 bg-slate-200 rounded-full p-0.5 cursor-pointer relative transition-colors hover:bg-slate-300">
-                <div className="w-4 h-4 bg-white rounded-full shadow-sm"></div>
-              </div>
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Enterprise</span>
-            </div>
-
-            <button className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-blue-700 transition-all shadow-md shadow-blue-100 text-sm whitespace-nowrap">
-              <Plus size={18} />
-              <span className="hidden sm:inline">Action</span>
-            </button>
-
-            <button
-              onClick={onLogout}
-              className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-              title="Sign Out"
-            >
-              <LogOut size={20} />
-            </button>
           </div>
         </div>
 
-        {/* Navigation Tier */}
-        <div className="max-w-[1600px] mx-auto px-4 lg:px-6 border-t border-slate-100">
-          <nav className="flex items-center gap-1 overflow-x-auto no-scrollbar scroll-smooth py-0.5">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = location.pathname === item.path;
-              return (
-                <NavLink
-                  key={item.path}
-                  to={item.path}
-                  className={`
-                    flex items-center gap-2 px-5 py-3.5 text-xs font-bold uppercase tracking-widest transition-all duration-200 relative whitespace-nowrap
-                    ${isActive
-                      ? 'text-blue-600 bg-blue-50/50'
-                      : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'}
-                  `}
-                >
-                  <Icon size={16} className={isActive ? 'text-blue-600' : 'text-slate-400'} />
-                  <span>{item.label}</span>
-                  {isActive && (
-                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-t-full"></div>
-                  )}
-                </NavLink>
-              );
-            })}
-          </nav>
+        {/* Premium Navigation Pills */}
+        <div className="max-w-[1600px] mx-auto px-6 lg:px-8 pb-4 pt-2">
+          <div className="bg-slate-50/50 rounded-2xl p-2 border border-slate-200/60">
+            <nav className="flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-smooth">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = location.pathname === item.path;
+                return (
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    className={`
+                      group relative flex items-center gap-2.5 px-4 py-2.5 rounded-xl font-bold text-sm transition-all duration-200 whitespace-nowrap
+                      ${isActive
+                        ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-200/50'
+                        : 'text-slate-600 hover:bg-white hover:text-blue-600 hover:shadow-md'
+                      }
+                    `}
+                  >
+                    <Icon
+                      size={18}
+                      className={`${isActive ? 'text-white' : 'text-slate-400 group-hover:text-blue-600'} transition-colors`}
+                      strokeWidth={isActive ? 2.5 : 2}
+                    />
+                    <span className="tracking-wide">{item.label}</span>
+                    {isActive && (
+                      <div className="absolute -top-1 -right-1 w-2 h-2 bg-white rounded-full shadow-sm"></div>
+                    )}
+                  </NavLink>
+                );
+              })}
+            </nav>
+          </div>
         </div>
       </header>
 
-      {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto p-4 lg:p-8">
+      {/* Main Content Area with Premium Background */}
+      <main className="flex-1 overflow-y-auto p-6 lg:p-8">
         <div className="max-w-[1600px] mx-auto">
           {children}
-
-          {/* Floating AI Assistant (Optional, matches image) */}
-          <button className="fixed bottom-8 right-8 bg-white border border-gray-200 shadow-2xl rounded-full px-4 py-2.5 flex items-center gap-2 hover:scale-105 transition-transform z-50">
-            <div className="w-6 h-6 bg-indigo-100 rounded-full flex items-center justify-center">
-              <HelpCircle size={14} className="text-indigo-600" />
-            </div>
-            <span className="text-sm font-bold text-gray-700">AI Assistant</span>
-          </button>
         </div>
       </main>
+
+      <FloatingCartButton currency="₹" />
+      <GlobalCartDrawer
+        currency="₹"
+        onCheckout={handleCheckout}
+      />
     </div>
   );
-};
+}

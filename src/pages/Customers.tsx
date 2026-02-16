@@ -153,8 +153,8 @@ export const Customers: React.FC = () => {
                         </span>
                     </div>
 
-                    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-                        <table className="w-full text-left">
+                    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm table-responsive">
+                        <table className="w-full text-left min-w-[800px]">
                             <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[11px] border-b border-slate-100">
                                 <tr>
                                     <th className="px-10 py-5">Invoice Number</th>
@@ -270,9 +270,9 @@ export const Customers: React.FC = () => {
                     </h1>
                     <p className="text-slate-500 text-sm mt-1">Manage your customer relationships and contact nodes.</p>
                 </div>
-                <div className="flex items-center gap-4 w-full md:w-auto">
+                <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto mt-4 sm:mt-0">
                     <ViewToggle view={viewMode} onViewChange={setViewMode} />
-                    <button onClick={() => { setFormData({ name: '', phone: '', address: '', company: '', gst: '' }); setView('form'); }} className="bg-blue-600 text-white px-8 py-3.5 rounded-xl font-bold flex items-center gap-2 hover:bg-blue-700 transition-all shadow-md text-sm active:scale-95 flex-1 md:flex-none justify-center">
+                    <button onClick={() => { setFormData({ name: '', phone: '', address: '', company: '', gst: '' }); setView('form'); }} className="bg-blue-600 text-white px-8 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-blue-700 transition-all shadow-md text-sm active:scale-95 w-full sm:w-auto">
                         <Plus size={20} /> Add New Customer
                     </button>
                 </div>
@@ -332,8 +332,8 @@ export const Customers: React.FC = () => {
                         })}
                     </div>
                 ) : (
-                    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-                        <table className="w-full text-left">
+                    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm table-responsive">
+                        <table className="w-full text-left min-w-[1000px]">
                             <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200">
                                 <tr>
                                     <th className="px-8 py-5">Customer</th>

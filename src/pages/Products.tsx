@@ -151,13 +151,18 @@ export const Products: React.FC = () => {
   if (view === 'form') {
     return (
       <div className="max-w-4xl mx-auto animate-fade-in pb-20">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-2xl font-bold text-slate-800">{formData.id ? 'Edit Product' : 'Add New Product'}</h1>
             <p className="text-slate-500 text-sm mt-1">Enter product details and inventory information.</p>
           </div>
-          <button onClick={() => setView('list')} className="w-10 h-10 bg-white border border-slate-200 hover:border-slate-400 rounded-full text-slate-400 transition-all flex items-center justify-center active:scale-95">
+          <button
+            type="button"
+            onClick={() => setView('list')}
+            className="p-2.5 bg-white border border-slate-200 hover:border-slate-400 rounded-xl text-slate-400 transition-all flex items-center justify-center active:scale-95 shadow-sm"
+          >
             <X size={20} />
+            <span className="md:hidden ml-2 font-bold text-sm">Close</span>
           </button>
         </div>
 
@@ -403,8 +408,8 @@ export const Products: React.FC = () => {
               );
             })
           ) : (
-            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-              <table className="w-full text-left">
+            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm table-responsive">
+              <table className="w-full text-left min-w-[800px]">
                 <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200">
                   <tr>
                     <th className="px-6 py-4">Product Details</th>

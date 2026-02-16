@@ -463,11 +463,11 @@ export const Estimates: React.FC = () => {
                         </h1>
                         <p className="text-sm text-gray-600 mt-1">Manage your business quotes and proposals</p>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto mt-4 sm:mt-0">
                         <ViewToggle view={viewMode} onViewChange={setViewMode} />
                         <button
                             onClick={() => { setFormData({ estimateNumber: `EST-${Math.floor(Math.random() * 10000)}`, customerName: '', amount: 0, date: new Date().toISOString().split('T')[0], validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], status: 'Draft', templateId: undefined, notes: '', items: [] }); setView('form'); }}
-                            className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 flex items-center gap-2"
+                            className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 flex items-center justify-center gap-2 w-full sm:w-auto"
                         >
                             <Plus size={20} /> New Estimate
                         </button>
@@ -553,9 +553,9 @@ export const Estimates: React.FC = () => {
                             ))}
                         </div>
                     ) : (
-                        <div className="bg-white rounded-lg shadow overflow-hidden">
+                        <div className="bg-white rounded-lg shadow overflow-hidden table-responsive">
                             <div className="overflow-x-auto">
-                                <table className="w-full">
+                                <table className="w-full min-w-[1000px]">
                                     <thead className="bg-gray-50 border-b border-gray-200">
                                         <tr>
                                             <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Estimate #</th>

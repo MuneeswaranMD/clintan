@@ -115,19 +115,50 @@ exports.handlePaymentReceived = async (req, res) => {
 
     console.log(`📨 Webhook received: PAYMENT_RECEIVED`);
     console.log(`   Amount: ₹${payment.amount}`);
-    console.log(`   Customer: ${payment.customerEmail}`);
+    
+    // Update Order Status in MongoDB
+    if (payment.orderId) {
+        const Order = require('../models/Order');
+        const eventEmitter = require('../utils/eventEmitter');
+        
+        try {
+            // Find by orderId (string) or _id if passed
+            const order = await Order.findOne({ 
+                $or: [{ orderId: payment.orderId }, { _id: payment.orderId }] 
+            });
+            
+            if (order) {
+                console.log(`✅ Updating Order ${order.orderId} to PAID`);
+                order.paymentStatus = 'PAID';
+                order.status = 'PAYMENT_COMPLETED';
+                order.timeline.push({ 
+                    status: 'PAYMENT_COMPLETED', 
+                    description: `Payment of ₹${payment.amount} received via ${payment.method || 'Online'}` 
+                });
+                await order.save();
+                
+                // Trigger internal event for Invoice Generation
+                eventEmitter.emit('PAYMENT_SUCCESS', order);
+            } else {
+                console.warn(`⚠️ Order ${payment.orderId} not found during payment webhook`);
+            }
+        } catch (dbError) {
+            console.error('❌ Database update failed in webhook:', dbError);
+        }
+    }
 
+    // Queue notification (Receipt) - Optional if Invoice is enough, but good to have
     await addNotificationJob('PAYMENT_RECEIVED', {
       email: payment.customerEmail,
       customer_name: payment.customerName,
       payment_amount: payment.amount,
-      invoice_number: payment.invoiceNumber,
+      invoice_number: payment.invoiceNumber, // Might cause issue if not yet generated
       userId
     });
 
     res.json({ 
       success: true, 
-      message: 'Payment notification queued',
+      message: 'Payment processed and notification queued',
       amount: payment.amount
     });
 
