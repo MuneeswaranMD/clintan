@@ -14,9 +14,30 @@ app.use(helmet());
 
 // CORS configuration
 app.use(cors({
-  origin: true, // During development/initial setup, 'true' reflects the request origin
+  origin: function(origin, callback) {
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://localhost:5173',
+      'https://billing.averqon.in',
+      'https://averqon-ay27.onrender.com'
+    ];
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) === -1) {
+      // For development, we can be permissive or log it
+      console.log('⚠️ CORS: Request from unknown origin:', origin);
+      // return callback(null, true); // Uncomment to allow all
+    }
+    return callback(null, true); // Reflect origin
+  },
   credentials: true
 }));
+
+// Root route for easy health check
+app.get('/', (req, res) => {
+  res.send('Averqon Automation Backend is Running 🚀');
+});
 
 // Body parsing
 app.use(express.json());
