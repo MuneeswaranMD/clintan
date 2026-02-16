@@ -24,6 +24,7 @@ export const Orders: React.FC = () => {
     const [statusFilter, setStatusFilter] = useState('All');
     const [paymentFilter, setPaymentFilter] = useState('All');
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
     const { businessConfig } = useShop();
     const activeConfig = businessConfig.orderFormConfig || {
@@ -54,6 +55,7 @@ export const Orders: React.FC = () => {
     useEffect(() => {
         const user = authService.getCurrentUser();
         if (!user) return;
+        setCurrentUserId(user.id);
 
         const unsubOrders = orderService.subscribeToOrders(user.id, data => {
             setOrders(data);
@@ -69,6 +71,13 @@ export const Orders: React.FC = () => {
             unsubProducts();
         };
     }, []);
+
+    const handleCopyLink = () => {
+        if (!currentUserId) return;
+        const link = `${window.location.origin}/#/order-form/${currentUserId}`;
+        navigator.clipboard.writeText(link);
+        alert("Public Order Form link copied to clipboard!", { variant: 'success', title: 'Link Copied' });
+    };
 
     const resetForm = () => {
         setFormData({
@@ -626,6 +635,14 @@ export const Orders: React.FC = () => {
                             onChange={e => setSearchTerm(e.target.value)}
                         />
                     </div>
+                    <button
+                        onClick={handleCopyLink}
+                        className="bg-white text-slate-600 px-4 py-2.5 rounded-xl font-black uppercase text-xs tracking-widest flex items-center gap-2 hover:bg-slate-50 border border-slate-200 transition-all shadow-sm active:scale-95"
+                        title="Copy Public Order Form Link"
+                    >
+                        <ExternalLink size={18} strokeWidth={2.5} />
+                        Form Link
+                    </button>
                     <button
                         onClick={() => { resetForm(); setView('form'); }}
                         className="bg-slate-900 text-white px-6 py-2.5 rounded-xl font-black uppercase text-xs tracking-widest flex items-center gap-2 hover:bg-black transition-all shadow-xl shadow-slate-200 active:scale-95"

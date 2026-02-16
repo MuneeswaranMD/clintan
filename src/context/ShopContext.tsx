@@ -134,6 +134,27 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     }
                 } else {
                     console.warn('⚠️ No company document found for user:', user.uid);
+                    console.log('🛠️ Creating default company document...');
+
+                    try {
+                        const { addDoc, serverTimestamp } = await import('firebase/firestore');
+
+                        const newCompany = {
+                            userId: user.uid,
+                            name: user.displayName || 'My Company',
+                            email: user.email,
+                            createdAt: serverTimestamp(),
+                            config: { ...DEFAULT_CONFIG, userId: user.uid, companyName: user.displayName || 'My Company' }
+                        };
+
+                        await addDoc(companiesRef, newCompany);
+                        console.log('✅ Default company created successfully');
+
+                        // Set state immediately to reflect the default config
+                        setBusinessConfig(DEFAULT_CONFIG);
+                    } catch (createError) {
+                        console.error('❌ Failed to create default company:', createError);
+                    }
                 }
             } catch (error) {
                 console.error('❌ Failed to fetch company config:', error);
