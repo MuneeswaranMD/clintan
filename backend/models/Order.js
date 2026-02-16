@@ -1,7 +1,9 @@
 const mongoose = require('mongoose');
 
 const orderSchema = new mongoose.Schema({
-    orderId: { type: String, required: true, unique: true },
+    tenantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tenant', required: true },
+    branchId: { type: mongoose.Schema.Types.ObjectId, ref: 'Branch' },
+    orderId: { type: String, required: true }, // Removed unique: true here as it should be unique per tenant
     customerId: { type: String, required: true },
     customerName: String,
     customerPhone: String,
@@ -45,5 +47,8 @@ const orderSchema = new mongoose.Schema({
         timestamp: { type: Date, default: Date.now }
     }]
 }, { timestamps: true });
+
+orderSchema.index({ tenantId: 1 });
+orderSchema.index({ tenantId: 1, orderId: 1 }, { unique: true });
 
 module.exports = mongoose.model('Order', orderSchema);
