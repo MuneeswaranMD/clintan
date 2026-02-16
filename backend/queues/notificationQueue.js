@@ -4,7 +4,14 @@ const notificationQueue = new Queue('notifications', {
   redis: {
     host: process.env.REDIS_HOST || '127.0.0.1',
     port: parseInt(process.env.REDIS_PORT) || 6379,
-    password: process.env.REDIS_PASSWORD || undefined
+    password: process.env.REDIS_PASSWORD || undefined,
+    maxRetriesPerRequest: null, // Critical for Bull to handle retries properly
+    enableReadyCheck: false
+  },
+  settings: {
+      lockDuration: 30000, 
+      stalledInterval: 30000, 
+      maxStalledCount: 1 
   },
   defaultJobOptions: {
     attempts: 3,
@@ -12,8 +19,8 @@ const notificationQueue = new Queue('notifications', {
       type: 'exponential',
       delay: 2000
     },
-    removeOnComplete: 100, // Keep last 100 completed jobs
-    removeOnFail: false     // Keep failed jobs for debugging
+    removeOnComplete: 100, 
+    removeOnFail: false     
   }
 });
 

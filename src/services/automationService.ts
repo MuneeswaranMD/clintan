@@ -44,5 +44,25 @@ export const automationService = {
         } catch (error) {
             console.error('Failed to trigger estimate notification:', error);
         }
+    },
+
+    triggerOrderPlaced: async (userId: string, order: any) => {
+        try {
+            const response = await fetch(`${automationService.getApiUrl()}/webhook/order-placed`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, order })
+            });
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.warn('Webhook responded with error:', response.status, errorText);
+                return null;
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('Failed to trigger order notification (Backend likely offline or erroring):', error);
+            // Don't throw - allow UI to proceed even if notification fails
+            return null;
+        }
     }
 };

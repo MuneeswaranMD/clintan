@@ -258,6 +258,10 @@ export const orderService = {
         // Create notification for new order
         try {
             await createOrderNotification(userId, docRef.id, order.orderId, 'NEW_ORDER');
+
+            // Trigger automation backend (WhatsApp/Email)
+            const fullOrder = { ...order, id: docRef.id };
+            await automationService.triggerOrderPlaced(userId, fullOrder);
         } catch (error) {
             console.error('Failed to create order notification:', error);
         }
@@ -274,7 +278,10 @@ export const orderService = {
         await updateDoc(orderRef, updates);
         if (updates.orderStatus === OrderStatus.Confirmed || updates.paymentStatus === 'Paid') {
             const orderSnap = await getDoc(orderRef);
-            if (orderSnap.exists()) await orderService.processStockReduction(orderSnap.data() as Order);
+            if (orderSnap.exists()) {
+                const orderData = orderSnap.data() as Order;
+                await orderService.processStockReduction({ ...orderData, id: orderSnap.id });
+            }
         }
     },
     deleteOrder: async (id: string) => {
@@ -284,7 +291,10 @@ export const orderService = {
         const orderRef = doc(db, ORDERS_COLLECTION, orderId);
         await updateDoc(orderRef, { orderStatus: OrderStatus.Confirmed, paymentStatus: 'Paid' });
         const orderSnap = await getDoc(orderRef);
-        if (orderSnap.exists()) await orderService.processStockReduction(orderSnap.data() as Order);
+        if (orderSnap.exists()) {
+            const orderData = orderSnap.data() as Order;
+            await orderService.processStockReduction({ ...orderData, id: orderSnap.id });
+        }
     },
     processStockReduction: async (order: Order) => {
         if (order.stockDeducted) {

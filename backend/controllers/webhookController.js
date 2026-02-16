@@ -86,7 +86,7 @@ exports.handleOrderPlaced = async (req, res) => {
       phone: order.customerPhone,
       customer_name: order.customerName,
       order_number: order.orderId || order.orderNumber,
-      amount: order.totalAmount,
+      amount: order.grandTotal || order.totalAmount, // Ensure total amount is captured
       userId
     });
 

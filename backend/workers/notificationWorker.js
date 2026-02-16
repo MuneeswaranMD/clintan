@@ -179,18 +179,48 @@ async function handlePaymentReceived(data) {
 }
 
 async function handleOrderPlaced(data) {
-  if (data.email) {
-    const html = emailService.getOrderTemplate({
-      customer_name: data.customer_name || 'Customer',
-      order_number: data.order_number,
-      amount: data.amount
-    });
+  const companyName = process.env.COMPANY_NAME || 'Averqon Bills';
 
-    await emailService.sendEmail({
-      to: data.email,
-      subject: `Order Confirmation - ${data.order_number}`,
-      html
-    });
+  // 1. Send Email
+  // 1. Send Email
+  if (data.email) {
+    try {
+        const html = emailService.getOrderTemplate({
+          customer_name: data.customer_name || 'Customer',
+          order_number: data.order_number,
+          amount: data.amount
+        });
+
+        await emailService.sendEmail({
+          to: data.email,
+          subject: `Order Confirmation - ${data.order_number}`,
+          html
+        });
+    } catch (emailError) {
+        console.error('⚠️ Email Order Confirmation failed:', emailError.message);
+    }
+  }
+
+  // 2. Send WhatsApp
+  if (data.phone) {
+    try {
+        const text = `Hello ${data.customer_name || 'Customer'},\n\nYour order *${data.order_number}* has been confirmed!\n\nTotal Amount: ₹${data.amount}\n\nWe will notify you once dispatched.\n\nThank you for choosing ${companyName}!`;
+        
+        await whatsappService.sendTextMessage(data.phone, text);
+        
+        // Optional: If you had a PDF or tracking link, you could send buttons here
+        /*
+        await whatsappService.sendInteractiveButtons({
+            to: data.phone,
+            text: "Track your order here:",
+            buttons: [{ id: 'track_order', title: 'Track Order' }]
+        });
+        */
+        
+        console.log(`✅ WhatsApp Order Confirmation sent to ${data.phone}`);
+    } catch (error) {
+        console.error('⚠️ WhatsApp Order Confirmation failed:', error.message);
+    }
   }
 }
 

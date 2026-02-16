@@ -10,7 +10,8 @@ import {
     AlertCircle
 } from 'lucide-react';
 import { orderFormService } from '../services/orderFormService';
-import { OrderStatus, OrderFormConfig } from '../types';
+import { orderService } from '../services/firebaseService'; // Import orderService
+import { OrderStatus, OrderFormConfig, OrderItem, BusinessConfig } from '../types';
 import { GlobalProductGrid } from '../components/shop/GlobalProductGrid';
 import { GlobalCartDrawer } from '../components/shop/GlobalCartDrawer';
 import { FloatingCartButton } from '../components/shop/FloatingCartButton';
@@ -49,9 +50,8 @@ export const OrderForm: React.FC = () => {
     // Store Validation
     useEffect(() => {
         // If cart has items from another store (product.userId !== current userId), prompt to clear?
-        // For simplicity, if we detect a different store's items, we'll basiclaly allow it for now or 
+        // For simplicity, if we detect a different store's items, we'll basically allow it for now or 
         // the user manages it manually in the cart. 
-        // Ideally: check cart[0].product.userId
     }, [userId, cart]);
 
     useEffect(() => {
@@ -81,23 +81,50 @@ export const OrderForm: React.FC = () => {
         if (!userId) return;
 
         try {
-            // Placeholder logic preserved
             const orderId = `ORD-${Math.floor(100000 + Math.random() * 900000)}`;
-            // ... (rest of logic mostly depends on backend which isn't fully connected here)
 
-            // NOTE: In a real app, we'd open a Checkout Modal here to collect Customer Info using `formData`.
-            // For this UI demo, we simulate success.
+            // Map cart items to OrderItem structure
+            const orderItems: OrderItem[] = cart.map(item => ({
+                id: item.product.id, // Using product ID as item ID
+                itemId: item.product.id,
+                name: item.product.name,
+                type: 'PRODUCT',
+                quantity: item.quantity,
+                price: item.product.pricing?.sellingPrice || 0,
+                taxPercentage: item.product.pricing?.taxPercentage || 0,
+                discount: 0,
+                subtotal: (item.product.pricing?.sellingPrice || 0) * item.quantity,
+                total: (item.product.pricing?.sellingPrice || 0) * item.quantity // Add tax calc if needed
+            }));
 
-            console.log("Submitting Order:", {
-                cart,
-                total: cartTotal,
-                mode,
-                customer: customerDetails,
-                source: channel
-            });
+            const newOrder = {
+                orderId,
+                customerName: customerDetails.name,
+                customerPhone: customerDetails.phone,
+                customerEmail: customerDetails.email || '',
+                customerAddress: customerDetails.address,
+                items: orderItems,
+                pricingSummary: {
+                    subTotal: cartTotal,
+                    taxTotal: 0, // Calculate tax if needed
+                    discountTotal: 0,
+                    grandTotal: cartTotal
+                },
+                totalAmount: cartTotal,
+                paymentStatus: 'Pending',
+                orderStatus: mode === 'estimate' ? OrderStatus.Pending : OrderStatus.Pending, // Estimates act as pending orders for now
+                orderDate: new Date().toISOString(),
+                paymentMethod: 'Online/COD',
+                notes: customerDetails.notes,
+                source: 'WEBSITE',
+                channel: channel,
+                userId: userId
+            };
 
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            console.log("Submitting Order:", newOrder);
+
+            // Create order in Firestore
+            await orderService.createOrder(userId, newOrder as any);
 
             setLastOrder({
                 ...customerDetails,
@@ -109,7 +136,8 @@ export const OrderForm: React.FC = () => {
             clearCart();
             setIsCartOpen(false);
         } catch (err) {
-            console.error(err);
+            console.error("Order submission failed:", err);
+            // Optionally show an error toast here
         }
     };
 
@@ -331,6 +359,11 @@ export const OrderForm: React.FC = () => {
                     </>
                 )}
             </main>
+
+            <GlobalCartDrawer
+                currency={currency}
+                onCheckout={handleSubmitOrder}
+            />
 
         </div>
     );
