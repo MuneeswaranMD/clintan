@@ -37,6 +37,7 @@ import { BranchSelector } from './BranchSelector';
 import { useShop } from '../context/ShopContext';
 import { getFilteredNavItems } from '../config/navigationConfig';
 import { tenantService } from '../services/firebaseService';
+import { HealthBadge } from './HealthBadge';
 
 
 interface LayoutProps {
@@ -157,7 +158,10 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
             </div>
 
             {/* Right: Premium Actions */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
+              <div className="hidden lg:block">
+                <HealthBadge />
+              </div>
               <NotificationBell />
 
               <NavLink

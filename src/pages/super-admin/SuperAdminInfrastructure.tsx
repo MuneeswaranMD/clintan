@@ -151,7 +151,7 @@ export const SuperAdminInfrastructure: React.FC = () => {
 
                                 <h3 className="text-xl font-black text-white mb-8">Performance Spectrum</h3>
                                 <div className="h-[400px] w-full">
-                                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                                    <ResponsiveContainer width="100%" height="100%">
                                         <AreaChart data={performanceData}>
                                             <defs>
                                                 <linearGradient id="cpuGradient" x1="0" y1="0" x2="0" y2="1">

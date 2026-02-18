@@ -106,7 +106,7 @@ export const SuperAdminDashboard: React.FC = () => {
                     </div>
 
                     <div className="h-[350px] w-full min-w-[200px]">
-                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                        <ResponsiveContainer width="100%" height="100%">
                             <AreaChart data={data}>
                                 <defs>
                                     <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">

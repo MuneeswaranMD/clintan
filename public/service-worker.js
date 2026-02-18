@@ -39,10 +39,17 @@ self.addEventListener('activate', (event) => {
 
 // Fetch Strategy: Network First, fallback to Cache
 self.addEventListener('fetch', (event) => {
-  // Skip caching for POST requests and Firebase requests
+  // Skip caching for:
+  // 1. Non-GET requests
+  // 2. Firebase/Firestore
+  // 3. Automation Backend (to avoid CORS issues with SW)
+  const isBackend = event.request.url.includes('averqonbill.onrender.com') || 
+                    event.request.url.includes('localhost:5000');
+
   if (event.request.method !== 'GET' || 
       event.request.url.includes('firestore.googleapis.com') ||
-      event.request.url.includes('firebase')) {
+      event.request.url.includes('firebase') ||
+      isBackend) {
     return;
   }
 
@@ -50,7 +57,8 @@ self.addEventListener('fetch', (event) => {
     fetch(event.request)
       .then((response) => {
         // Only cache successful GET responses
-        if (response && response.status === 200 && response.type === 'basic') {
+        // Note: type 'opaque' or 'cors' is for cross-origin, 'basic' is same-origin
+        if (response && response.status === 200 && (response.type === 'basic' || response.type === 'cors')) {
           const responseToCache = response.clone();
           
           caches.open(CACHE_NAME).then((cache) => {
@@ -62,8 +70,22 @@ self.addEventListener('fetch', (event) => {
         
         return response;
       })
-      .catch(() => {
-        return caches.match(event.request);
+      .catch(async () => {
+        const cachedResponse = await caches.match(event.request);
+        if (cachedResponse) return cachedResponse;
+        
+        // If not in cache and network fails, we must return a valid Response or let it fail
+        // For navigation requests, we might return a custom error page
+        if (event.request.mode === 'navigate') {
+          return caches.match('/index.html');
+        }
+        
+        // Final fallback: return a 503 error response
+        return new Response('Network error occurred', {
+          status: 503,
+          statusText: 'Service Unavailable',
+          headers: new Headers({ 'Content-Type': 'text/plain' })
+        });
       })
   );
 });

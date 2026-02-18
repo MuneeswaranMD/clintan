@@ -11,28 +11,36 @@ const tenantMiddleware = require('./middleware/tenant');
 const app = express();
 
 // Security middleware
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: false,
+  crossOriginEmbedderPolicy: false,
+}));
 
 // CORS configuration
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'https://billing.averqon.in'
+];
+
 app.use(cors({
   origin: function(origin, callback) {
-    const allowedOrigins = [
-      'http://localhost:3000',
-      'http://localhost:5173',
-      'https://billing.averqon.in',
-      'https://averqon-ay27.onrender.com'
-    ];
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     
-    if (allowedOrigins.indexOf(origin) === -1) {
-      // For development, we allow all
-      // console.log('⚠️ CORS: Request from unknown origin:', origin);
+    if (allowedOrigins.indexOf(origin) !== -1 || origin.endsWith('.onrender.com')) {
       return callback(null, true);
+    } else {
+      // For development, we can be more permissive if needed
+      if (process.env.NODE_ENV === 'development') {
+        return callback(null, true);
+      }
+      return callback(new Error('Not allowed by CORS'));
     }
-    return callback(null, true);
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-tenant-id', 'Accept']
 }));
 
 // Root route for easy health check
@@ -56,6 +64,23 @@ app.get('/health', (req, res) => {
     timestamp: new Date(),
     uptime: process.uptime(),
     environment: process.env.NODE_ENV
+  });
+});
+
+app.get('/api/health', async (req, res) => {
+  const start = Date.now();
+  const healthService = require('./services/healthService');
+  const stats = await healthService.getWeeklyStats();
+  
+  // Log the heartbeat asynchronously
+  const responseTime = Date.now() - start;
+  healthService.logHeartbeat(responseTime, 'online');
+
+  res.status(200).json({
+    status: 'ok',
+    uptime: process.uptime(),
+    timestamp: new Date(),
+    stats: stats // Official enterprise stats
   });
 });
 

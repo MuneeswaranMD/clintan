@@ -35,7 +35,5 @@ const tenantSchema = new mongoose.Schema({
 
 // Index for performance
 tenantSchema.index({ status: 1 });
-tenantSchema.index({ subdomain: 1 });
-tenantSchema.index({ customDomain: 1 });
 
 module.exports = mongoose.model('Tenant', tenantSchema);

@@ -1,23 +1,37 @@
 export const automationService = {
     getBackendUrl: () => {
-        return import.meta.env.VITE_BACKEND_URL || 'https://averqon-ay27.onrender.com';
+        return import.meta.env.VITE_BACKEND_URL || 'https://averqonbill.onrender.com';
     },
 
     getApiUrl: () => {
-        return import.meta.env.VITE_API_URL || 'https://averqon-ay27.onrender.com/api';
+        return import.meta.env.VITE_API_URL || 'https://averqonbill.onrender.com/api';
     },
 
     checkStatus: async () => {
         try {
             const url = `${automationService.getBackendUrl()}/health`;
             console.log('Checking backend status at:', url);
-            const response = await fetch(url);
+
+            // Add a timeout to avoid hung requests
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+            const response = await fetch(url, {
+                signal: controller.signal
+            });
+
+            clearTimeout(timeoutId);
+
             if (response.ok) {
                 return await response.json();
             }
-            throw new Error('Backend responded with error');
+            throw new Error(`Backend responded with status: ${response.status}`);
         } catch (error) {
-            console.error('Backend status check failed:', error);
+            if (error instanceof Error && error.name === 'AbortError') {
+                console.error('Backend status check timed out');
+            } else {
+                console.error('Backend status check failed:', error);
+            }
             return null;
         }
     },
