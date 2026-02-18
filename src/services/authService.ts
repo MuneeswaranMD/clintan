@@ -5,10 +5,22 @@ import {
     signOut,
     onAuthStateChanged,
     User as FirebaseUser,
-    updateProfile
+    updateProfile,
+    GoogleAuthProvider,
+    FacebookAuthProvider,
+    signInWithPopup
 } from 'firebase/auth';
 import { auth } from './firebase';
 import { User } from '../types';
+
+const SUPER_ADMIN_EMAILS = ['muneeswaran@averqon.in', 'clintan@averqon.in', 'whatnew.live@gmail.com'];
+
+const getRoleByEmail = (email: string | null): User['role'] => {
+    if (email && SUPER_ADMIN_EMAILS.includes(email.toLowerCase())) {
+        return 'SUPER_ADMIN';
+    }
+    return 'COMPANY_ADMIN';
+};
 
 export const authService = {
     // Sign up new user
@@ -26,7 +38,8 @@ export const authService = {
                 id: firebaseUser.uid,
                 name: name,
                 email: firebaseUser.email || email,
-                isAuthenticated: true
+                isAuthenticated: true,
+                role: getRoleByEmail(firebaseUser.email || email)
             };
         } catch (error: any) {
             throw new Error(error.message || 'Failed to sign up');
@@ -43,10 +56,49 @@ export const authService = {
                 id: firebaseUser.uid,
                 name: firebaseUser.displayName || 'User',
                 email: firebaseUser.email || email,
-                isAuthenticated: true
+                isAuthenticated: true,
+                role: getRoleByEmail(firebaseUser.email || email)
             };
         } catch (error: any) {
             throw new Error(error.message || 'Failed to sign in');
+        }
+    },
+
+    // Google Sign in
+    signInWithGoogle: async (): Promise<User> => {
+        try {
+            const provider = new GoogleAuthProvider();
+            const result = await signInWithPopup(auth, provider);
+            const firebaseUser = result.user;
+
+            return {
+                id: firebaseUser.uid,
+                name: firebaseUser.displayName || 'User',
+                email: firebaseUser.email || '',
+                isAuthenticated: true,
+                role: getRoleByEmail(firebaseUser.email)
+            };
+        } catch (error: any) {
+            throw new Error(error.message || 'Google sign in failed');
+        }
+    },
+
+    // Facebook Sign in
+    signInWithFacebook: async (): Promise<User> => {
+        try {
+            const provider = new FacebookAuthProvider();
+            const result = await signInWithPopup(auth, provider);
+            const firebaseUser = result.user;
+
+            return {
+                id: firebaseUser.uid,
+                name: firebaseUser.displayName || 'User',
+                email: firebaseUser.email || '',
+                isAuthenticated: true,
+                role: getRoleByEmail(firebaseUser.email)
+            };
+        } catch (error: any) {
+            throw new Error(error.message || 'Facebook sign in failed');
         }
     },
 
@@ -67,7 +119,8 @@ export const authService = {
                     id: firebaseUser.uid,
                     name: firebaseUser.displayName || 'User',
                     email: firebaseUser.email || '',
-                    isAuthenticated: true
+                    isAuthenticated: true,
+                    role: getRoleByEmail(firebaseUser.email)
                 };
                 callback(user);
             } else {
@@ -84,9 +137,12 @@ export const authService = {
                 id: firebaseUser.uid,
                 name: firebaseUser.displayName || 'User',
                 email: firebaseUser.email || '',
-                isAuthenticated: true
+                isAuthenticated: true,
+                role: getRoleByEmail(firebaseUser.email)
             };
         }
         return null;
     }
 };
+
+

@@ -90,9 +90,9 @@ export const CustomerSearchModal: React.FC<CustomerSearchModalProps> = ({ isOpen
                 </div>
 
                 <div className="p-4 border-t border-slate-100 bg-slate-50 text-center flex justify-between items-center px-8">
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{filteredCustomers.length} results found</p>
-                    <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                        <span className="px-2 py-1 bg-white border border-slate-200 rounded">Esc</span> to close
+                    <p className="text-xs font-medium text-slate-500">{filteredCustomers.length} results found</p>
+                    <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
+                        <span className="px-2 py-1 bg-white border border-slate-200 rounded text-slate-700">Esc</span> to close
                     </div>
                 </div>
             </div>

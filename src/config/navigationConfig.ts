@@ -220,6 +220,14 @@ export const UNIVERSAL_NAV_ITEMS: NavItem[] = [
 
     // ⚙️ SETTINGS
     {
+        label: 'Company Profile',
+        path: '/settings/company',
+        icon: Building2,
+        requiredFeature: 'enableSettings',
+        description: 'Manage company information & branding',
+        category: 'settings'
+    },
+    {
         label: 'Settings',
         path: '/settings',
         icon: Settings,

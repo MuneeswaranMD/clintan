@@ -138,8 +138,8 @@ export const Analytics: React.FC = () => {
                             key={tab}
                             onClick={() => setActiveTab(tab as any)}
                             className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-[0.05em] transition-all ${activeTab === tab
-                                    ? 'bg-white text-primary shadow-lg'
-                                    : 'text-white/70 hover:text-white hover:bg-white/5'
+                                ? 'bg-white text-primary shadow-lg'
+                                : 'text-white/70 hover:text-white hover:bg-white/5'
                                 }`}
                         >
                             {tab}
@@ -200,7 +200,7 @@ export const Analytics: React.FC = () => {
                                 </div>
                             </div>
                             <div className="h-[350px]">
-                                <ResponsiveContainer width="100%" height="100%">
+                                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                                     <AreaChart data={salesTrend}>
                                         <defs>
                                             <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
@@ -290,7 +290,7 @@ export const Analytics: React.FC = () => {
                                                 <td className="px-8 py-5 text-right font-black text-primary text-xs uppercase">~12 Days</td>
                                                 <td className="px-8 py-5 text-center">
                                                     <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${(p.inventory?.stock || 0) === 0 ? 'bg-error text-white' :
-                                                            isLow ? 'bg-warning text-white' : 'bg-success/10 text-success'
+                                                        isLow ? 'bg-warning text-white' : 'bg-success/10 text-success'
                                                         }`}>
                                                         {(p.inventory?.stock || 0) === 0 ? 'Depleted' : isLow ? 'Critical' : 'Operational'}
                                                     </span>
@@ -319,7 +319,7 @@ export const Analytics: React.FC = () => {
                     </div>
                     {paymentStats.length > 0 ? (
                         <div className="h-[400px]">
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                                 <PieChart>
                                     <Pie
                                         data={paymentStats}

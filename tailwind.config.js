@@ -20,7 +20,7 @@ export default {
         '3xl': '1.5rem',
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['system-ui', 'sans-serif'],
       },
     },
   },

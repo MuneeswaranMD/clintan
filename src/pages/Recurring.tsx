@@ -296,8 +296,8 @@ export const Recurring: React.FC = () => {
                                 <button
                                     onClick={(e) => toggleStatus(item, e)}
                                     className={`w-full h-14 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 shadow-lg active:scale-95 ${item.status === 'Active'
-                                            ? 'bg-slate-900 text-white hover:bg-black'
-                                            : 'bg-emerald-500 text-white hover:bg-emerald-600'
+                                        ? 'bg-slate-900 text-white hover:bg-black'
+                                        : 'bg-emerald-500 text-white hover:bg-emerald-600'
                                         }`}
                                 >
                                     {item.status === 'Active' ? <Pause size={16} strokeWidth={3} /> : <Play size={16} strokeWidth={3} />}
@@ -344,6 +344,12 @@ export const Recurring: React.FC = () => {
                                         <td className="px-10 py-6 text-right">
                                             <div className="flex items-center justify-end gap-3">
                                                 <button onClick={(e) => toggleStatus(item, e)} className="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 hover:bg-slate-900 hover:text-white transition-all flex items-center justify-center">{item.status === 'Active' ? <Pause size={16} strokeWidth={3} /> : <Play size={16} strokeWidth={3} />}</button>
+                                                <button
+                                                    onClick={(e) => handleDelete(item.id, e)}
+                                                    className="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 hover:bg-red-50 hover:text-error transition-all flex items-center justify-center"
+                                                >
+                                                    <Trash2 size={16} strokeWidth={3} />
+                                                </button>
                                                 <ChevronRight size={18} className="text-slate-100 group-hover:text-primary transition-colors" strokeWidth={3} />
                                             </div>
                                         </td>

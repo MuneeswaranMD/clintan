@@ -151,39 +151,35 @@ export const Products: React.FC = () => {
   if (view === 'form') {
     return (
       <div className="max-w-5xl mx-auto animate-fade-in pb-20 relative z-10">
-        <div className="flex items-center justify-between mb-10">
+        <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-black text-white tracking-tight uppercase">
-              {formData.id ? 'Modify Entity' : 'New Asset Protocol'}
+            <h1 className="text-2xl font-bold text-slate-900">
+              {formData.id ? 'Modify Product' : 'New Product'}
             </h1>
-            <p className="text-white/80 text-sm font-bold">Populating database with premium product identifiers.</p>
+            <p className="text-slate-500 text-sm mt-1">Manage product details and inventory settings.</p>
           </div>
           <button
             onClick={() => setView('list')}
-            className="w-12 h-12 bg-white/20 hover:bg-white/30 rounded-2xl text-white transition-all flex items-center justify-center backdrop-blur-md border border-white/20 active:scale-90"
+            className="w-10 h-10 bg-white hover:bg-slate-50 rounded-xl text-slate-500 transition-all flex items-center justify-center border border-slate-200"
           >
-            <X size={24} strokeWidth={3} />
+            <X size={20} />
           </button>
         </div>
 
         <form onSubmit={handleSave} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8">
-            <div className="bg-white p-10 rounded-[2.5rem] shadow-premium space-y-8 border-none relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-8 opacity-[0.02] pointer-events-none rotate-12">
-                <Package size={200} />
-              </div>
-
-              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2 mb-6">
-                <Box size={14} className="text-primary" /> Core Identification
+          <div className="lg:col-span-2 space-y-6">
+            <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
+              <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2 mb-6 pb-4 border-b border-slate-100">
+                <Box size={20} className="text-blue-600" /> Core Identification
               </h3>
 
-              <div className="space-y-6 relative z-10">
+              <div className="space-y-6">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Asset Nomenclature</label>
+                  <label className="text-sm font-medium text-slate-700">Product Name</label>
                   <input
                     required
                     type="text"
-                    className="w-full bg-slate-50 border-2 border-slate-50 p-4 rounded-2xl text-slate-900 outline-none focus:bg-white focus:border-primary/20 transition-all font-black text-sm placeholder:text-slate-300"
+                    className="w-full bg-slate-50 border border-slate-200 p-3 rounded-lg text-slate-900 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all text-sm placeholder:text-slate-400"
                     placeholder="Enter full product name"
                     value={formData.name}
                     onChange={e => setFormData({ ...formData, name: e.target.value })}
@@ -192,21 +188,21 @@ export const Products: React.FC = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Taxonomy / Category</label>
+                    <label className="text-sm font-medium text-slate-700">Category</label>
                     <input
                       type="text"
-                      className="w-full bg-slate-50 border-2 border-slate-50 p-4 rounded-2xl text-slate-900 outline-none focus:bg-white focus:border-primary/20 transition-all font-black text-sm placeholder:text-slate-300"
-                      placeholder="e.g. Computing Hardware"
+                      className="w-full bg-slate-50 border border-slate-200 p-3 rounded-lg text-slate-900 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all text-sm placeholder:text-slate-400"
+                      placeholder="e.g. Electronics"
                       value={formData.category}
                       onChange={e => setFormData({ ...formData, category: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Registry SKU</label>
+                    <label className="text-sm font-medium text-slate-700">SKU</label>
                     <input
                       type="text"
-                      className="w-full bg-slate-50 border-2 border-slate-50 p-4 rounded-2xl text-slate-900 outline-none focus:bg-white focus:border-primary/20 transition-all font-black text-sm placeholder:text-slate-300"
-                      placeholder="SKU-8820-X"
+                      className="w-full bg-slate-50 border border-slate-200 p-3 rounded-lg text-slate-900 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all text-sm placeholder:text-slate-400"
+                      placeholder="SKU-12345"
                       value={formData.sku}
                       onChange={e => setFormData({ ...formData, sku: e.target.value })}
                     />
@@ -214,10 +210,10 @@ export const Products: React.FC = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Protocol Description</label>
+                  <label className="text-sm font-medium text-slate-700">Description</label>
                   <textarea
-                    className="w-full bg-slate-50 border-2 border-slate-50 p-4 rounded-2xl text-slate-900 outline-none focus:bg-white focus:border-primary/20 transition-all font-black text-sm placeholder:text-slate-300 min-h-[120px] resize-none"
-                    placeholder="Enter detailed technical specifications..."
+                    className="w-full bg-slate-50 border border-slate-200 p-3 rounded-lg text-slate-900 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all text-sm placeholder:text-slate-400 min-h-[120px] resize-none"
+                    placeholder="Enter detailed description..."
                     value={formData.description}
                     onChange={e => setFormData({ ...formData, description: e.target.value })}
                   />
@@ -225,146 +221,147 @@ export const Products: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-white p-10 rounded-[2.5rem] shadow-premium space-y-8 border-none relative overflow-hidden">
-              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2 mb-6">
-                <TrendingUp size={14} className="text-primary" /> Inventory Telemetry
+            <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
+              <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2 mb-6 pb-4 border-b border-slate-100">
+                <TrendingUp size={20} className="text-blue-600" /> Inventory Settings
               </h3>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Current Stock</label>
+                  <label className="text-sm font-medium text-slate-700">Current Stock</label>
                   <input
                     type="number"
-                    className="w-full bg-slate-50 border-2 border-slate-50 p-4 rounded-2xl text-slate-900 outline-none focus:bg-white focus:border-primary/20 transition-all font-black text-base"
+                    className="w-full bg-slate-50 border border-slate-200 p-3 rounded-lg text-slate-900 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all text-sm"
                     value={formData.inventory?.stock}
                     onChange={e => setFormData({ ...formData, inventory: { ...formData.inventory!, stock: parseInt(e.target.value) || 0 } })}
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Min Threshold</label>
+                  <label className="text-sm font-medium text-slate-700">Min Threshold</label>
                   <input
                     type="number"
-                    className="w-full bg-slate-50 border-2 border-slate-50 p-4 rounded-2xl text-slate-900 outline-none focus:bg-white focus:border-primary/20 transition-all font-black text-base"
+                    className="w-full bg-slate-50 border border-slate-200 p-3 rounded-lg text-slate-900 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all text-sm"
                     value={formData.inventory?.minStockLevel}
                     onChange={e => setFormData({ ...formData, inventory: { ...formData.inventory!, minStockLevel: parseInt(e.target.value) || 0 } })}
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Reorder Qty</label>
+                  <label className="text-sm font-medium text-slate-700">Reorder Qty</label>
                   <input
                     type="number"
-                    className="w-full bg-slate-50 border-2 border-slate-50 p-4 rounded-2xl text-slate-900 outline-none focus:bg-white focus:border-primary/20 transition-all font-black text-base"
+                    className="w-full bg-slate-50 border border-slate-200 p-3 rounded-lg text-slate-900 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all text-sm"
                     value={formData.inventory?.reorderQuantity}
                     onChange={e => setFormData({ ...formData, inventory: { ...formData.inventory!, reorderQuantity: parseInt(e.target.value) || 0 } })}
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Asset Class</label>
+                  <label className="text-sm font-medium text-slate-700">Type</label>
                   <select
-                    className="w-full bg-slate-50 border-2 border-slate-50 p-4 rounded-2xl text-slate-900 outline-none focus:bg-white focus:border-primary/20 transition-all font-black text-sm appearance-none cursor-pointer"
+                    className="w-full bg-slate-50 border border-slate-200 p-3 rounded-lg text-slate-900 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all text-sm cursor-pointer"
                     value={formData.type}
                     onChange={e => setFormData({ ...formData, type: e.target.value as any })}
                   >
-                    <option value="Product">Physical Inventory</option>
-                    <option value="Service">Digital Protocol</option>
+                    <option value="Product">Physical Product</option>
+                    <option value="Service">Service</option>
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Registry Status</label>
+                  <label className="text-sm font-medium text-slate-700">Status</label>
                   <select
-                    className="w-full bg-slate-50 border-2 border-slate-50 p-4 rounded-2xl text-slate-900 outline-none focus:bg-white focus:border-primary/20 transition-all font-black text-sm appearance-none cursor-pointer"
+                    className="w-full bg-slate-50 border border-slate-200 p-3 rounded-lg text-slate-900 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all text-sm cursor-pointer"
                     value={formData.inventory?.status}
                     onChange={e => setFormData({ ...formData, inventory: { ...formData.inventory!, status: e.target.value as any } })}
                   >
-                    <option value="ACTIVE">System Active</option>
-                    <option value="DISABLED">Protocol Offline</option>
+                    <option value="ACTIVE">Active</option>
+                    <option value="DISABLED">Disabled</option>
                   </select>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="space-y-8">
-            <div className="bg-white p-10 rounded-[2.5rem] shadow-premium space-y-6 border-none">
-              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2 mb-6">
-                <DollarSign size={14} className="text-primary" /> Financial Values
+          <div className="space-y-6">
+            <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
+              <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2 mb-6 pb-4 border-b border-slate-100">
+                <DollarSign size={20} className="text-blue-600" /> Pricing
               </h3>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Acquisition Cost (₹)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  className="w-full bg-slate-50 border-2 border-slate-50 p-4 rounded-2xl text-slate-900 outline-none focus:bg-white focus:border-primary/20 transition-all font-black text-lg"
-                  value={formData.pricing?.costPrice}
-                  onChange={e => setFormData({ ...formData, pricing: { ...formData.pricing!, costPrice: parseFloat(e.target.value) || 0 } })}
-                />
-              </div>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700">Cost Price (₹)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    className="w-full bg-slate-50 border border-slate-200 p-3 rounded-lg text-slate-900 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all text-sm"
+                    value={formData.pricing?.costPrice}
+                    onChange={e => setFormData({ ...formData, pricing: { ...formData.pricing!, costPrice: parseFloat(e.target.value) || 0 } })}
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Market Value (₹)</label>
-                <div className="relative">
-                  <span className="absolute left-5 top-1/2 -translate-y-1/2 text-primary font-black text-xl">₹</span>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700">Selling Price (₹)</label>
                   <input
                     required
                     type="number"
                     step="0.01"
-                    className="w-full bg-primary/5 border-2 border-transparent p-5 pl-12 rounded-2xl text-primary outline-none focus:bg-white focus:border-primary/20 transition-all font-black text-3xl tracking-tighter shadow-inner"
+                    className="w-full bg-blue-50 border border-blue-100 p-3 rounded-lg text-blue-900 outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition-all font-bold text-lg"
                     value={formData.pricing?.sellingPrice}
                     onChange={e => setFormData({ ...formData, pricing: { ...formData.pricing!, sellingPrice: parseFloat(e.target.value) || 0 } })}
                   />
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Tax Protocol (%)</label>
-                <input
-                  type="number"
-                  className="w-full bg-slate-50 border-2 border-slate-50 p-4 rounded-2xl text-slate-900 outline-none focus:bg-white focus:border-primary/20 transition-all font-black"
-                  value={formData.pricing?.taxPercentage}
-                  onChange={e => setFormData({ ...formData, pricing: { ...formData.pricing!, taxPercentage: parseFloat(e.target.value) || 0 } })}
-                />
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700">Tax (%)</label>
+                  <input
+                    type="number"
+                    className="w-full bg-slate-50 border border-slate-200 p-3 rounded-lg text-slate-900 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all text-sm"
+                    value={formData.pricing?.taxPercentage}
+                    onChange={e => setFormData({ ...formData, pricing: { ...formData.pricing!, taxPercentage: parseFloat(e.target.value) || 0 } })}
+                  />
+                </div>
               </div>
             </div>
 
-            <div className="bg-white p-10 rounded-[2.5rem] shadow-premium space-y-6 border-none">
-              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2 mb-6">
-                <Monitor size={14} className="text-primary" /> Visual & Supply
+            <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
+              <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2 mb-6 pb-4 border-b border-slate-100">
+                <Monitor size={20} className="text-blue-600" /> Additional Info
               </h3>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Primary Supplier</label>
-                <select
-                  className="w-full bg-slate-50 border-2 border-slate-50 p-4 rounded-2xl text-slate-900 outline-none focus:bg-white focus:border-primary/20 transition-all font-black text-sm appearance-none cursor-pointer"
-                  value={formData.supplierId}
-                  onChange={e => setFormData({ ...formData, supplierId: e.target.value })}
-                >
-                  <option value="">Select Supply Chain Node</option>
-                  {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </select>
-              </div>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700">Supplier</label>
+                  <select
+                    className="w-full bg-slate-50 border border-slate-200 p-3 rounded-lg text-slate-900 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all text-sm cursor-pointer"
+                    value={formData.supplierId}
+                    onChange={e => setFormData({ ...formData, supplierId: e.target.value })}
+                  >
+                    <option value="">Select Supplier</option>
+                    {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Media URI / Image URL</label>
-                <input
-                  type="text"
-                  className="w-full bg-slate-50 border-2 border-slate-50 p-4 rounded-2xl text-slate-900 outline-none focus:bg-white focus:border-primary/20 transition-all font-black text-sm placeholder:text-slate-300"
-                  placeholder="https://cloud-media.com/asset.jpg"
-                  value={formData.imageUrl}
-                  onChange={e => setFormData({ ...formData, imageUrl: e.target.value })}
-                />
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700">Image URL</label>
+                  <input
+                    type="text"
+                    className="w-full bg-slate-50 border border-slate-200 p-3 rounded-lg text-slate-900 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all text-sm placeholder:text-slate-400"
+                    placeholder="https://..."
+                    value={formData.imageUrl}
+                    onChange={e => setFormData({ ...formData, imageUrl: e.target.value })}
+                  />
+                </div>
               </div>
             </div>
 
-            <div className="pt-2">
-              <button type="submit" className="w-full bg-gradient-primary text-white font-black py-5 rounded-[2rem] hover:shadow-2xl hover:translate-y-[-4px] transition-all text-xs uppercase tracking-[0.3em] active:scale-95 shadow-lg shadow-primary/30">
-                {formData.id ? 'Authorize Update' : 'Initialize Asset'}
+            <div className="pt-2 flex flex-col gap-3">
+              <button type="submit" className="w-full bg-slate-900 text-white font-bold py-3.5 rounded-xl hover:bg-black transition-all shadow-md active:scale-95 text-sm">
+                {formData.id ? 'Save Changes' : 'Create Product'}
               </button>
-              <button type="button" onClick={() => setView('list')} className="w-full bg-transparent text-slate-400 font-black py-4 mt-2 text-[10px] uppercase tracking-widest hover:text-slate-600 transition-all">
-                Decline Changes
+              <button type="button" onClick={() => setView('list')} className="w-full bg-white text-slate-600 font-bold py-3.5 rounded-xl hover:bg-slate-50 transition-all border border-slate-200 text-sm">
+                Cancel
               </button>
             </div>
           </div>
@@ -378,12 +375,12 @@ export const Products: React.FC = () => {
       {/* Platform Header */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-6">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight leading-tight uppercase flex items-center gap-3">
-            <Package size={28} className="text-white" strokeWidth={3} />
-            Asset Registry
+          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
+            <Package size={28} className="text-slate-900" strokeWidth={2.5} />
+            Products
           </h1>
-          <p className="text-white/80 text-sm font-bold flex items-center gap-2">
-            Managing <span className="text-white">{products.length}</span> active inventory nodes
+          <p className="text-slate-500 text-sm mt-1 flex items-center gap-2">
+            Managing <span className="text-slate-900 font-semibold">{products.length}</span> active products
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -396,36 +393,36 @@ export const Products: React.FC = () => {
               supplierId: ''
             });
             setView('form');
-          }} className="bg-white text-primary px-8 py-3 rounded-xl shadow-xl font-black text-[11px] uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center gap-2 active:scale-95">
-            <Plus size={18} strokeWidth={3} /> New Asset
+          }} className="bg-blue-600 text-white px-6 py-2.5 rounded-xl shadow-sm hover:bg-blue-700 transition-all flex items-center gap-2 font-medium text-sm">
+            <Plus size={18} /> New Product
           </button>
         </div>
       </div>
 
       {/* Neural Stats Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <DashboardStatCard title="Total Inventory" value={products.length} icon={Shield} iconBg="bg-gradient-primary" percentage="+2" trend="new nodes added" />
-        <DashboardStatCard title="Market Cap" value={`₹${products.reduce((acc, p) => acc + (p.pricing?.sellingPrice || 0) * (p.inventory?.stock || 0), 0).toLocaleString()}`} icon={TrendingUp} iconBg="bg-gradient-success" percentage="+14" trend="valuation growth" />
-        <DashboardStatCard title="Low Level Alerts" value={products.filter(p => (p.inventory?.stock || 0) <= (p.inventory?.minStockLevel || 0)).length} icon={AlertCircle} iconBg="bg-gradient-warning" percentage="-5" trend="stock critical" />
-        <DashboardStatCard title="Platform Orders" value="2.4k" icon={Zap} iconBg="bg-gradient-info" percentage="+8" trend="sales velocity" />
+        <DashboardStatCard title="Total Inventory" value={products.length} icon={Shield} iconBg="bg-blue-100 text-blue-600" percentage="+2" trend="new items today" />
+        <DashboardStatCard title="Market Value" value={`₹${products.reduce((acc, p) => acc + (p.pricing?.sellingPrice || 0) * (p.inventory?.stock || 0), 0).toLocaleString()}`} icon={TrendingUp} iconBg="bg-emerald-100 text-emerald-600" percentage="+14" trend="growth this month" />
+        <DashboardStatCard title="Low Stock Alerts" value={products.filter(p => (p.inventory?.stock || 0) <= (p.inventory?.minStockLevel || 0)).length} icon={AlertCircle} iconBg="bg-amber-100 text-amber-600" percentage="-5" trend="attention needed" />
+        <DashboardStatCard title="Total Orders" value="2.4k" icon={Zap} iconBg="bg-violet-100 text-violet-600" percentage="+8" trend="sales velocity" />
       </div>
 
       {/* Intelligence Control Bar */}
-      <div className="bg-white/10 backdrop-blur-xl rounded-[2rem] p-3 flex flex-col lg:flex-row gap-3 border border-white/20 shadow-xl overflow-hidden group">
+      <div className="bg-white rounded-2xl p-4 flex flex-col lg:flex-row gap-4 border border-slate-200 shadow-sm">
         <div className="relative flex-1">
-          <div className="absolute left-6 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-white transition-colors">
-            <Search size={20} strokeWidth={3} />
+          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+            <Search size={20} />
           </div>
           <input
-            placeholder="Universal search by nomenclature, SKU, or category token..."
-            className="w-full bg-transparent border-none rounded-xl px-14 py-4 text-sm font-black text-white placeholder:text-white/40 focus:outline-none transition-all uppercase tracking-wider"
+            placeholder="Search products..."
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-12 py-3 text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all"
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="flex flex-col md:flex-row gap-2">
+        <div className="flex flex-col md:flex-row gap-3">
           <select
-            className="bg-white/10 border-none rounded-2xl px-6 py-4 text-[10px] font-black uppercase text-white tracking-widest focus:outline-none focus:bg-white/20 transition-all appearance-none cursor-pointer min-w-[180px]"
+            className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all cursor-pointer min-w-[180px]"
             value={categoryFilter}
             onChange={e => setCategoryFilter(e.target.value)}
           >
@@ -434,28 +431,28 @@ export const Products: React.FC = () => {
           </select>
 
           <select
-            className="bg-white/10 border-none rounded-2xl px-6 py-4 text-[10px] font-black uppercase text-white tracking-widest focus:outline-none focus:bg-white/20 transition-all appearance-none cursor-pointer min-w-[180px]"
+            className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all cursor-pointer min-w-[180px]"
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value)}
           >
-            <option value="All">Global Status</option>
-            <option value="ACTIVE">Active Nodes</option>
-            <option value="DISABLED">Offline Assets</option>
-            <option value="LOW_STOCK">Critical Levels</option>
+            <option value="All">All Status</option>
+            <option value="ACTIVE">Active</option>
+            <option value="DISABLED">Disabled</option>
+            <option value="LOW_STOCK">Low Stock</option>
           </select>
 
-          <button className="bg-white/10 p-4 rounded-2xl text-white hover:bg-white/20 transition-all">
-            <Filter size={18} strokeWidth={3} />
+          <button className="bg-slate-50 border border-slate-200 p-3 rounded-xl text-slate-500 hover:bg-slate-100 transition-all">
+            <Filter size={20} />
           </button>
         </div>
       </div>
 
       {/* Asset Display Engine */}
-      <div className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8" : "bg-white rounded-[2.5rem] shadow-premium overflow-hidden"}>
+      <div className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" : "bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden"}>
         {loading ? (
-          <div className="col-span-full py-[20vh] text-center flex flex-col items-center">
-            <div className="w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin mb-6" />
-            <p className="text-white font-black uppercase tracking-[0.3em] text-[10px] animate-pulse">Synchronizing Asset Registry...</p>
+          <div className="col-span-full py-20 text-center flex flex-col items-center justify-center">
+            <div className="w-10 h-10 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin mb-4" />
+            <p className="text-slate-500 font-medium text-sm">Loading products...</p>
           </div>
         ) : filteredProducts.length > 0 ? (
           viewMode === 'grid' ? (
@@ -466,46 +463,49 @@ export const Products: React.FC = () => {
               const isOut = stock <= 0;
 
               return (
-                <div key={p.id} onClick={() => { setFormData(p); setView('form'); }} className="group bg-white rounded-[2.5rem] p-7 shadow-premium hover:translate-y-[-8px] transition-all border-none relative overflow-hidden flex flex-col cursor-pointer">
-                  <div className="aspect-[4/3] relative rounded-[2rem] overflow-hidden bg-slate-50 flex items-center justify-center mb-6 group-hover:shadow-lg transition-all">
+                <div key={p.id} onClick={() => { setFormData(p); setView('form'); }} className="group bg-white rounded-2xl p-5 shadow-sm hover:shadow-md hover:translate-y-[-2px] transition-all border border-slate-200 relative overflow-hidden flex flex-col cursor-pointer">
+                  <div className="aspect-[4/3] relative rounded-xl overflow-hidden bg-slate-50 flex items-center justify-center mb-5 border border-slate-100">
                     {p.imageUrl ? (
-                      <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                      <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                     ) : (
-                      <div className="text-slate-200 group-hover:text-primary/20 transition-colors">
-                        {p.type === 'Service' ? <Briefcase size={80} strokeWidth={1} /> : <Package size={80} strokeWidth={1} />}
+                      <div className="text-slate-300">
+                        {p.type === 'Service' ? <Briefcase size={64} strokeWidth={1.5} /> : <Package size={64} strokeWidth={1.5} />}
                       </div>
                     )}
 
-                    <div className="absolute top-4 left-4">
-                      <span className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-sm ${isOut ? 'bg-error text-white' : isLow ? 'bg-warning text-white' : 'bg-success text-white'
+                    <div className="absolute top-3 left-3">
+                      <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold shadow-sm ${isOut ? 'bg-red-50 text-red-600 border border-red-100' : isLow ? 'bg-amber-50 text-amber-600 border border-amber-100' : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
                         }`}>
-                        {isOut ? 'Out of Stock' : isLow ? 'Low Level' : 'Nominal'}
+                        {isOut ? 'Out of Stock' : isLow ? 'Low Stock' : 'In Stock'}
                       </span>
                     </div>
 
-                    <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 backdrop-blur-[2px] transition-all flex items-center justify-center gap-3">
-                      <button onClick={(e) => { e.stopPropagation(); setFormData(p); setView('form'); }} className="w-12 h-12 bg-white text-primary rounded-2xl flex items-center justify-center hover:scale-110 transition-all shadow-xl" title="Recalibrate"><Edit2 size={20} strokeWidth={3} /></button>
-                      <button onClick={(e) => { e.stopPropagation(); setSelectedProduct(p); setIsAdjustModalOpen(true); }} className="w-12 h-12 bg-white text-emerald-600 rounded-2xl flex items-center justify-center hover:scale-110 transition-all shadow-xl" title="Adjust Telemetry"><History size={20} strokeWidth={3} /></button>
-                      <button onClick={(e) => { e.stopPropagation(); handleDelete(p.id, e); }} className="w-12 h-12 bg-white text-rose-600 rounded-2xl flex items-center justify-center hover:scale-110 transition-all shadow-xl" title="Purge"><Trash2 size={20} strokeWidth={3} /></button>
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 backdrop-blur-[1px] transition-all flex items-center justify-center gap-2">
+                      <button onClick={(e) => { e.stopPropagation(); setFormData(p); setView('form'); }} className="w-10 h-10 bg-white text-slate-700 rounded-xl flex items-center justify-center hover:bg-blue-50 hover:text-blue-600 transition-all shadow-lg" title="Edit"><Edit2 size={18} /></button>
+                      <button onClick={(e) => { e.stopPropagation(); setSelectedProduct(p); setIsAdjustModalOpen(true); }} className="w-10 h-10 bg-white text-slate-700 rounded-xl flex items-center justify-center hover:bg-emerald-50 hover:text-emerald-600 transition-all shadow-lg" title="Adjust Stock"><History size={18} /></button>
+                      <button onClick={(e) => { e.stopPropagation(); handleDelete(p.id, e); }} className="w-10 h-10 bg-white text-slate-700 rounded-xl flex items-center justify-center hover:bg-red-50 hover:text-red-600 transition-all shadow-lg" title="Delete"><Trash2 size={18} /></button>
                     </div>
                   </div>
 
-                  <div className="space-y-1 mb-6">
-                    <div className="flex items-center justify-between gap-2 overflow-hidden">
-                      <h3 className="text-xl font-black text-slate-800 tracking-tight line-clamp-1 group-hover:text-primary transition-colors uppercase leading-none">{p.name}</h3>
+                  <div className="space-y-1 mb-4">
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="text-lg font-bold text-slate-900 line-clamp-1 group-hover:text-blue-600 transition-colors">{p.name}</h3>
                     </div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">{p.category || 'General'}</p>
-                    <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest mt-1 opacity-60">ID: {p.sku || 'UNSET'}</p>
+                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                      <span className="px-2 py-0.5 bg-slate-100 rounded text-slate-600 font-medium">{p.category || 'General'}</span>
+                      <span>•</span>
+                      <span className="font-mono">{p.sku || 'NO-SKU'}</span>
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4 border-t border-slate-50 pt-6 mt-auto">
-                    <div className="space-y-1">
-                      <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-1.5">Market Value</p>
-                      <p className="text-xl font-black text-slate-900 leading-none">₹{(p.pricing?.sellingPrice || 0).toLocaleString()}</p>
+                  <div className="grid grid-cols-2 gap-4 border-t border-slate-100 pt-4 mt-auto">
+                    <div>
+                      <p className="text-xs font-medium text-slate-500 mb-0.5">Price</p>
+                      <p className="text-lg font-bold text-slate-900">₹{(p.pricing?.sellingPrice || 0).toLocaleString()}</p>
                     </div>
-                    <div className="text-right space-y-1">
-                      <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-1.5">Nodes Avaliable</p>
-                      <p className={`text-xl font-black leading-none ${isOut ? 'text-error' : isLow ? 'text-warning' : 'text-slate-900'}`}>{stock}</p>
+                    <div className="text-right">
+                      <p className="text-xs font-medium text-slate-500 mb-0.5">Stock</p>
+                      <p className={`text-lg font-bold ${isOut ? 'text-red-600' : isLow ? 'text-amber-600' : 'text-slate-900'}`}>{stock}</p>
                     </div>
                   </div>
                 </div>
@@ -514,45 +514,47 @@ export const Products: React.FC = () => {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left">
-                <thead className="bg-slate-50/50">
+                <thead className="bg-slate-50 text-slate-500 text-xs uppercase font-semibold border-b border-slate-200">
                   <tr>
-                    <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Asset Protocol</th>
-                    <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Metadata</th>
-                    <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Node Count</th>
-                    <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Unit Value</th>
-                    <th className="px-10 py-6"></th>
+                    <th className="px-6 py-4">Product</th>
+                    <th className="px-6 py-4">Category</th>
+                    <th className="px-6 py-4 text-center">Stock Level</th>
+                    <th className="px-6 py-4 text-right">Price</th>
+                    <th className="px-6 py-4"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-50">
+                <tbody className="divide-y divide-slate-100 text-sm">
                   {filteredProducts.map(p => (
-                    <tr key={p.id} className="hover:bg-slate-50/50 transition-all group cursor-pointer" onClick={() => { setFormData(p); setView('form'); }}>
-                      <td className="px-10 py-6">
+                    <tr key={p.id} className="hover:bg-slate-50 transition-all group cursor-pointer" onClick={() => { setFormData(p); setView('form'); }}>
+                      <td className="px-6 py-4">
                         <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400 group-hover:bg-gradient-primary group-hover:text-white transition-all shadow-sm">
-                            {p.type === 'Service' ? <Briefcase size={22} strokeWidth={2.5} /> : <Package size={22} strokeWidth={2.5} />}
+                          <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400">
+                            {p.type === 'Service' ? <Briefcase size={20} /> : <Package size={20} />}
                           </div>
                           <div>
-                            <p className="font-black text-slate-800 text-base tracking-tight group-hover:text-primary transition-colors uppercase leading-tight">{p.name}</p>
-                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1 opacity-60">{p.sku}</p>
+                            <p className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors">{p.name}</p>
+                            <p className="text-slate-500 text-xs font-mono mt-0.5">{p.sku}</p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-10 py-6">
-                        <span className="text-[9px] font-black text-slate-500 px-3 py-1.5 bg-slate-100 rounded-lg uppercase tracking-widest">{p.category || 'N/A'}</span>
+                      <td className="px-6 py-4">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600">
+                          {p.category || 'Uncategorized'}
+                        </span>
                       </td>
-                      <td className="px-10 py-6 text-center">
-                        <p className={`text-base font-black ${p.inventory?.stock && p.inventory.stock <= (p.inventory.minStockLevel || 0) ? 'text-warning' : 'text-slate-800'}`}>
+                      <td className="px-6 py-4 text-center">
+                        <span className={`font-bold ${p.inventory?.stock && p.inventory.stock <= (p.inventory.minStockLevel || 0) ? 'text-amber-600' : 'text-slate-700'}`}>
                           {p.inventory?.stock || 0}
-                        </p>
+                        </span>
                       </td>
-                      <td className="px-10 py-6 text-right">
-                        <span className="font-black text-slate-900 text-lg tracking-tight">₹{(p.pricing?.sellingPrice || 0).toLocaleString()}</span>
+                      <td className="px-6 py-4 text-right">
+                        <span className="font-bold text-slate-900">₹{(p.pricing?.sellingPrice || 0).toLocaleString()}</span>
                       </td>
-                      <td className="px-10 py-6 text-right">
-                        <div className="flex justify-end gap-2">
-                          <button onClick={(e) => { e.stopPropagation(); setFormData(p); setView('form'); }} className="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 hover:bg-slate-900 hover:text-white transition-all flex items-center justify-center" title="Edit"><Edit2 size={16} strokeWidth={3} /></button>
-                          <button onClick={(e) => { e.stopPropagation(); setSelectedProduct(p); setIsAdjustModalOpen(true); }} className="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 hover:bg-emerald-500 hover:text-white transition-all flex items-center justify-center" title="Adjust Stock"><History size={16} strokeWidth={3} /></button>
-                          <button onClick={(e) => handleDelete(p.id, e)} className="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 hover:bg-rose-500 hover:text-white transition-all flex items-center justify-center" title="Delete"><Trash2 size={16} strokeWidth={3} /></button>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={(e) => { e.stopPropagation(); setFormData(p); setView('form'); }} className="p-2 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all" title="Edit"><Edit2 size={16} /></button>
+                          <button onClick={(e) => { e.stopPropagation(); setSelectedProduct(p); setIsAdjustModalOpen(true); }} className="p-2 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all" title="Adjust Stock"><History size={16} /></button>
+                          <button onClick={(e) => handleDelete(p.id, e)} className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all" title="Delete"><Trash2 size={16} /></button>
                         </div>
                       </td>
                     </tr>
@@ -562,50 +564,50 @@ export const Products: React.FC = () => {
             </div>
           )
         ) : (
-          <div className="col-span-full py-40 text-center bg-white/5 rounded-[3rem] border-2 border-dashed border-white/20 backdrop-blur-sm">
-            <Package size={64} className="mx-auto mb-6 text-white/10" strokeWidth={1} />
-            <p className="text-white font-black text-2xl uppercase tracking-widest mb-2">Registry Empty</p>
-            <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.2em] mb-8">Deploy your first asset to the platform nodes</p>
-            <button onClick={() => setView('form')} className="bg-white text-primary px-10 py-4 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] shadow-xl hover:bg-slate-50 transition-all active:scale-95">Initialize Asset</button>
+          <div className="col-span-full py-24 text-center flex flex-col items-center justify-center">
+            <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-6">
+              <Package size={40} className="text-slate-300" strokeWidth={1.5} />
+            </div>
+            <h3 className="text-slate-900 font-bold text-lg mb-2">No Products Found</h3>
+            <p className="text-slate-500 text-sm max-w-xs mx-auto mb-8">Get started by adding your first product to the inventory.</p>
+            <button onClick={() => setView('form')} className="bg-blue-600 text-white px-8 py-3 rounded-xl font-medium shadow-sm hover:bg-blue-700 transition-all flex items-center gap-2">
+              <Plus size={18} /> Add Product
+            </button>
           </div>
         )}
       </div>
 
       {/* Neural Stock Adjustment Modal */}
       {isAdjustModalOpen && selectedProduct && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-xl animate-fade-in">
-          <div className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-10 opacity-[0.03] pointer-events-none rotate-12">
-              <History size={300} />
-            </div>
-
-            <div className="p-10 relative z-10">
-              <div className="flex items-center justify-between mb-8">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl relative overflow-hidden">
+            <div className="p-6 relative z-10">
+              <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Recalibrate Stock</h3>
-                  <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mt-1">Adjusting telemetry for <span className="text-primary">{selectedProduct.name}</span></p>
+                  <h3 className="text-xl font-bold text-slate-900">Recalibrate Stock</h3>
+                  <p className="text-slate-500 text-sm mt-1">Adjusting telemetry for <span className="font-semibold text-primary">{selectedProduct.name}</span></p>
                 </div>
-                <button onClick={() => setIsAdjustModalOpen(false)} className="w-12 h-12 bg-slate-50 hover:bg-slate-100 text-slate-400 rounded-2xl transition-all flex items-center justify-center">
-                  <X size={24} strokeWidth={3} />
+                <button onClick={() => setIsAdjustModalOpen(false)} className="w-8 h-8 bg-slate-50 hover:bg-slate-100 text-slate-500 rounded-lg transition-all flex items-center justify-center">
+                  <X size={20} />
                 </button>
               </div>
 
               <form onSubmit={handleAdjustStock} className="space-y-6">
-                <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 flex items-center justify-between">
+                <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
                   <div>
-                    <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-1.5">Current Inventory Status</p>
-                    <p className="font-black text-slate-800 text-xl tracking-tight leading-none uppercase">{selectedProduct.inventory?.stock} Nodes Active</p>
+                    <p className="text-xs font-semibold text-slate-500 mb-1">Current Inventory Status</p>
+                    <p className="font-bold text-slate-900 text-lg leading-none">{selectedProduct.inventory?.stock} Nodes Active</p>
                   </div>
-                  <div className="w-14 h-14 bg-white rounded-2xl shadow-sm flex items-center justify-center">
-                    <Box size={24} className="text-primary" strokeWidth={2.5} />
+                  <div className="w-10 h-10 bg-white rounded-lg shadow-sm flex items-center justify-center">
+                    <Box size={20} className="text-primary" />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Calibration Type</label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium text-slate-700">Calibration Type</label>
                     <select
-                      className="w-full bg-slate-50 border-2 border-slate-50 p-4 rounded-2xl text-slate-900 outline-none focus:bg-white focus:border-primary/20 transition-all font-black text-sm appearance-none cursor-pointer"
+                      className="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-lg text-slate-900 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all text-sm cursor-pointer"
                       value={adjustmentData.type}
                       onChange={e => setAdjustmentData({ ...adjustmentData, type: e.target.value as StockMovementType })}
                     >
@@ -616,33 +618,33 @@ export const Products: React.FC = () => {
                       <option value="ADJUST">Force Adjust</option>
                     </select>
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Node Quantity</label>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium text-slate-700">Node Quantity</label>
                     <input
                       required
                       type="number"
                       min="1"
-                      className="w-full bg-slate-50 border-2 border-slate-50 p-4 rounded-2xl text-slate-900 outline-none focus:bg-white focus:border-primary/20 transition-all font-black text-lg"
+                      className="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-lg text-slate-900 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all text-sm"
                       value={adjustmentData.quantity}
                       onChange={e => setAdjustmentData({ ...adjustmentData, quantity: parseInt(e.target.value) })}
                     />
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Protocol Reasoning</label>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium text-slate-700">Protocol Reasoning</label>
                   <textarea
                     required
                     placeholder="State the reason for this inventory calibration..."
-                    className="w-full bg-slate-50 border-2 border-slate-50 p-4 rounded-2xl text-slate-900 outline-none focus:bg-white focus:border-primary/20 transition-all font-black text-sm min-h-[100px] resize-none"
+                    className="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-lg text-slate-900 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all text-sm min-h-[100px] resize-none"
                     value={adjustmentData.reason}
                     onChange={e => setAdjustmentData({ ...adjustmentData, reason: e.target.value })}
                   />
                 </div>
 
-                <div className="flex gap-4 pt-4">
-                  <button type="button" onClick={() => setIsAdjustModalOpen(false)} className="flex-1 bg-slate-50 text-slate-400 font-black py-4 rounded-2xl text-[11px] uppercase tracking-widest hover:bg-slate-100 transition-all active:scale-95">Abort Mission</button>
-                  <button type="submit" className="flex-[2] bg-slate-900 text-white font-black py-4 rounded-2xl text-[11px] uppercase tracking-widest hover:bg-black transition-all shadow-lg active:scale-95">Authorize Adjustment</button>
+                <div className="flex gap-3 pt-2">
+                  <button type="button" onClick={() => setIsAdjustModalOpen(false)} className="flex-1 bg-white border border-slate-200 text-slate-700 font-medium py-2.5 rounded-lg text-sm hover:bg-slate-50 transition-all">Cancel</button>
+                  <button type="submit" className="flex-[2] bg-slate-900 text-white font-medium py-2.5 rounded-lg text-sm hover:bg-black transition-all shadow-sm">Authorize Adjustment</button>
                 </div>
               </form>
             </div>
@@ -654,22 +656,19 @@ export const Products: React.FC = () => {
 };
 
 const DashboardStatCard = ({ title, value, icon: Icon, iconBg, percentage, trend }: any) => (
-  <div className="bg-white p-6 rounded-[2rem] shadow-premium hover:translate-y-[-4px] transition-all group flex flex-col justify-between h-full border-none relative overflow-hidden">
-    <div className="absolute top-0 right-0 p-4 opacity-[0.03] pointer-events-none rotate-12">
-      <Icon size={80} />
-    </div>
+  <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition-all group flex flex-col justify-between h-full relative overflow-hidden">
     <div className="flex justify-between items-start relative z-10">
       <div className="flex-1">
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 leading-none" style={{ fontFamily: 'var(--font-display)' }}>{title}</p>
-        <h4 className="text-2xl font-black text-slate-800 tracking-tight leading-none group-hover:text-primary transition-colors">{value}</h4>
+        <p className="text-xs font-medium text-slate-500 mb-1">{title}</p>
+        <h4 className="text-2xl font-bold text-slate-900 group-hover:text-blue-600 transition-colors">{value}</h4>
       </div>
-      <div className={`w-12 h-12 rounded-2xl ${iconBg} flex items-center justify-center shadow-lg transform group-hover:rotate-12 transition-transform shadow-primary/20`}>
-        <Icon size={20} className="text-white" strokeWidth={3} />
+      <div className={`w-10 h-10 rounded-xl ${iconBg} flex items-center justify-center`}>
+        <Icon size={20} strokeWidth={2} />
       </div>
     </div>
-    <div className="mt-6 flex items-center gap-2 relative z-10">
-      <span className={`text-[11px] font-black px-2 py-0.5 rounded-lg ${percentage.startsWith('+') ? 'text-emerald-500 bg-emerald-50' : 'text-rose-500 bg-rose-50'}`}>{percentage}%</span>
-      <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">{trend}</span>
+    <div className="mt-4 flex items-center gap-2 relative z-10">
+      <span className={`text-xs font-semibold px-2 py-0.5 rounded-md ${percentage.startsWith('+') ? 'text-emerald-700 bg-emerald-50' : 'text-rose-700 bg-rose-50'}`}>{percentage}%</span>
+      <span className="text-xs text-slate-500">{trend}</span>
     </div>
   </div>
 );

@@ -189,7 +189,7 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children, user, on
                                 {logoUrl ? (
                                     <img src={logoUrl} alt="Logo" className="w-full h-full object-contain rounded-xl" />
                                 ) : (
-                                    <Command size={22} strokeWidth={3} />
+                                    <img src="/averqon-logo.png" alt="Averqon" className="w-full h-full object-contain rounded-xl" />
                                 )}
                             </div>
                             <div className="flex items-baseline gap-1.5 min-w-0">
@@ -202,7 +202,7 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children, user, on
                             {logoUrl ? (
                                 <img src={logoUrl} alt="Logo" className="w-full h-full object-contain p-1" />
                             ) : (
-                                <Command size={22} strokeWidth={3} />
+                                <img src="/averqon-logo.png" alt="Averqon" className="w-full h-full object-contain p-1" />
                             )}
                         </div>
                     )}

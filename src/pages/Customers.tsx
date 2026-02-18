@@ -493,6 +493,12 @@ export const Customers: React.FC = () => {
                                             <td className="px-10 py-6 text-right">
                                                 <div className="flex items-center justify-end gap-2">
                                                     <span className="text-[9px] font-black text-primary uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all -translate-x-4 group-hover:translate-x-0">Details</span>
+                                                    <button
+                                                        onClick={(e) => handleDelete(c.id, e)}
+                                                        className="p-2 hover:bg-red-50 rounded-lg text-slate-300 hover:text-error transition-all"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
                                                     <ChevronRight size={18} className="text-slate-200 group-hover:text-primary transition-colors inline-block" strokeWidth={3} />
                                                 </div>
                                             </td>

@@ -100,8 +100,8 @@ export const SuperAdminInfrastructure: React.FC = () => {
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id as any)}
                         className={`flex items-center gap-2 px-8 py-4 rounded-[1.5rem] font-black text-sm transition-all ${activeTab === tab.id
-                                ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/20'
-                                : 'text-slate-400 hover:text-slate-200'
+                            ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/20'
+                            : 'text-slate-400 hover:text-slate-200'
                             }`}
                     >
                         <tab.icon size={18} />
@@ -151,7 +151,7 @@ export const SuperAdminInfrastructure: React.FC = () => {
 
                                 <h3 className="text-xl font-black text-white mb-8">Performance Spectrum</h3>
                                 <div className="h-[400px] w-full">
-                                    <ResponsiveContainer width="100%" height="100%">
+                                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                                         <AreaChart data={performanceData}>
                                             <defs>
                                                 <linearGradient id="cpuGradient" x1="0" y1="0" x2="0" y2="1">
@@ -236,9 +236,9 @@ export const SuperAdminInfrastructure: React.FC = () => {
                                                 </td>
                                                 <td className="px-8 py-5">
                                                     <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${log.level === 'error' ? 'bg-red-500/20 text-red-500 border border-red-500/30' :
-                                                            log.level === 'security' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' :
-                                                                log.level === 'warn' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' :
-                                                                    'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                                                        log.level === 'security' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' :
+                                                            log.level === 'warn' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' :
+                                                                'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                                                         }`}>
                                                         {log.level}
                                                     </span>
@@ -314,7 +314,7 @@ export const SuperAdminInfrastructure: React.FC = () => {
                             ].map((event, i) => (
                                 <div key={i} className="flex gap-4 p-4 rounded-2xl hover:bg-slate-800/50 transition-all border border-transparent hover:border-slate-700">
                                     <div className={`mt-1 w-2 h-2 rounded-full shrink-0 ${event.level === 'high' ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]' :
-                                            event.level === 'medium' ? 'bg-amber-500' : 'bg-slate-600'
+                                        event.level === 'medium' ? 'bg-amber-500' : 'bg-slate-600'
                                         }`}></div>
                                     <div className="flex-1">
                                         <div className="flex justify-between items-start mb-1">

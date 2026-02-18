@@ -335,6 +335,12 @@ export const Payments: React.FC = () => {
                                         <td className="px-8 py-6 text-right font-black text-slate-900 text-lg tracking-tighter">₹{p.amount.toLocaleString()}</td>
                                         <td className="px-8 py-6 text-right">
                                             <div className="flex items-center justify-end gap-3">
+                                                <button
+                                                    onClick={(e) => handleDelete(p.id, e)}
+                                                    className="p-2 hover:bg-red-50 rounded-lg text-slate-300 hover:text-error transition-all"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
                                                 <span className="px-2 py-0.5 bg-success/10 text-success rounded text-[9px] font-black uppercase tracking-widest">OK</span>
                                                 <ChevronRight size={16} className="text-slate-100 group-hover:text-primary transition-colors" strokeWidth={3} />
                                             </div>

@@ -646,6 +646,17 @@ export const tenantService = {
         const d = snapshot.docs[0];
         return { id: d.id, ...d.data() } as Tenant;
     },
+    subscribeToTenantByUserId: (uid: string, callback: (tenant: Tenant | null) => void) => {
+        const q = query(collection(db, 'tenants'), where('userId', '==', uid));
+        return onSnapshot(q, (snapshot) => {
+            if (snapshot.empty) {
+                callback(null);
+            } else {
+                const d = snapshot.docs[0];
+                callback({ id: d.id, ...d.data() } as Tenant);
+            }
+        });
+    },
     createTenant: async (tenant: Omit<Tenant, 'id'>) => {
         return addDoc(collection(db, 'tenants'), {
             ...tenant,

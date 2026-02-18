@@ -74,6 +74,13 @@ export const PurchaseOrders: React.FC = () => {
         }
     };
 
+    const handleDelete = async (id: string, e?: React.MouseEvent) => {
+        e?.stopPropagation();
+        if (await confirm('Delete this Purchase Order? This action cannot be undone.', { variant: 'danger' })) {
+            await purchaseOrderService.deletePurchaseOrder(id);
+        }
+    };
+
     const resetForm = () => {
         setFormData({
             poId: `PO-${Math.floor(Math.random() * 10000)}`,
@@ -403,12 +410,20 @@ export const PurchaseOrders: React.FC = () => {
                                         <h3 className="text-xl font-bold text-slate-800">#{po.poId}</h3>
                                         <p className="text-xs text-slate-500 font-medium">{new Date(po.date).toLocaleDateString()}</p>
                                     </div>
-                                    <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${po.status === 'Received' ? 'bg-emerald-100 text-emerald-700' :
-                                        po.status === 'Sent' ? 'bg-blue-100 text-blue-700' :
-                                            'bg-slate-100 text-slate-700'
-                                        }`}>
-                                        {po.status}
-                                    </span>
+                                    <div className="flex gap-2 items-start">
+                                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${po.status === 'Received' ? 'bg-emerald-100 text-emerald-700' :
+                                            po.status === 'Sent' ? 'bg-blue-100 text-blue-700' :
+                                                'bg-slate-100 text-slate-700'
+                                            }`}>
+                                            {po.status}
+                                        </span>
+                                        <button
+                                            onClick={(e) => handleDelete(po.id, e)}
+                                            className="w-6 h-6 rounded-md bg-slate-50 text-slate-400 hover:bg-red-50 hover:text-error transition-all flex items-center justify-center"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <div className="space-y-4 mb-6">
@@ -457,7 +472,17 @@ export const PurchaseOrders: React.FC = () => {
                                                 {po.status}
                                             </span>
                                         </td>
-                                        <td className="px-8 py-5 text-right font-bold text-slate-900">₹{po.totalAmount.toLocaleString()}</td>
+                                        <td className="px-8 py-5 text-right font-bold text-slate-900">
+                                            <div className="flex items-center justify-end gap-4">
+                                                <span>₹{po.totalAmount.toLocaleString()}</span>
+                                                <button
+                                                    onClick={(e) => handleDelete(po.id, e)}
+                                                    className="p-1.5 hover:bg-red-50 rounded text-slate-300 hover:text-error transition-all"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </div>
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>

@@ -116,6 +116,13 @@ export const Estimates: React.FC = () => {
         }
     };
 
+    const handleDelete = async (id: string, e?: React.MouseEvent) => {
+        e?.stopPropagation();
+        if (await confirm('Delete this estimate?', { variant: 'danger' })) {
+            await estimateService.deleteEstimate(id);
+        }
+    };
+
     const convertToInvoice = async (estimate: Estimate) => {
         const user = authService.getCurrentUser();
         if (!user) return;
@@ -642,6 +649,12 @@ export const Estimates: React.FC = () => {
                                     >
                                         <Download size={16} />
                                     </button>
+                                    <button
+                                        onClick={(e) => handleDelete(est.id, e)}
+                                        className="p-2.5 bg-red-50 text-error rounded-xl hover:bg-error hover:text-white transition-all shadow-sm"
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
                                 </div>
                             </div>
                         ))}
@@ -669,7 +682,13 @@ export const Estimates: React.FC = () => {
                                             </span>
                                         </td>
                                         <td className="px-8 py-5 text-right font-black text-slate-900">₹{est.amount.toLocaleString()}</td>
-                                        <td className="px-8 py-5 text-right">
+                                        <td className="px-8 py-5 text-right flex items-center justify-end gap-2">
+                                            <button
+                                                onClick={(e) => handleDelete(est.id, e)}
+                                                className="p-2 hover:bg-red-50 rounded-lg text-slate-300 hover:text-error transition-all"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
                                             <ChevronRight size={16} className="text-slate-100 group-hover:text-primary transition-colors inline-block" strokeWidth={3} />
                                         </td>
                                     </tr>

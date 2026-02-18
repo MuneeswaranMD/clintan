@@ -796,8 +796,16 @@ export const Orders: React.FC = () => {
                                             ₹{order.totalAmount.toLocaleString()}
                                         </p>
                                     </div>
-                                    <div className="w-10 h-10 rounded-xl bg-slate-50 text-slate-300 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
-                                        <ChevronRight size={18} strokeWidth={3} />
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); handleDelete(order.id); }}
+                                            className="w-10 h-10 rounded-xl bg-slate-50 text-slate-300 flex items-center justify-center hover:bg-error hover:text-white transition-all"
+                                        >
+                                            <Trash2 size={16} strokeWidth={3} />
+                                        </button>
+                                        <div className="w-10 h-10 rounded-xl bg-slate-50 text-slate-300 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
+                                            <ChevronRight size={18} strokeWidth={3} />
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -824,7 +832,13 @@ export const Orders: React.FC = () => {
                                             <span className={`text-[10px] font-black uppercase tracking-widest ${getStatusColor(order.orderStatus as any)}`}>{order.orderStatus}</span>
                                         </td>
                                         <td className="px-8 py-5 text-right font-black text-slate-900">₹{order.totalAmount.toLocaleString()}</td>
-                                        <td className="px-8 py-5 text-right">
+                                        <td className="px-8 py-5 text-right flex items-center justify-end gap-2">
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); handleDelete(order.id); }}
+                                                className="p-2 hover:bg-red-50 rounded-lg text-slate-300 hover:text-error transition-all"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
                                             <ChevronRight size={16} className="text-slate-200 group-hover:text-primary transition-colors inline-block" />
                                         </td>
                                     </tr>

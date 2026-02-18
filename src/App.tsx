@@ -17,9 +17,11 @@ import { Companies } from './pages/Companies';
 import { Suppliers } from './pages/Suppliers';
 import { PurchaseOrders } from './pages/PurchaseOrders';
 import { InventoryLogs } from './pages/Inventory/InventoryLogs';
+import { Dispatch } from './pages/Dispatch';
 import { OrderForm } from './pages/OrderForm';
 import { SettingsPage } from './pages/SettingsPage';
 import { MenuCustomization } from './pages/settings/MenuCustomization';
+import { CompanyProfile } from './pages/settings/company/CompanyProfile';
 import { Notifications } from './pages/Notifications';
 import { AdvancedAnalyticsPage } from './pages/AdvancedAnalyticsPage';
 import { SaaSConfig } from './pages/SaaSConfig';
@@ -158,9 +160,11 @@ function App() {
                       <Route path="/purchase-orders" element={<PurchaseOrders />} />
                       <Route path="/suppliers" element={<Suppliers />} />
                       <Route path="/inventory-logs" element={<InventoryLogs />} />
+                      <Route path="/dispatch" element={<Dispatch />} />
                       <Route path="/companies" element={['muneeswaran@averqon.in', 'clintan@averqon.in'].includes(user?.email || '') ? <Companies /> : <Navigate to="/" replace />} />
                       <Route path="/settings" element={<SettingsPage />} />
                       <Route path="/settings/menu" element={<MenuCustomization />} />
+                      <Route path="/settings/company" element={<CompanyProfile />} />
                       <Route path="/saas-config" element={['muneeswaran@averqon.in', 'clintan@averqon.in'].includes(user?.email || '') ? <SaaSConfig /> : <Navigate to="/" replace />} />
                       <Route path="/notifications" element={<Notifications />} />
 

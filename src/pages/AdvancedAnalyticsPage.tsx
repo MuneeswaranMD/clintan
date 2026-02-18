@@ -209,7 +209,7 @@ export const AdvancedAnalyticsPage: React.FC = () => {
                         </div>
 
                         <div className="flex-1 min-h-[300px]">
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                                 <AreaChart data={analytics.revenueInsights.revenueTrend}>
                                     <defs>
                                         <linearGradient id="revenueFlow" x1="0" y1="0" x2="0" y2="1">

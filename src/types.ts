@@ -15,6 +15,44 @@ export interface Branch {
   isActive: boolean;
 }
 
+export interface BrandingConfig {
+  primaryColor: string;
+  secondaryColor: string;
+  logoPlacement: 'left' | 'center' | 'right';
+  invoiceTemplate: string;
+  fontStyle: string;
+  footerMessage?: string;
+  signatureUrl?: string;
+  customDomain?: string;
+  hideBranding: boolean;
+}
+
+export interface TaxConfig {
+  taxType: 'GST' | 'VAT' | 'Sales Tax';
+  taxMode: 'Inclusive' | 'Exclusive';
+  defaultTaxPercentage: number;
+  taxSlabs?: { name: string; percentage: number }[];
+  gstin?: string;
+  stateCode?: string;
+  enableHSN: boolean;
+  reverseCharge: boolean;
+  einvoiceEnabled: boolean;
+}
+
+export interface BankDetails {
+  bankName: string;
+  accountHolder: string;
+  accountNumber: string;
+  ifscCode: string;
+  swiftCode?: string;
+  upiId?: string;
+  qrCodeUrl?: string;
+  razorpayKey?: string;
+  stripeKey?: string;
+  enablePaymentLink: boolean;
+  enablePartialPayments: boolean;
+}
+
 export interface User {
   id: string;
   name: string;
@@ -457,6 +495,39 @@ export interface BusinessConfig {
 
   taxName: string; // GST, VAT, Sales Tax
   orderFormConfig?: OrderFormConfig;
+
+  // New Profile Fields
+  companyLegalName?: string;
+  businessType?: string;
+  cin?: string;
+  registrationDate?: string;
+  timezone?: string;
+  website?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  companySealUrl?: string;
+
+  branding?: BrandingConfig;
+  taxConfig?: TaxConfig;
+  bankDetails?: BankDetails;
+  branches?: Branch[];
+  documents?: {
+    name: string;
+    url: string;
+    type: string;
+    uploadedAt: string;
+  }[];
+
+  preferences?: {
+    invoicePrefix: string;
+    estimatePrefix: string;
+    autoNumbering: boolean;
+    defaultDueDays: number;
+    currencyFormat: string;
+    dateFormat: string;
+    enableWhatsApp: boolean;
+    enableEmail: boolean;
+  };
 }
 
 export interface Tenant {
