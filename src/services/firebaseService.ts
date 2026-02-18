@@ -621,7 +621,8 @@ export const tenantService = {
 
             const snapshot = await getDocs(q);
             if (snapshot.empty) {
-                console.log('⚠️ No tenant found for hostname:', hostname);
+                // Not finding a tenant by domain is acceptable; the app will fall back to user-based config.
+                // console.debug('ℹ️ No domain-mapped tenant found for hostname:', hostname);
                 return null;
             }
 
