@@ -626,7 +626,7 @@ export const tenantService = {
             }
 
             const d = snapshot.docs[0];
-            return { id: d.id, ...d.data() } as Tenant;
+            return { id: d.id, ...(d.data() as any) } as Tenant;
         } catch (error) {
             console.error('❌ Error fetching tenant by hostname:', error);
             return null;
