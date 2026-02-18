@@ -5,20 +5,29 @@ import {
     ChevronRight, MapPin, Phone, User, ExternalLink, Settings,
     TrendingUp, DollarSign, Users, AlertCircle,
     ChevronLeft,
-    Wallet
+    Wallet,
+    Printer, Download
 } from 'lucide-react';
-import { orderService, productService } from '../services/firebaseService';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+import { orderService, productService, customerService } from '../services/firebaseService';
 import { authService } from '../services/authService';
-import { Order, OrderStatus, Product, OrderItem, OrderFormConfig } from '../types';
+import { Order, OrderStatus, Product, OrderItem, OrderFormConfig, Customer } from '../types';
 import { ViewToggle } from '../components/ViewToggle';
 import { useNavigate } from 'react-router-dom';
 import { useShop } from '../context/ShopContext';
 import { DynamicFormField } from '../components/DynamicFormField';
 import { useDialog } from '../context/DialogContext';
+import { ModernTemplate, ClassicTemplate, MinimalTemplate, CorporateTemplate } from '../components/PdfTemplates';
+import { CustomerSearchModal } from '../components/CustomerSearchModal';
+
+import { DashboardStatCard } from '../components/DashboardStatCard';
 
 export const Orders: React.FC = () => {
     const { confirm, alert } = useDialog();
     const [orders, setOrders] = useState<Order[]>([]);
+    const [customers, setCustomers] = useState<Customer[]>([]);
+    const [showCustomerSearch, setShowCustomerSearch] = useState(false);
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
     const [view, setView] = useState<'list' | 'form' | 'details'>('list');
@@ -28,6 +37,7 @@ export const Orders: React.FC = () => {
     const [paymentFilter, setPaymentFilter] = useState('All');
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+    const [previewTemplate, setPreviewTemplate] = useState('modern');
 
     const { businessConfig } = useShop();
     const activeConfig = businessConfig.orderFormConfig || {
@@ -55,6 +65,12 @@ export const Orders: React.FC = () => {
         notes: ''
     });
 
+
+
+    useEffect(() => {
+        if (selectedOrder?.templateId) setPreviewTemplate(selectedOrder.templateId);
+    }, [selectedOrder]);
+
     useEffect(() => {
         const user = authService.getCurrentUser();
         if (!user) return;
@@ -69,9 +85,12 @@ export const Orders: React.FC = () => {
             setProducts(data);
         });
 
+        const unsubCustomers = customerService.subscribeToCustomers(user.id, setCustomers);
+
         return () => {
             unsubOrders();
             unsubProducts();
+            unsubCustomers();
         };
     }, []);
 
@@ -95,6 +114,16 @@ export const Orders: React.FC = () => {
             orderStatus: OrderStatus.Pending,
             paymentMethod: 'UPI',
             notes: ''
+        });
+    };
+
+    const handleCustomerSelect = (customer: Customer) => {
+        setFormData({
+            ...formData,
+            customerName: customer.name,
+            customerPhone: customer.phone,
+            customerEmail: (customer as any).email || '',
+            customerAddress: customer.address,
         });
     };
 
@@ -158,6 +187,96 @@ export const Orders: React.FC = () => {
         } catch (error) {
             console.error('Failed to update status:', error);
             await alert('Failed to update status', { variant: 'danger' });
+        }
+    };
+
+    const generatePDF = async () => {
+        let input = document.getElementById('invoice-preview');
+
+        if (!input) {
+            // Retry
+            await new Promise(resolve => setTimeout(resolve, 500));
+            input = document.getElementById('invoice-preview');
+        }
+
+        if (!input) {
+            await alert('Nothing to capture', { variant: 'danger' });
+            return;
+        }
+
+        try {
+            await alert('Generating PDF...', { variant: 'info' });
+
+            // Create a clone to render without affecting the UI
+            const clone = input.cloneNode(true) as HTMLElement;
+
+            // Style the clone for optimal PDF capture
+            clone.style.position = 'fixed';
+            clone.style.top = '0';
+            clone.style.left = '0';
+            clone.style.width = '210mm'; // A4 width
+            clone.style.minHeight = '297mm'; // A4 height minimum
+            clone.style.zIndex = '-9999';
+            clone.style.background = '#ffffff';
+            clone.style.color = '#000000';
+
+            // Remove shadows and rounded corners for a clean print
+            clone.style.boxShadow = 'none';
+            clone.style.borderRadius = '0';
+            clone.style.overflow = 'visible';
+
+            document.body.appendChild(clone);
+
+            // Wait for images in the clone to load/render
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            // Pre-process the clone to inline computed styles and avoid 'oklch' issues
+            const allElements = clone.getElementsByTagName('*');
+            for (let i = 0; i < allElements.length; i++) {
+                const el = allElements[i] as HTMLElement;
+                const style = window.getComputedStyle(el);
+
+                // Force inline RGB/RGBA values for colors to avoid html2canvas parsing 'oklch'
+                if (style.backgroundColor) el.style.backgroundColor = style.backgroundColor;
+                if (style.color) el.style.color = style.color;
+                if (style.borderColor) el.style.borderColor = style.borderColor;
+                if (style.boxShadow && style.boxShadow !== 'none') el.style.boxShadow = style.boxShadow;
+            }
+
+            const canvas = await html2canvas(clone, {
+                scale: 2,
+                useCORS: true,
+                logging: true,
+                foreignObjectRendering: true,
+                backgroundColor: '#ffffff',
+                allowTaint: true,
+                windowWidth: clone.scrollWidth,
+                windowHeight: clone.scrollHeight,
+                x: 0,
+                y: 0
+            });
+
+            // Cleanup
+            document.body.removeChild(clone);
+
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4'
+            });
+
+            const imgProps = pdf.getImageProperties(imgData);
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            pdf.save(`Order-${selectedOrder?.orderId || 'Document'}.pdf`);
+
+            await alert('PDF Downloaded successfully!', { variant: 'success' });
+        } catch (error: any) {
+            console.error('PDF Generation Error:', error);
+            await alert(`Failed to generate PDF: ${error.message || 'Unknown error'}`, { variant: 'danger' });
         }
     };
 
@@ -287,6 +406,12 @@ export const Orders: React.FC = () => {
     if (view === 'form') {
         return (
             <div className="space-y-6 relative z-10 animate-fade-in pb-20">
+                <CustomerSearchModal
+                    isOpen={showCustomerSearch}
+                    onClose={() => setShowCustomerSearch(false)}
+                    customers={customers}
+                    onSelect={handleCustomerSelect}
+                />
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-2xl font-bold text-white tracking-tight">{formData.id ? 'Modify Order' : 'Establish New Order'}</h1>
@@ -302,9 +427,14 @@ export const Orders: React.FC = () => {
                         <div className="lg:col-span-2 space-y-6">
                             {/* Basic Details */}
                             <div className="bg-white p-6 rounded-2xl shadow-premium space-y-5">
-                                <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
-                                    <User className="text-primary" size={18} strokeWidth={3} /> Customer Information
-                                </h3>
+                                <div className="flex justify-between items-center">
+                                    <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
+                                        <User className="text-primary" size={18} strokeWidth={3} /> Customer Information
+                                    </h3>
+                                    <button type="button" onClick={() => setShowCustomerSearch(true)} className="text-primary font-black text-[10px] uppercase tracking-widest bg-primary/10 px-3 py-1.5 rounded-xl hover:bg-primary hover:text-white transition-all">
+                                        Scan Directory
+                                    </button>
+                                </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     {activeConfig.fields.filter(f => f.section === 'basic' || !f.section).map(field => (
                                         <div key={field.name} className={field.type === 'textarea' ? 'col-span-full' : ''}>
@@ -482,88 +612,89 @@ export const Orders: React.FC = () => {
         );
     }
 
+
+
+
     if (view === 'details' && selectedOrder) {
+
+        // Map Order to Invoice-like structure for the template
+        const invoiceData = {
+            ...selectedOrder,
+            invoiceNumber: selectedOrder.orderId,
+            date: selectedOrder.orderDate,
+            dueDate: selectedOrder.orderDate, // Orders typically due on creation or delivery
+            status: selectedOrder.orderStatus,
+            subtotal: selectedOrder.pricingSummary?.subTotal || selectedOrder.totalAmount, // Fallback
+            tax: selectedOrder.pricingSummary?.taxTotal || 0,
+            total: selectedOrder.totalAmount,
+            items: selectedOrder.items.map(i => ({
+                productName: i.name,
+                quantity: i.quantity,
+                price: i.price,
+                total: i.total
+            }))
+        };
+
+        const templateSettings = {
+            companyName: businessConfig.companyName || 'Company Name',
+            companyAddress: businessConfig.address || 'Company Address',
+            companyPhone: businessConfig.phone || '',
+            companyEmail: businessConfig.email || '',
+            logoUrl: businessConfig.logoUrl,
+            defaultTaxPercentage: activeConfig.defaultTaxPercentage || 18
+        };
+
         return (
             <div className="space-y-6 relative z-10 animate-fade-in pb-20">
-                <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-4 print:hidden">
                     <button onClick={() => setView('list')} className="flex items-center gap-2 text-white/80 hover:text-white font-bold text-sm transition-all group">
                         <div className="w-8 h-8 rounded-xl border border-white/20 flex items-center justify-center group-hover:bg-white/10 transition-all">
                             <ChevronLeft size={18} />
                         </div>
                         Back to Deck
                     </button>
+
+                    <div className="flex items-center gap-2">
+                        <span className="text-white/60 text-xs uppercase font-bold tracking-widest">Template:</span>
+                        <select
+                            className="bg-white/10 text-white text-xs p-2 rounded-lg border border-white/20 outline-none focus:border-primary"
+                            value={previewTemplate}
+                            onChange={async (e) => {
+                                const newTemplate = e.target.value;
+                                setPreviewTemplate(newTemplate);
+                                if (selectedOrder) {
+                                    try {
+                                        await orderService.updateOrder(selectedOrder.id, { templateId: newTemplate });
+                                    } catch (err) { console.error("Failed to save template", err); }
+                                }
+                            }}
+                        >
+                            <option value="modern">Modern Professional</option>
+                            <option value="classic">Classic Letterhead</option>
+                            <option value="minimal">Clean Minimalist</option>
+                            <option value="corporate">Corporate Elite</option>
+                        </select>
+                    </div>
+
                     <div className="flex gap-2">
+                        <button onClick={() => window.print()} className="bg-white/10 text-white px-4 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-widest flex items-center gap-2 hover:bg-white/20 transition-all border border-white/20">
+                            <Printer size={16} strokeWidth={3} /> Print
+                        </button>
+                        <button onClick={generatePDF} className="bg-white/10 text-white px-4 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-widest flex items-center gap-2 hover:bg-white/20 transition-all border border-white/20">
+                            <Download size={16} strokeWidth={3} /> Save PDF
+                        </button>
                         <button onClick={() => { setFormData(selectedOrder); setView('form'); }} className="bg-white text-primary px-6 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-widest flex items-center gap-2 hover:bg-slate-50 transition-all shadow-lg active:scale-95">
                             <Edit2 size={16} strokeWidth={3} /> Modify Entry
                         </button>
                     </div>
                 </div>
 
-                <div className="bg-white rounded-2xl shadow-premium overflow-hidden border-none text-sm font-medium">
-                    <div className="p-8 flex flex-col md:flex-row justify-between items-start gap-8">
-                        <div className="space-y-1">
-                            <div className="flex items-center gap-3">
-                                <h2 className="text-2xl font-black text-slate-800 tracking-tight leading-none uppercase">RECORD No. {selectedOrder.orderId}</h2>
-                                <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest text-white ${getStatusBg(selectedOrder.orderStatus)} shadow-sm`}>
-                                    {selectedOrder.orderStatus}
-                                </span>
-                            </div>
-                            <p className="text-slate-400 text-[10px] font-bold italic tracking-widest uppercase">Commenced on {new Date(selectedOrder.orderDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <button onClick={() => handleStatusChange(selectedOrder.id, OrderStatus.Confirmed)} className="bg-primary/10 text-primary px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all">Shift Status</button>
-                            <button onClick={() => handleDelete(selectedOrder.id)} className="bg-red-50 text-error p-2.5 rounded-xl hover:bg-error hover:text-white transition-all"><Trash2 size={16} /></button>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-slate-50 border-t border-slate-50">
-                        <div className="bg-white p-8 space-y-4">
-                            <div className="flex items-center gap-2 text-[10px] font-black text-slate-300 uppercase tracking-widest leading-none"><User size={12} className="text-primary" /> Client Profile</div>
-                            <div>
-                                <h4 className="font-black text-slate-800 text-lg leading-none">{selectedOrder.customerName}</h4>
-                                <p className="text-slate-400 font-bold mt-2 text-xs flex items-center gap-2">
-                                    <Phone size={12} /> {selectedOrder.customerPhone || 'N/A'}
-                                </p>
-                            </div>
-                        </div>
-                        <div className="bg-white p-8 space-y-4">
-                            <div className="flex items-center gap-2 text-[10px] font-black text-slate-300 uppercase tracking-widest leading-none"><MapPin size={12} className="text-info" /> Destination</div>
-                            <p className="text-slate-500 font-bold text-xs leading-relaxed">{selectedOrder.customerAddress || 'No logistical address provided.'}</p>
-                        </div>
-                        <div className="bg-white p-8 space-y-4">
-                            <div className="flex items-center gap-2 text-[10px] font-black text-slate-300 uppercase tracking-widest leading-none"><Wallet size={12} className="text-success" /> Financials</div>
-                            <div>
-                                <h4 className="text-2xl font-black text-slate-900 leading-none tracking-tight">₹{selectedOrder.totalAmount.toLocaleString()}</h4>
-                                <p className={`text-[10px] font-black uppercase mt-2 tracking-widest ${selectedOrder.paymentStatus === 'Paid' ? 'text-success' : 'text-warning'}`}>{selectedOrder.paymentStatus} / {selectedOrder.paymentMethod}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="p-0 border-t border-slate-50">
-                        <table className="w-full text-left">
-                            <thead className="bg-slate-50/50">
-                                <tr>
-                                    <th className="px-8 py-5 text-[10px] font-black text-slate-300 uppercase tracking-widest">Entry Detail</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-slate-300 uppercase tracking-widest text-center">Qty</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-slate-300 uppercase tracking-widest text-right">Unit Price</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-slate-300 uppercase tracking-widest text-right">Subtotal</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-50">
-                                {selectedOrder.items.map((item, idx) => (
-                                    <tr key={idx} className="hover:bg-slate-50/30 transition-colors">
-                                        <td className="px-8 py-6">
-                                            <p className="font-bold text-slate-800">{item.name}</p>
-                                            <span className="text-[9px] font-black bg-slate-50 text-slate-400 px-1.5 py-0.5 rounded uppercase">{item.type}</span>
-                                        </td>
-                                        <td className="px-8 py-6 text-center text-slate-600 font-black">x{item.quantity}</td>
-                                        <td className="px-8 py-6 text-right text-slate-400 font-bold">₹{item.price.toLocaleString()}</td>
-                                        <td className="px-8 py-6 text-right font-black text-slate-900">₹{item.total.toLocaleString()}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                <div id="invoice-preview" className="shadow-2xl mx-auto overflow-hidden relative" style={{ width: '210mm', minHeight: '297mm' }}>
+                    {/* Dynamic Template Rendering - Reuse Invoice Templates as they share structure */}
+                    {previewTemplate === 'modern' && <ModernTemplate invoice={invoiceData as any} settings={templateSettings} isEstimate={false} />}
+                    {previewTemplate === 'classic' && <ClassicTemplate invoice={invoiceData as any} settings={templateSettings} isEstimate={false} />}
+                    {previewTemplate === 'minimal' && <MinimalTemplate invoice={invoiceData as any} settings={templateSettings} isEstimate={false} />}
+                    {previewTemplate === 'corporate' && <CorporateTemplate invoice={invoiceData as any} settings={templateSettings} isEstimate={false} />}
                 </div>
             </div>
         );
@@ -712,20 +843,3 @@ export const Orders: React.FC = () => {
     );
 };
 
-const DashboardStatCard = ({ title, value, icon: Icon, iconBg, percentage, trend }: any) => (
-    <div className="bg-white p-5 rounded-2xl shadow-premium hover:translate-y-[-2px] transition-all group flex flex-col justify-between h-full border-none">
-        <div className="flex justify-between items-start">
-            <div className="flex-1">
-                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1 leading-none">{title}</p>
-                <h4 className="text-xl font-bold text-slate-800 tracking-tight leading-none group-hover:text-primary transition-colors">{value}</h4>
-            </div>
-            <div className={`w-11 h-11 rounded-lg ${iconBg} flex items-center justify-center shadow-lg transform group-hover:rotate-12 transition-transform`}>
-                <Icon size={18} className="text-white" strokeWidth={3} />
-            </div>
-        </div>
-        <div className="mt-4 flex items-center gap-2">
-            <span className={`text-xs font-bold ${percentage >= 0 ? 'text-success' : 'text-error'}`}>{percentage >= 0 ? `+${percentage}%` : `${percentage}%`}</span>
-            <span className="text-[11px] font-bold text-slate-400 lowercase">{trend}</span>
-        </div>
-    </div>
-);

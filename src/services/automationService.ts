@@ -9,7 +9,9 @@ export const automationService = {
 
     checkStatus: async () => {
         try {
-            const response = await fetch(`${automationService.getBackendUrl()}/health`);
+            const url = `${automationService.getBackendUrl()}/health`;
+            console.log('Checking backend status at:', url);
+            const response = await fetch(url);
             if (response.ok) {
                 return await response.json();
             }

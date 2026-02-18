@@ -214,6 +214,7 @@ export interface Order {
   channel?: 'WEBSITE' | 'WHATSAPP' | 'INSTAGRAM' | 'FACEBOOK' | 'MANUAL_ENTRY' | 'API'; // Omnichannel tracking
   createdAt?: string;
   stockDeducted?: boolean; // Track if stock has been deducted for this order
+  templateId?: string; // Selected PDF template ID
 }
 
 export enum InvoiceStatus {

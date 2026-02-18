@@ -2,8 +2,12 @@ import React, { useEffect, useState, useMemo } from 'react';
 import {
   FileText, Plus, Search, Filter, IndianRupee,
   ArrowUpRight, Download, Trash2, Edit2, CheckCircle2,
-  Calendar, Mail, X, CreditCard, Clock, MoreVertical, Send, ChevronRight, ChevronLeft
+  Calendar, Mail, X, CreditCard, Clock, MoreVertical, Send, ChevronRight, ChevronLeft,
+  Printer,
+  Eye
 } from 'lucide-react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import { invoiceService, customerService, productService, tenantService } from '../services/firebaseService';
 import { authService } from '../services/authService';
 import { Invoice, Customer, InvoiceStatus, Product, InvoiceItem } from '../types';
@@ -13,6 +17,7 @@ import { sendInvoiceEmail } from '../services/mailService';
 import { ViewToggle } from '../components/ViewToggle';
 import { CustomerSearchModal } from '../components/CustomerSearchModal';
 import { useDialog } from '../context/DialogContext';
+import { ModernTemplate, ClassicTemplate, MinimalTemplate, CorporateTemplate } from '../components/PdfTemplates';
 
 export const Invoices: React.FC = () => {
   const navigate = useNavigate();
@@ -24,6 +29,7 @@ export const Invoices: React.FC = () => {
   const [view, setView] = useState<'list' | 'form' | 'details'>('list');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [previewTemplate, setPreviewTemplate] = useState('modern');
   const [searchTerm, setSearchTerm] = useState('');
   const [showCustomerSearch, setShowCustomerSearch] = useState(false);
 
@@ -74,6 +80,10 @@ export const Invoices: React.FC = () => {
       unsubProducts();
     };
   }, []);
+
+  useEffect(() => {
+    if (selectedInvoice?.templateId) setPreviewTemplate(selectedInvoice.templateId);
+  }, [selectedInvoice]);
 
   const companyName = currentUser?.email === 'muneeswaran@averqon.in' ? 'Averqon' : (companyDetails?.companyName || currentUser?.name || 'Sivajoy Creatives');
   const companyPhone = currentUser?.email === 'muneeswaran@averqon.in' ? '8300864083' : (companyDetails?.phone || '');
@@ -376,6 +386,145 @@ export const Invoices: React.FC = () => {
     );
   }
 
+  const generatePDF = async () => {
+    const input = document.getElementById('invoice-preview');
+    if (!input) {
+      await alert('Nothing to capture', { variant: 'danger' });
+      return;
+    }
+
+    try {
+      await alert('Generating PDF...', { variant: 'info' });
+
+      const clone = input.cloneNode(true) as HTMLElement;
+      // Position fixed at top-left but behind everything to ensure it's "in view" for the renderer
+      clone.style.position = 'fixed';
+      clone.style.top = '0';
+      clone.style.left = '0';
+      clone.style.width = '210mm';
+      clone.style.minHeight = '297mm';
+      clone.style.zIndex = '-9999'; // Behind everything
+      clone.style.background = '#ffffff';
+      clone.style.color = '#000000';
+      clone.style.boxShadow = 'none';
+      clone.style.borderRadius = '0';
+      clone.style.overflow = 'visible';
+
+      document.body.appendChild(clone);
+
+      // Wait for images and layout to stabilize
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      const allElements = clone.getElementsByTagName('*');
+      for (let i = 0; i < allElements.length; i++) {
+        const el = allElements[i] as HTMLElement;
+        const style = window.getComputedStyle(el);
+
+        if (style.backgroundColor) el.style.backgroundColor = style.backgroundColor;
+        if (style.color) el.style.color = style.color;
+        if (style.borderColor) el.style.borderColor = style.borderColor;
+        if (style.boxShadow && style.boxShadow !== 'none') el.style.boxShadow = style.boxShadow;
+      }
+
+      const canvas = await html2canvas(clone, {
+        scale: 2,
+        useCORS: true,
+        logging: true,
+        backgroundColor: '#ffffff',
+        allowTaint: true,
+        foreignObjectRendering: true,
+        windowWidth: clone.scrollWidth,
+        windowHeight: clone.scrollHeight,
+        x: 0,
+        y: 0
+      });
+
+      document.body.removeChild(clone);
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`Invoice-${selectedInvoice?.invoiceNumber}.pdf`);
+
+      await alert('Invoice Downloaded successfully!', { variant: 'success' });
+    } catch (error: any) {
+      console.error('PDF Generation Error:', error);
+      await alert(`Failed to generate PDF: ${error.message}`, { variant: 'danger' });
+    }
+  };
+
+  if (view === 'details' && selectedInvoice) {
+
+    const templateSettings = {
+      companyName,
+      companyAddress: companyDetails?.address || 'Company Address',
+      companyPhone,
+      companyEmail: companyDetails?.ownerEmail || currentUser?.email,
+      logoUrl: companyLogo,
+      defaultTaxPercentage: 18
+    };
+
+    return (
+      <div className="animate-fade-in pb-20">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6 print:hidden">
+          <button onClick={() => setView('list')} className="flex items-center gap-2 text-white/80 hover:text-white font-bold text-sm transition-all bg-white/10 px-4 py-2 rounded-xl">
+            <ChevronLeft size={18} /> Back to List
+          </button>
+
+          <div className="flex items-center gap-2">
+            <span className="text-white/60 text-xs uppercase font-bold tracking-widest">Template:</span>
+            <select
+              className="bg-white/10 text-white text-xs p-2 rounded-lg border border-white/20 outline-none focus:border-primary"
+              value={previewTemplate}
+              onChange={async (e) => {
+                const newTemplate = e.target.value;
+                setPreviewTemplate(newTemplate);
+                if (selectedInvoice) {
+                  try {
+                    await invoiceService.updateInvoice(selectedInvoice.id, { templateId: newTemplate });
+                  } catch (err) { console.error("Failed to save template", err); }
+                }
+              }}
+            >    <option value="modern">Modern Professional</option>
+              <option value="classic">Classic Letterhead</option>
+              <option value="minimal">Clean Minimalist</option>
+              <option value="corporate">Corporate Elite</option>
+            </select>
+          </div>
+
+          <div className="flex gap-2">
+            <button onClick={() => window.print()} className="bg-white/10 text-white px-4 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-widest flex items-center gap-2 hover:bg-white/20 transition-all border border-white/20">
+              <Printer size={16} strokeWidth={3} /> Print
+            </button>
+            <button onClick={() => generatePDF()} className="bg-white text-primary px-6 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-widest flex items-center gap-2 hover:bg-slate-50 transition-all shadow-lg">
+              <Download size={16} strokeWidth={3} /> Download PDF
+            </button>
+            <button onClick={() => { setFormData(selectedInvoice); setView('form'); }} className="bg-white/10 text-white px-4 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-widest flex items-center gap-2 hover:bg-white/20 transition-all border border-white/20">
+              <Edit2 size={16} strokeWidth={3} /> Edit
+            </button>
+          </div>
+        </div>
+
+        <div id="invoice-preview" className="shadow-2xl mx-auto overflow-hidden relative" style={{ width: '210mm', minHeight: '297mm' }}>
+          {/* Dynamic Template Rendering */}
+          {previewTemplate === 'modern' && <ModernTemplate invoice={selectedInvoice} settings={templateSettings} />}
+          {previewTemplate === 'classic' && <ClassicTemplate invoice={selectedInvoice} settings={templateSettings} />}
+          {previewTemplate === 'minimal' && <MinimalTemplate invoice={selectedInvoice} settings={templateSettings} />}
+          {previewTemplate === 'corporate' && <CorporateTemplate invoice={selectedInvoice} settings={templateSettings} />}
+        </div>
+      </div>
+    );
+  }
+
   const ListStats = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
       <DashboardStatCard title="Total Invoices" value={stats.totalCount} icon={FileText} iconBg="bg-gradient-primary" percentage="+5%" trend="this month" />
@@ -463,7 +612,15 @@ export const Invoices: React.FC = () => {
                   </div>
 
                   <div className="mt-8 flex gap-2 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0">
-                    <button onClick={(e) => { e.stopPropagation(); setFormData(inv); setView('form'); }} className="flex-1 bg-slate-50 text-slate-500 font-bold py-2.5 rounded-xl hover:bg-primary hover:text-white transition-all text-[10px] uppercase tracking-widest">Edit</button>
+                    <button onClick={(e) => { e.stopPropagation(); setFormData(inv); setView('form'); }} className="flex-1 bg-slate-50 text-slate-500 font-bold py-2.5 rounded-xl hover:bg-primary hover:text-white transition-all text-[10px] uppercase tracking-widest flex items-center justify-center gap-1">
+                      <Edit2 size={12} /> Edit
+                    </button>
+                    <button onClick={(e) => { e.stopPropagation(); setSelectedInvoice(inv); setView('details'); }} className="flex-1 bg-slate-50 text-slate-500 font-bold py-2.5 rounded-xl hover:bg-blue-500 hover:text-white transition-all text-[10px] uppercase tracking-widest flex items-center justify-center gap-1">
+                      <Eye size={12} /> View
+                    </button>
+                    <button onClick={(e) => { e.stopPropagation(); setSelectedInvoice(inv); setView('details'); setTimeout(() => generatePDF(), 100); }} className="px-3 bg-slate-50 text-slate-500 rounded-xl hover:bg-slate-200 transition-all" title="Quick Download">
+                      <Download size={16} />
+                    </button>
                     <button onClick={async (e) => {
                       e.stopPropagation();
                       if (await confirm('Confirm deletion?', { variant: 'danger' })) {
@@ -496,8 +653,15 @@ export const Invoices: React.FC = () => {
                           }`}>{inv.status}</span>
                       </td>
                       <td className="px-6 py-4 text-right font-black text-slate-900 text-sm">₹{inv.total.toLocaleString()}</td>
-                      <td className="px-6 py-4 text-right">
-                        <ChevronRight size={16} className="text-slate-200 group-hover:text-primary transition-colors inline-block" />
+                      <td className="px-6 py-4 text-right flex justify-end gap-2" onClick={e => e.stopPropagation()}>
+                        <button onClick={() => { setSelectedInvoice(inv); setView('details'); }} className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-primary transition-all" title="View"><Eye size={16} /></button>
+                        <button onClick={() => { setSelectedInvoice(inv); setView('details'); setTimeout(() => generatePDF(), 100); }} className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-primary transition-all" title="Download"><Download size={16} /></button>
+                        <button onClick={() => { setFormData(inv); setView('form'); }} className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-primary transition-all" title="Edit"><Edit2 size={16} /></button>
+                        <button onClick={async () => {
+                          if (await confirm('Confirm deletion?', { variant: 'danger' })) {
+                            try { await invoiceService.deleteInvoice(inv.id); } catch (e) { }
+                          }
+                        }} className="p-2 hover:bg-red-50 rounded-lg text-slate-400 hover:text-error transition-all" title="Delete"><Trash2 size={16} /></button>
                       </td>
                     </tr>
                   ))}
@@ -512,7 +676,7 @@ export const Invoices: React.FC = () => {
           </div>
         )}
       </div>
-    </div>
+    </div >
   );
 };
 

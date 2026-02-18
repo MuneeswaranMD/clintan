@@ -2,16 +2,17 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
     Plus, Search, Eye, Trash2, Edit2, X, Download, Printer, ArrowLeft,
     MoreVertical, Copy, Mail, CheckCircle, LayoutGrid, PieChart, CreditCard,
-    Repeat, Settings as SettingsIcon, Bell, ChevronDown, Calendar, Filter, ArrowUpRight, Check, FileText
+    Repeat, Settings as SettingsIcon, Bell, ChevronDown, Calendar, Filter, ArrowUpRight, Check, FileText, CheckCircle2, Clock, Send
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Invoice, InvoiceItem, InvoiceStatus, Product, Estimate, Payment, RecurringInvoice, CheckoutLink, Customer, Settings } from '../types';
-import { invoiceService, productService, estimateService, paymentService, recurringInvoiceService, checkoutLinkService, customerService } from '../services/firebaseService';
+import { Invoice, Estimate, Customer, InvoiceStatus, Product, InvoiceItem, Payment, RecurringInvoice, CheckoutLink, Settings } from '../types';
+import { invoiceService, estimateService, customerService, productService, paymentService, recurringInvoiceService, checkoutLinkService } from '../services/firebaseService';
 import { settingsService } from '../services/settingsService';
 import { authService } from '../services/authService';
 import { useDialog } from '../context/DialogContext';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { ModernTemplate, ClassicTemplate, MinimalTemplate, CorporateTemplate } from './PdfTemplates';
 
 interface BillingContentProps {
     initialTab?: string;
@@ -33,6 +34,8 @@ export const BillingContent: React.FC<BillingContentProps> = ({ initialTab = 'In
 
     const [view, setView] = useState<'list' | 'create' | 'edit' | 'view' | 'create_payment' | 'create_checkout'>('list');
     const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+    const [previewTemplate, setPreviewTemplate] = useState<string>('modern'); // Default template
+    const [searchTerm, setSearchTerm] = useState('');
     const [activeTab, setActiveTab] = useState(initialTab);
 
     const handleTabClick = (tab: string) => {
@@ -298,34 +301,122 @@ export const BillingContent: React.FC<BillingContentProps> = ({ initialTab = 'In
     };
 
     const generatePDF = async (invoice: Invoice) => {
-        const input = document.getElementById('invoice-preview');
-        if (!input) return;
+        // Try to find the detailed view first, if not available (e.g. from list view download), 
+        // we might need to render it temporarily or use the layout if View mode is active.
+        // For simplicity if view is not 'view', we alert user to open it first OR we can assume 'invoice-preview' 
+        // is only available in 'view' mode. 
+        // To support list view download, we would need to render the invoice off-screen.
+        // For now, let's switch to view mode briefly or handle the 'invoice-preview' if visible.
+
+        // Ensure the invoice/estimate is selected so the view can render it
+        if (invoice) {
+            setSelectedInvoice(invoice);
+        } else if (!selectedInvoice) {
+            await alert('No document selected to generate PDF.', { variant: 'danger' });
+            return;
+        }
+
+        // Force view switch if needed
+        if (view !== 'view') {
+            setView('view');
+            // Small delay for React state update
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+
+        let input = document.getElementById('invoice-preview');
+
+        // Polling for the element to appear
+        if (!input) {
+            let attempts = 0;
+            while (!input && attempts < 10) {
+                await new Promise(resolve => setTimeout(resolve, 300));
+                input = document.getElementById('invoice-preview');
+                attempts++;
+            }
+        }
+
+        if (!input) {
+            console.error("PDF Error: 'invoice-preview' element not found in DOM.");
+            await alert('Unable to generate PDF. Failed to render invoice preview.', { variant: 'danger' });
+            return;
+        }
 
         try {
-            const canvas = await html2canvas(input, {
+            await alert('Generating PDF...', { variant: 'info' });
+
+            const clone = input.cloneNode(true) as HTMLElement;
+            // Style the clone for optimal PDF capture
+            clone.style.position = 'fixed';
+            clone.style.top = '0';
+            clone.style.left = '0';
+            clone.style.width = '210mm';
+            clone.style.minHeight = '297mm';
+            clone.style.zIndex = '-9999';
+            clone.style.background = '#ffffff';
+            clone.style.color = '#000000';
+            clone.style.boxShadow = 'none';
+            clone.style.borderRadius = '0';
+            clone.style.overflow = 'visible';
+
+            document.body.appendChild(clone);
+
+            // Wait for images and layout to stabilize in the clone
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            // Inline styles to avoid html2canvas parsing errors for modern CSS
+            const allElements = clone.getElementsByTagName('*');
+            for (let i = 0; i < allElements.length; i++) {
+                const el = allElements[i] as HTMLElement;
+                const style = window.getComputedStyle(el);
+
+                if (style.backgroundColor) el.style.backgroundColor = style.backgroundColor;
+                if (style.color) el.style.color = style.color;
+                if (style.borderColor) el.style.borderColor = style.borderColor;
+                if (style.boxShadow && style.boxShadow !== 'none') el.style.boxShadow = style.boxShadow;
+            }
+
+            const canvas = await html2canvas(clone, {
                 scale: 2,
                 useCORS: true,
-                logging: false,
-                windowWidth: input.scrollWidth,
-                windowHeight: input.scrollHeight
+                logging: true,
+                backgroundColor: '#ffffff',
+                allowTaint: true,
+                foreignObjectRendering: false, // Switch to false if true causes "Failed to convert value to Response"
+                windowWidth: clone.scrollWidth,
+                windowHeight: clone.scrollHeight,
+                x: 0,
+                y: 0
             });
+
+            document.body.removeChild(clone);
+
             const imgData = canvas.toDataURL('image/png');
             const pdf = new jsPDF({
                 orientation: 'portrait',
                 unit: 'mm',
                 format: 'a4'
             });
+
             const imgProps = pdf.getImageProperties(imgData);
             const pdfWidth = pdf.internal.pageSize.getWidth();
             const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
 
             pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-            pdf.save(`${activeTab === 'Estimates' ? 'Estimate' : 'Invoice'}-${invoice.invoiceNumber}.pdf`);
-        } catch (error) {
+
+            // Determine filename safely
+            const isEst = activeTab === 'Estimates' || (invoice as any).estimateNumber;
+            const docNumber = isEst ? (invoice as any).estimateNumber : invoice.invoiceNumber;
+            const docType = isEst ? 'Estimate' : 'Invoice';
+
+            pdf.save(`${docType}-${docNumber || 'Doc'}.pdf`);
+
+            await alert('Downloaded successfully!', { variant: 'success' });
+        } catch (error: any) {
             console.error('PDF Generation Error:', error);
-            await alert('Failed to generate PDF', { variant: 'danger' });
+            await alert(`Failed to generate PDF: ${error?.message || 'Unknown error'}`, { variant: 'danger' });
         }
     };
+
 
     if (view === 'view' && selectedInvoice) {
         const isEstimate = activeTab === 'Estimates';
@@ -335,176 +426,61 @@ export const BillingContent: React.FC<BillingContentProps> = ({ initialTab = 'In
         return (
             <div className="max-w-[210mm] mx-auto animate-fade-in pb-20">
                 {/* Actions Header */}
-                <div className="bg-slate-900 p-4 rounded-t-xl flex justify-between items-center print:hidden mb-4 rounded-b-xl shadow-lg">
+                <div className="bg-slate-900 p-4 rounded-t-xl flex justify-between items-center print:hidden mb-4 rounded-b-xl shadow-lg flex-wrap gap-4">
                     <button onClick={() => setView('list')} className="text-slate-300 hover:text-white flex items-center gap-2 transition-all font-medium text-sm group">
                         <ArrowLeft size={16} /> Back to List
                     </button>
+
+                    {/* Template Selector */}
+                    <div className="flex items-center gap-2">
+                        <span className="text-slate-400 text-xs uppercase font-bold tracking-widest">Template:</span>
+                        <select
+                            className="bg-slate-800 text-white text-xs p-2 rounded-lg border border-slate-700 outline-none focus:border-blue-500"
+                            value={previewTemplate}
+                            onChange={async (e) => {
+                                const newTemplate = e.target.value;
+                                setPreviewTemplate(newTemplate);
+                                if (selectedInvoice) {
+                                    try {
+                                        if (activeTab === 'Estimates') {
+                                            await estimateService.updateEstimate(selectedInvoice.id, { templateId: newTemplate });
+                                        } else {
+                                            await invoiceService.updateInvoice(selectedInvoice.id, { templateId: newTemplate });
+                                        }
+                                    } catch (err) { console.error("Failed to save template", err); }
+                                }
+                            }}
+                        >
+                            <option value="modern">Modern Professional</option>
+                            <option value="classic">Classic Letterhead</option>
+                            <option value="minimal">Clean Minimalist</option>
+                            <option value="corporate">Corporate Elite</option>
+                        </select>
+                    </div>
+
                     <div className="flex gap-3">
                         <button onClick={() => window.print()} className="bg-white/10 border border-white/20 hover:bg-white/20 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-all text-sm font-medium">
                             <Printer size={16} /> Print
                         </button>
                         <button onClick={() => generatePDF(selectedInvoice)} className="bg-white hover:bg-slate-100 text-slate-900 px-4 py-2 rounded-lg flex items-center gap-2 transition-all text-sm font-medium">
-                            <Download size={16} /> Download PDF
+                            <Download size={16} /> Download
                         </button>
                     </div>
                 </div>
 
                 {/* VISIBLE INVOICE - A4 Paper Style */}
-                <div id="invoice-preview" className="bg-white shadow-2xl mx-auto text-slate-800 font-sans relative overflow-hidden" style={{ width: '210mm', minHeight: '297mm', padding: '15mm' }}>
-
-                    {/* Header */}
-                    <div className="flex justify-between items-start border-b border-slate-100 pb-8 mb-8">
-                        <div className="flex flex-col gap-4">
-                            {/* Logo */}
-                            {settings?.logoUrl ? (
-                                <img src={settings.logoUrl} alt="Logo" className="h-16 w-auto object-contain object-left" />
-                            ) : (
-                                <div className="h-16 w-16 bg-slate-900 flex items-center justify-center text-white font-bold text-2xl rounded-lg">
-                                    {settings?.companyName?.charAt(0) || 'C'}
-                                </div>
-                            )}
-
-                            <div>
-                                <h1 className="text-xl font-bold text-slate-900 leading-tight">{settings?.companyName || 'Your Company Name'}</h1>
-                                <p className="text-sm text-slate-500 max-w-xs leading-relaxed mt-1">
-                                    {settings?.companyAddress || '123 Business Street, City, Country'}<br />
-                                    Phone: {settings?.companyPhone || '+1 234 567 890'} | Email: {settings?.companyEmail || 'info@company.com'}<br />
-                                    Website: {settings?.website || 'www.company.com'}
-                                </p>
-                            </div>
-                        </div>
-                        <h1 className="text-4xl font-bold text-blue-600 uppercase tracking-widest">{docTitle}</h1>
-                    </div>
-
-                    {/* Info Section */}
-                    <div className="flex justify-between gap-12 mb-10">
-                        {/* Bill Info */}
-                        <div className="flex-1 space-y-3">
-                            <h3 className="font-bold text-slate-900 text-base mb-2 border-b border-slate-100 pb-1">Bill Information</h3>
-                            <div className="grid grid-cols-[100px_1fr] gap-y-2 text-sm">
-                                <span className="text-slate-500 block">Bill No:</span>
-                                <span className="font-bold text-slate-800">#{docNumber}</span>
-
-                                <span className="text-slate-500 block">Issue Date:</span>
-                                <span className="font-medium text-slate-800">
-                                    {selectedInvoice.date ? new Date(selectedInvoice.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A'}
-                                </span>
-
-                                <span className="text-slate-500 block">Due Date:</span>
-                                <span className="font-medium text-slate-800">
-                                    {selectedInvoice.dueDate ? new Date(selectedInvoice.dueDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A'}
-                                </span>
-
-                                <span className="text-slate-500 block">Status:</span>
-                                <span>
-                                    <span className={`px-3 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${selectedInvoice.status === InvoiceStatus.Paid ? 'bg-emerald-100 text-emerald-700' :
-                                        selectedInvoice.status === InvoiceStatus.Overdue ? 'bg-red-100 text-red-700' :
-                                            'bg-amber-100 text-amber-700'
-                                        }`}>
-                                        {selectedInvoice.status}
-                                    </span>
-                                </span>
-                            </div>
-                        </div>
-
-                        {/* Recipient Info */}
-                        <div className="flex-1 space-y-3">
-                            <h3 className="font-bold text-slate-900 text-base mb-2 border-b border-slate-100 pb-1">Recipient Information</h3>
-                            <div className="text-sm">
-                                <p className="font-bold text-slate-900 text-lg mb-1">{selectedInvoice.customerName}</p>
-                                <p className="text-slate-600 leading-relaxed mb-2">
-                                    <span className="font-bold text-slate-800">Billing:</span> {selectedInvoice.customerAddress || 'No address provided'}
-                                </p>
-                                <p className="text-slate-600 leading-relaxed mb-2">
-                                    <span className="font-bold text-slate-800">Contact:</span> {(selectedInvoice as any).customerPhone || selectedInvoice.customerEmail || 'N/A'}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Line Items */}
-                    <div className="mb-10">
-                        <h3 className="font-bold text-slate-900 text-base mb-4">Product/Service Line Items</h3>
-                        <table className="w-full text-sm">
-                            <thead>
-                                <tr className="bg-slate-50 border-y border-slate-200">
-                                    <th className="py-3 px-2 text-left font-bold text-slate-600 uppercase text-[10px] tracking-wider w-12">S/N</th>
-                                    <th className="py-3 px-2 text-left font-bold text-slate-600 uppercase text-[10px] tracking-wider">Item Name</th>
-                                    <th className="py-3 px-2 text-center font-bold text-slate-600 uppercase text-[10px] tracking-wider w-16">Qty</th>
-                                    <th className="py-3 px-2 text-right font-bold text-slate-600 uppercase text-[10px] tracking-wider w-24">Rate</th>
-                                    <th className="py-3 px-2 text-right font-bold text-slate-600 uppercase text-[10px] tracking-wider w-24">Discount</th>
-                                    <th className="py-3 px-2 text-right font-bold text-slate-600 uppercase text-[10px] tracking-wider w-24">Tax</th>
-                                    <th className="py-3 px-2 text-right font-bold text-slate-600 uppercase text-[10px] tracking-wider w-24">Total</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100">
-                                {selectedInvoice.items.map((item, idx) => {
-                                    const rate = item.price || item.total / item.quantity;
-                                    const discount = 0; // Backend doesn't store per-item discount yet
-                                    const taxRate = settings?.defaultTaxPercentage || 0;
-                                    // Assuming item.total includes tax if tax is enabled
-
-                                    return (
-                                        <tr key={item.id}>
-                                            <td className="py-4 px-2 text-slate-500 font-medium">{idx + 1}</td>
-                                            <td className="py-4 px-2 font-bold text-slate-800">{item.productName}</td>
-                                            <td className="py-4 px-2 text-center text-slate-800 font-medium">{item.quantity}</td>
-                                            <td className="py-4 px-2 text-right text-slate-800">₹{rate.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                                            <td className="py-4 px-2 text-right text-slate-400">₹0.00</td>
-                                            <td className="py-4 px-2 text-right text-slate-600 text-xs">VAT ({taxRate}%)</td>
-                                            <td className="py-4 px-2 text-right font-bold text-slate-900">₹{item.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {/* Footer Section */}
-                    <div className="flex gap-12 mb-12 border-t border-slate-100 pt-8">
-                        {/* Left: Notes */}
-                        <div className="flex-1">
-                            <h4 className="font-bold text-slate-800 mb-2">Notes/Remarks</h4>
-                            <div className="text-sm text-slate-500 bg-slate-50 p-4 rounded-lg border border-slate-100 min-h-[100px]">
-                                {selectedInvoice.notes || (isEstimate ? "This estimate is valid for 30 days." : "Thank you for your business. Please ensure timely payment.")}
-                            </div>
-                        </div>
-
-                        {/* Right: Totals */}
-                        <div className="w-[350px]">
-                            <div className="space-y-3 text-sm">
-                                <div className="flex justify-between text-slate-600">
-                                    <span>Subtotal:</span>
-                                    <span className="font-medium text-slate-900">₹{selectedInvoice.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                                </div>
-                                <div className="flex justify-between text-slate-600">
-                                    <span>Total Discount:</span>
-                                    <span className="font-medium text-red-500">(₹0.00)</span>
-                                </div>
-                                <div className="flex justify-between text-slate-600 border-b border-slate-200 pb-3">
-                                    <span>Total Tax (VAT {settings?.defaultTaxPercentage || 0}%):</span>
-                                    <span className="font-medium text-slate-900">₹{selectedInvoice.tax.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                                </div>
-                                <div className="flex justify-between items-center py-2">
-                                    <span className="font-bold text-slate-900 text-lg">Grand Total:</span>
-                                    <span className="font-bold text-blue-600 text-2xl">₹{selectedInvoice.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Payment Details */}
-
-                    {/* Footer Copyright */}
-                    <div className="absolute bottom-0 left-0 right-0 p-8 border-t border-slate-100 text-center text-[10px] text-slate-400">
-                        <p>© {new Date().getFullYear()} {settings?.companyName || 'Your Company'}. All rights reserved.</p>
-                        <p>Generated by Sivajoy Billing System</p>
-                    </div>
-
+                <div id="invoice-preview" className="shadow-2xl mx-auto overflow-hidden relative" style={{ width: '210mm', minHeight: '297mm' }}>
+                    {/* Dynamic Template Rendering */}
+                    {previewTemplate === 'modern' && <ModernTemplate invoice={selectedInvoice} settings={settings} isEstimate={isEstimate} />}
+                    {previewTemplate === 'classic' && <ClassicTemplate invoice={selectedInvoice} settings={settings} isEstimate={isEstimate} />}
+                    {previewTemplate === 'minimal' && <MinimalTemplate invoice={selectedInvoice} settings={settings} isEstimate={isEstimate} />}
+                    {previewTemplate === 'corporate' && <CorporateTemplate invoice={selectedInvoice} settings={settings} isEstimate={isEstimate} />}
                 </div>
             </div>
         );
     }
+
+
 
     if (view === 'create_payment') {
         return (
@@ -758,9 +734,10 @@ export const BillingContent: React.FC<BillingContentProps> = ({ initialTab = 'In
                                     <div className="flex justify-between items-start mb-10">
                                         <h2 className="text-4xl">#{selectedInvoice.invoiceNumber}</h2>
                                         <div className="flex gap-2">
-                                            <button onClick={() => setView('view')} className="p-3 rounded-full border border-gray-700"><Eye size={20} /></button>
-                                            <button onClick={() => handleDelete(selectedInvoice.id)} className="p-3 rounded-full border border-gray-700 text-red-500"><Trash2 size={20} /></button>
-                                            <button onClick={() => handleEdit(selectedInvoice)} className="p-3 rounded-full border border-gray-700"><Edit2 size={20} /></button>
+                                            <button onClick={() => setView('view')} className="p-3 rounded-full border border-gray-700" title="View Full Details"><Eye size={20} /></button>
+                                            <button onClick={() => generatePDF(selectedInvoice)} className="p-3 rounded-full border border-gray-700 text-blue-400 hover:text-blue-300" title="Download PDF"><Download size={20} /></button>
+                                            <button onClick={() => handleDelete(selectedInvoice.id)} className="p-3 rounded-full border border-gray-700 text-red-500 hover:text-red-400" title="Delete"><Trash2 size={20} /></button>
+                                            <button onClick={() => handleEdit(selectedInvoice)} className="p-3 rounded-full border border-gray-700 hover:text-white" title="Edit"><Edit2 size={20} /></button>
                                         </div>
                                     </div>
                                     <div className="mb-10"><p className="text-gray-400 mb-1">Customer</p><p className="text-xl font-medium">{selectedInvoice.customerName}</p></div>
@@ -792,12 +769,21 @@ export const BillingContent: React.FC<BillingContentProps> = ({ initialTab = 'In
                                         <td className="p-4 text-right font-bold" onClick={() => { setFormData(e as any); setView('edit'); }}>₹{(e.amount || (e as any).total || 0).toLocaleString()}</td>
                                         <td className="p-4 text-right">
                                             <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button onClick={() => { setSelectedInvoice(e as any); setView('view'); }} className="p-2 hover:bg-blue-900/10 text-blue-400 rounded-lg transition-colors" title="View Estimate">
+                                                    <Eye size={18} />
+                                                </button>
+                                                <button onClick={() => generatePDF(e as any)} className="p-2 hover:bg-white/10 text-white rounded-lg transition-colors" title="Download PDF">
+                                                    <Download size={18} />
+                                                </button>
+                                                <button onClick={() => { setFormData(e as any); setView('edit'); }} className="p-2 hover:bg-purple-900/10 text-purple-400 rounded-lg transition-colors" title="Edit">
+                                                    <Edit2 size={18} />
+                                                </button>
                                                 {e.status !== 'Accepted' && (
                                                     <button onClick={() => convertToInvoice(e)} className="p-2 hover:bg-[#8FFF00]/10 text-[#8FFF00] rounded-lg transition-colors" title="Convert to Invoice">
                                                         <CheckCircle size={18} />
                                                     </button>
                                                 )}
-                                                <button onClick={() => handleDelete(e.id)} className="p-2 hover:bg-red-900/10 text-red-400 rounded-lg transition-colors">
+                                                <button onClick={(event) => { event.stopPropagation(); handleDelete(e.id); }} className="p-2 hover:bg-red-900/10 text-red-400 rounded-lg transition-colors">
                                                     <Trash2 size={18} />
                                                 </button>
                                             </div>
@@ -837,6 +823,6 @@ export const BillingContent: React.FC<BillingContentProps> = ({ initialTab = 'In
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 };

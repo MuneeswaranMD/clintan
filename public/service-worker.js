@@ -1,6 +1,6 @@
 /* Service Worker for Averqon+ PWA */
 
-const CACHE_NAME = 'averqon-v1';
+const CACHE_NAME = 'averqon-v2';
 const urlsToCache = [
   '/',
   '/index.html',
