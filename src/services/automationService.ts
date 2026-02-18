@@ -1,10 +1,10 @@
 export const automationService = {
     getBackendUrl: () => {
-        return import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+        return import.meta.env.VITE_BACKEND_URL || 'https://averqonbill.onrender.com';
     },
 
     getApiUrl: () => {
-        return import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        return import.meta.env.VITE_API_URL || 'https://averqonbill.onrender.com/api';
     },
 
     checkStatus: async () => {

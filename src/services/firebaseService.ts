@@ -615,7 +615,7 @@ export const tenantService = {
                 console.log(`🔍 Looking up tenant by subdomain: ${subdomain}`);
                 q = query(collection(db, 'tenants'), where('subdomain', '==', subdomain));
             } else {
-                console.log(`🔍 Looking up tenant by custom domain: ${hostname}`);
+                // console.log(`🔍 Looking up tenant by custom domain: ${hostname}`);
                 q = query(collection(db, 'tenants'), where('customDomain', '==', hostname));
             }
 

@@ -3,7 +3,9 @@ import {
     ShoppingBag, Search, Plus, Trash2, Edit2,
     CheckCircle2, Clock, Truck, X, Package,
     ChevronRight, MapPin, Phone, User, ExternalLink, Settings,
-    TrendingUp, DollarSign, Users, AlertCircle
+    TrendingUp, DollarSign, Users, AlertCircle,
+    ChevronLeft,
+    Wallet
 } from 'lucide-react';
 import { orderService, productService } from '../services/firebaseService';
 import { authService } from '../services/authService';
