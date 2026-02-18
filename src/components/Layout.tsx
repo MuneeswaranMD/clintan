@@ -36,6 +36,7 @@ import { FloatingCartButton } from './shop/FloatingCartButton';
 import { BranchSelector } from './BranchSelector';
 import { useShop } from '../context/ShopContext';
 import { getFilteredNavItems } from '../config/navigationConfig';
+import { tenantService } from '../services/firebaseService';
 
 
 interface LayoutProps {
@@ -54,14 +55,13 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
     const fetchCompanyDetails = async () => {
       if (!user) return;
       try {
-        const { companyService } = await import('../services/companyService');
-        const company = await companyService.getCompanyByUserId(user.id);
+        const company = await tenantService.getTenantByUserId(user.id);
         if (company) {
-          if ((company as any).logoUrl) {
-            setLogoUrl((company as any).logoUrl);
+          if (company.logoUrl) {
+            setLogoUrl(company.logoUrl);
           }
-          if ((company as any).name) {
-            setDbCompanyName((company as any).name);
+          if (company.companyName) {
+            setDbCompanyName(company.companyName);
           }
         }
       } catch (error) {

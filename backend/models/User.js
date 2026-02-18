@@ -5,12 +5,14 @@ const userSchema = new mongoose.Schema({
     branchId: { type: mongoose.Schema.Types.ObjectId, ref: 'Branch' },
     role: { 
         type: String, 
-        enum: ['COMPANY_ADMIN', 'BRANCH_MANAGER', 'ACCOUNTANT', 'SALES', 'WAREHOUSE', 'VIEWER'], 
-        required: true 
+        enum: ['COMPANY_ADMIN', 'BRANCH_MANAGER', 'ACCOUNTANT', 'SALES', 'WAREHOUSE', 'VIEWER', 'admin', 'superadmin', 'staff'], 
+        default: 'admin' 
     },
+    firebaseUid: { type: String, unique: true, sparse: true }, // Sparse allows null for existing users without firebaseUid
     name: { type: String, required: true },
     email: { type: String, required: true },
-    passwordHash: { type: String, required: true },
+    passwordHash: { type: String, required: false }, // Made optional to support simple password field
+    password: { type: String }, // User requested field
     isActive: { type: Boolean, default: true },
     lastLoginAt: Date
 }, { timestamps: true });

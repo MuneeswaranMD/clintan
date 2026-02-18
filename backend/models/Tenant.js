@@ -1,9 +1,11 @@
 const mongoose = require('mongoose');
 
 const tenantSchema = new mongoose.Schema({
-    name: { type: String, required: true },
-    industryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Industry', required: true },
-    planId: { type: mongoose.Schema.Types.ObjectId, ref: 'SubscriptionPlan', required: true },
+    companyName: { type: String, required: true },
+    industryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Industry', required: false }, // Changed to false to allow string fallback
+    industry: { type: String }, // User requested field
+    planId: { type: mongoose.Schema.Types.ObjectId, ref: 'SubscriptionPlan', required: false }, // Changed to false
+    plan: { type: String, default: 'free' }, // User requested field
     status: { 
         type: String, 
         enum: ['ACTIVE', 'SUSPENDED', 'TRIAL'], 
@@ -16,14 +18,24 @@ const tenantSchema = new mongoose.Schema({
         default: 'PAID' 
     },
     ownerId: { type: String, required: true }, // Links to the Firebase UID or User model
+    subdomain: { type: String, unique: true, sparse: true },
+    customDomain: { type: String, unique: true, sparse: true },
+    isDomainVerified: { type: Boolean, default: false },
     config: {
         currency: { type: String, default: '₹' },
         dateFormat: { type: String, default: 'DD/MM/YYYY' },
         taxName: { type: String, default: 'GST' }
-    }
+    },
+    features: [{
+        moduleKey: String,
+        enabled: Boolean,
+        order: Number
+    }]
 }, { timestamps: true });
 
 // Index for performance
 tenantSchema.index({ status: 1 });
+tenantSchema.index({ subdomain: 1 });
+tenantSchema.index({ customDomain: 1 });
 
 module.exports = mongoose.model('Tenant', tenantSchema);

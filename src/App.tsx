@@ -19,6 +19,7 @@ import { PurchaseOrders } from './pages/PurchaseOrders';
 import { InventoryLogs } from './pages/Inventory/InventoryLogs';
 import { OrderForm } from './pages/OrderForm';
 import { SettingsPage } from './pages/SettingsPage';
+import { MenuCustomization } from './pages/settings/MenuCustomization';
 import { Notifications } from './pages/Notifications';
 import { AdvancedAnalyticsPage } from './pages/AdvancedAnalyticsPage';
 import { SaaSConfig } from './pages/SaaSConfig';
@@ -45,6 +46,7 @@ import { SuperAdminAutomation } from './pages/super-admin/SuperAdminAutomation';
 import { SuperAdminInfra } from './pages/super-admin/SuperAdminInfra';
 import { SuperAdminLogs } from './pages/super-admin/SuperAdminLogs';
 import { SuperAdminPlaceholder } from './pages/super-admin/SuperAdminPlaceholder';
+import { Projects } from './pages/Projects';
 import { SuperAdminGuard } from './components/guards/SuperAdminGuard';
 import { authService } from './services/authService';
 import { User } from './types';
@@ -109,7 +111,7 @@ function App() {
               path="/super/*"
               element={
                 <SuperAdminGuard user={user}>
-                  <SuperAdminLayout onLogout={handleLogout}>
+                  <SuperAdminLayout onLogout={handleLogout} user={user}>
                     <Routes>
                       <Route path="dashboard" element={<SuperAdminDashboard />} />
                       <Route path="tenants" element={<SuperAdminTenants />} />
@@ -156,9 +158,10 @@ function App() {
                       <Route path="/purchase-orders" element={<PurchaseOrders />} />
                       <Route path="/suppliers" element={<Suppliers />} />
                       <Route path="/inventory-logs" element={<InventoryLogs />} />
-                      <Route path="/companies" element={user?.email === 'muneeswaran@averqon.in' ? <Companies /> : <Navigate to="/" replace />} />
+                      <Route path="/companies" element={['muneeswaran@averqon.in', 'clintan@averqon.in'].includes(user?.email || '') ? <Companies /> : <Navigate to="/" replace />} />
                       <Route path="/settings" element={<SettingsPage />} />
-                      <Route path="/saas-config" element={user?.email === 'muneeswaran@averqon.in' ? <SaaSConfig /> : <Navigate to="/" replace />} />
+                      <Route path="/settings/menu" element={<MenuCustomization />} />
+                      <Route path="/saas-config" element={['muneeswaran@averqon.in', 'clintan@averqon.in'].includes(user?.email || '') ? <SaaSConfig /> : <Navigate to="/" replace />} />
                       <Route path="/notifications" element={<Notifications />} />
 
                       {/* Universal Pages */}
@@ -167,7 +170,10 @@ function App() {
                       {/* Industry-Specific Pages */}
                       <Route path="/pos" element={<POS />} />
                       <Route path="/appointments" element={<Appointments />} />
+                      <Route path="/services" element={<Appointments />} />
+                      <Route path="/projects" element={<Projects />} />
                       <Route path="/bom" element={<BillOfMaterials />} />
+                      <Route path="/manufacturing" element={<BillOfMaterials />} />
 
                       <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>

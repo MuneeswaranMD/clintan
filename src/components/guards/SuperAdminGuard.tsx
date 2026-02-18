@@ -15,7 +15,7 @@ export const SuperAdminGuard: React.FC<SuperAdminGuardProps> = ({ user, children
         return <Navigate to="/login" replace />;
     }
 
-    if (!SUPER_ADMIN_EMAILS.includes(user.email)) {
+    if (!SUPER_ADMIN_EMAILS.includes(user.email) && user.role !== 'SUPER_ADMIN') {
         return <Navigate to="/" replace />;
     }
 

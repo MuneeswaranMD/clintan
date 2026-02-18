@@ -5,7 +5,7 @@ import {
     Shield,
     Mail,
     Key,
-    MoreVertical,
+    MoreHorizontal,
     Search,
     Filter,
     XCircle,
@@ -51,22 +51,22 @@ export const SuperAdminUsers: React.FC = () => {
     };
 
     return (
-        <div className="p-8 space-y-8 animate-in fade-in duration-700">
+        <div className="p-8 space-y-8 animate-fade-in">
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-black text-slate-900 tracking-tight">Platform Users</h1>
-                    <p className="text-slate-500 font-semibold mt-1">Manage core platform administrators and global operation nodes.</p>
+                    <h1 className="text-2xl font-bold text-slate-900">Platform Users</h1>
+                    <p className="text-slate-500 text-sm mt-1">Manage core platform administrators and global operation nodes.</p>
                 </div>
-                <div className="flex gap-4">
-                    <button className="px-6 py-3 bg-white border border-slate-200 rounded-2xl text-slate-700 font-bold flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm">
+                <div className="flex gap-3">
+                    <button className="px-4 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 text-sm font-medium flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm">
                         Audit Logs
                     </button>
                     <button
                         onClick={() => setIsAddModalOpen(true)}
-                        className="px-8 py-4 bg-pink-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-pink-700 transition-all shadow-lg shadow-pink-500/30 flex items-center gap-3 active:scale-95"
+                        className="px-4 py-2 bg-pink-600 text-white rounded-lg text-sm font-medium hover:bg-pink-700 transition-all shadow-sm flex items-center gap-2 active:scale-95"
                     >
-                        <UserPlus size={20} strokeWidth={3} />
+                        <UserPlus size={18} strokeWidth={2.5} />
                         Invoke Admin
                     </button>
                 </div>
@@ -79,14 +79,14 @@ export const SuperAdminUsers: React.FC = () => {
                     { label: 'Security Status', val: '4', sub: 'Pending MFA', icon: Lock, color: 'text-blue-600', bg: 'bg-blue-50' },
                     { label: 'Response Time', val: '0.8s', sub: 'Global Latency', icon: Clock, color: 'text-emerald-600', bg: 'bg-emerald-50' },
                 ].map((stat, i) => (
-                    <div key={i} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm flex items-center gap-6 group hover:border-pink-500/20 transition-all">
-                        <div className={`w-16 h-16 rounded-[1.5rem] ${stat.bg} ${stat.color} flex items-center justify-center group-hover:bg-pink-600 group-hover:text-white transition-all`}>
-                            <stat.icon size={28} />
+                    <div key={i} className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4 group hover:border-pink-200 transition-all">
+                        <div className={`w-12 h-12 rounded-lg ${stat.bg} ${stat.color} flex items-center justify-center group-hover:bg-pink-600 group-hover:text-white transition-all`}>
+                            <stat.icon size={24} />
                         </div>
                         <div>
-                            <p className="text-3xl font-black text-slate-900 leading-none">{stat.val}</p>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">{stat.label}</p>
-                            <p className="text-[10px] font-bold text-slate-300 uppercase tracking-tight">{stat.sub}</p>
+                            <p className="text-2xl font-bold text-slate-900 leading-none">{stat.val}</p>
+                            <p className="text-xs font-semibold text-slate-500 mt-1">{stat.label}</p>
+                            <p className="text-[10px] text-slate-400 font-medium">{stat.sub}</p>
                         </div>
                     </div>
                 ))}
@@ -96,57 +96,57 @@ export const SuperAdminUsers: React.FC = () => {
             <div className="space-y-6">
                 <div className="flex items-center gap-4">
                     <div className="flex-1 relative group">
-                        <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-pink-600 transition-colors" size={20} />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-pink-600 transition-colors" size={18} />
                         <input
                             type="text"
                             placeholder="Identify admin by name, email or protocol..."
-                            className="w-full pl-14 pr-6 py-4 bg-white border border-slate-100 rounded-[2rem] text-sm font-bold outline-none focus:border-pink-500 transition-all shadow-sm"
+                            className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none focus:border-pink-500 transition-all shadow-sm focus:ring-2 focus:ring-pink-50"
                         />
                     </div>
-                    <button className="p-4 bg-white border border-slate-100 rounded-2xl text-slate-400 hover:text-slate-900 transition-all shadow-sm">
-                        <Filter size={20} />
+                    <button className="p-2.5 bg-white border border-slate-200 rounded-xl text-slate-500 hover:text-slate-900 transition-all shadow-sm">
+                        <Filter size={18} />
                     </button>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-12">
                     {admins.map((admin) => (
-                        <div key={admin.id} className="group bg-white rounded-[3rem] p-8 border border-slate-100 shadow-sm hover:shadow-2xl hover:shadow-slate-200/50 transition-all space-y-8 relative overflow-hidden">
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-slate-50 -mr-16 -mt-16 rounded-full group-hover:bg-pink-50 transition-all duration-500"></div>
+                        <div key={admin.id} className="group bg-white rounded-xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-all space-y-6 relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-24 h-24 bg-slate-50 -mr-12 -mt-12 rounded-full group-hover:bg-pink-50 transition-all duration-500"></div>
 
                             <div className="relative flex items-center justify-between">
-                                <div className="w-16 h-16 rounded-[1.75rem] bg-slate-50 border border-slate-50 flex items-center justify-center font-black text-2xl text-slate-400 group-hover:bg-pink-600 group-hover:text-white group-hover:border-pink-500 transition-all shadow-sm">
+                                <div className="w-14 h-14 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center font-bold text-xl text-slate-400 group-hover:bg-pink-600 group-hover:text-white group-hover:border-pink-500 transition-all shadow-sm">
                                     {admin.name.charAt(0)}
                                 </div>
-                                <button className="p-2 hover:bg-slate-50 rounded-xl text-slate-400 transition-all">
-                                    <MoreHorizontal size={20} />
+                                <button className="p-1.5 hover:bg-slate-50 rounded-lg text-slate-400 transition-all">
+                                    <MoreHorizontal size={18} />
                                 </button>
                             </div>
 
                             <div className="relative space-y-1">
                                 <div className="flex items-center gap-2">
-                                    <h3 className="text-xl font-black text-slate-900 tracking-tight">{admin.name}</h3>
-                                    <div className={`w-2 h-2 rounded-full ${admin.status === 'Active' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`}></div>
+                                    <h3 className="text-lg font-bold text-slate-900">{admin.name}</h3>
+                                    <div className={`w-2 h-2 rounded-full ${admin.status === 'Active' ? 'bg-emerald-500' : 'bg-slate-300'}`}></div>
                                 </div>
-                                <p className="text-xs font-bold text-slate-400">{admin.email}</p>
+                                <p className="text-xs font-medium text-slate-500">{admin.email}</p>
                             </div>
 
                             <div className="relative flex flex-wrap gap-2">
-                                <span className={`px-4 py-1.5 rounded-xl border text-[9px] font-black uppercase tracking-widest ${getRoleStyles(admin.role)}`}>
+                                <span className={`px-3 py-1 rounded-lg border text-[10px] font-bold uppercase ${getRoleStyles(admin.role)}`}>
                                     {admin.role}
                                 </span>
-                                <span className="px-4 py-1.5 bg-slate-50 border border-slate-100 rounded-xl text-[9px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                                    <Shield size={10} /> MFA SECURED
+                                <span className="px-3 py-1 bg-slate-50 border border-slate-100 rounded-lg text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1.5">
+                                    <Shield size={10} /> MFA
                                 </span>
                             </div>
 
-                            <div className="relative pt-6 border-t border-slate-50 flex items-center justify-between group-hover:border-slate-100 transition-colors">
-                                <div className="flex items-center gap-2">
-                                    <Clock size={12} className="text-slate-300" />
-                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{admin.lastLogin}</span>
+                            <div className="relative pt-4 border-t border-slate-100 flex items-center justify-between group-hover:border-slate-200 transition-colors">
+                                <div className="flex items-center gap-1.5">
+                                    <Clock size={12} className="text-slate-400" />
+                                    <span className="text-[10px] font-semibold text-slate-500 uppercase">{admin.lastLogin}</span>
                                 </div>
-                                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0">
-                                    <button className="p-2 bg-slate-50 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded-lg transition-all"><Edit3 size={14} /></button>
-                                    <button className="p-2 bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-lg transition-all"><Trash2 size={14} /></button>
+                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all transform translate-y-1 group-hover:translate-y-0">
+                                    <button className="p-1.5 bg-slate-50 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded-md transition-all"><Edit3 size={14} /></button>
+                                    <button className="p-1.5 bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-md transition-all"><Trash2 size={14} /></button>
                                 </div>
                             </div>
                         </div>

@@ -30,12 +30,19 @@ import { Link, useLocation, Outlet } from 'react-router-dom';
 
 interface SuperAdminLayoutProps {
     onLogout: () => void;
+    user: any; // Using any to avoid complex type import for now, or use User from types
     children?: React.ReactNode;
 }
 
-export const SuperAdminLayout: React.FC<SuperAdminLayoutProps> = ({ onLogout, children }) => {
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+export const SuperAdminLayout: React.FC<SuperAdminLayoutProps> = ({ onLogout, user, children }) => {
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+    const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+    const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
     const location = useLocation();
+
+    // Platform Owner Emails
+    const SUPER_ADMIN_EMAILS = ['muneeswaran@averqon.in', 'clintan@averqon.in'];
+    const isSuperAdmin = user && (user.role === 'SUPER_ADMIN' || SUPER_ADMIN_EMAILS.includes(user.email));
 
     const menuItems = [
         { label: 'Dashboard', path: '/super/dashboard', icon: LayoutDashboard },
@@ -59,106 +66,166 @@ export const SuperAdminLayout: React.FC<SuperAdminLayoutProps> = ({ onLogout, ch
 
     const isActive = (path: string) => location.pathname === path;
 
+    // Safety check - though Guard should handle this
+    if (!isSuperAdmin) {
+        return null;
+    }
+
     return (
-        <div className="min-h-screen bg-[#f8fafc] flex">
+        <div className="min-h-screen bg-[var(--color-bg-primary)] flex overflow-hidden">
             {/* Sidebar */}
-            <aside className={`${isSidebarOpen ? 'w-72' : 'w-20'} bg-white border-r border-slate-200 transition-all duration-300 flex flex-col fixed h-full z-50`}>
+            <aside
+                className={`
+                    fixed inset-y-0 left-0 z-50
+                    bg-white border-r border-[var(--color-border)]
+                    ${isSidebarCollapsed ? 'w-[80px]' : 'w-[250px]'}
+                    ${isMobileSidebarOpen ? 'translate-x-0 shadow-xl' : '-translate-x-full md:translate-x-0'}
+                    transition-all duration-300 ease-[var(--transition-cubic)]
+                    flex flex-col
+                `}
+            >
                 {/* Logo Section */}
-                <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
-                            <Command size={22} strokeWidth={2.5} />
-                        </div>
-                        {isSidebarOpen && (
-                            <div className="leading-none">
-                                <h1 className="text-lg font-black text-slate-900 tracking-tight">Nexus Admin</h1>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Enterprise v4.2</p>
+                <div className="h-20 flex items-center justify-center px-4 mb-4">
+                    {!isSidebarCollapsed ? (
+                        <div className="flex items-center gap-3 animate-fade-in py-6 w-full px-2">
+                            <div className="min-w-[40px] w-10 h-10 bg-gradient-primary rounded-xl flex items-center justify-center text-white font-black text-lg shadow-lg active:scale-95 transition-transform flex-shrink-0">
+                                <Command size={22} strokeWidth={3} />
                             </div>
-                        )}
-                    </div>
+                            <div className="flex items-baseline gap-1.5 min-w-0">
+                                <div className="font-extrabold text-[15px] text-slate-800 tracking-tight truncate leading-none">Averqon Admin</div>
+                                <div className="text-[9px] text-slate-400 font-bold uppercase tracking-widest opacity-60 flex-shrink-0">Pro</div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="w-11 h-11 bg-gradient-primary rounded-xl flex items-center justify-center text-white font-black text-base shadow-md mx-auto">
+                            <Command size={22} strokeWidth={3} />
+                        </div>
+                    )}
                 </div>
 
                 {/* Navigation */}
-                <nav className="flex-1 overflow-y-auto px-4 py-6 scrollbar-hide space-y-1">
-                    {menuItems.map((item) => {
-                        const active = isActive(item.path);
-                        return (
-                            <Link
-                                key={item.path}
-                                to={item.path}
-                                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all group ${active
-                                        ? 'bg-blue-50 text-blue-600 shadow-sm'
-                                        : 'text-slate-500 hover:bg-slate-50'
-                                    }`}
-                            >
-                                <item.icon size={20} strokeWidth={active ? 2.5 : 2} className={active ? 'text-blue-600' : 'text-slate-400 group-hover:text-slate-600'} />
-                                {isSidebarOpen && (
-                                    <div className="flex-1 flex items-center justify-between">
-                                        <span className={`text-sm font-bold ${active ? 'font-black' : 'font-semibold'}`}>{item.label}</span>
-                                        {item.badge && (
-                                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-black ${active ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500'}`}>
-                                                {item.badge}
-                                            </span>
-                                        )}
+                <nav className="flex-1 overflow-y-auto px-4 scrollbar-hide">
+                    <div className="space-y-1">
+                        {menuItems.map((item) => {
+                            const active = isActive(item.path);
+                            return (
+                                <Link
+                                    key={item.path}
+                                    to={item.path}
+                                    onClick={() => setIsMobileSidebarOpen(false)}
+                                    className={`
+                                        flex items-center gap-3 px-3 py-2.5 rounded-xl
+                                        transition-all duration-200 group relative
+                                        ${active
+                                            ? 'bg-gradient-primary text-white shadow-md shadow-primary/20'
+                                            : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'}
+                                        ${isSidebarCollapsed ? 'justify-center' : ''}
+                                    `}
+                                    title={isSidebarCollapsed ? item.label : undefined}
+                                >
+                                    <div className={`p-1.5 rounded-lg transition-colors ${active ? 'bg-white/20' : 'bg-slate-50 group-hover:bg-white'}`}>
+                                        <item.icon
+                                            size={16}
+                                            className={`${active ? 'text-white' : 'text-primary'}`}
+                                            strokeWidth={3}
+                                        />
                                     </div>
-                                )}
-                            </Link>
-                        );
-                    })}
+                                    {!isSidebarCollapsed && (
+                                        <div className="flex-1 flex items-center justify-between">
+                                            <span className={`text-[13px] font-bold tracking-tight ${active ? 'opacity-100' : 'opacity-85'}`}>{item.label}</span>
+                                            {item.badge && (
+                                                <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full shadow-sm ${active ? 'bg-white text-primary' : 'bg-red-500 text-white'}`}>
+                                                    {item.badge}
+                                                </span>
+                                            )}
+                                        </div>
+                                    )}
+                                </Link>
+                            );
+                        })}
+                    </div>
                 </nav>
 
                 {/* Bottom Footer */}
-                <div className="p-4 border-t border-slate-100">
+                <div className="p-4 border-t border-[var(--color-border-light)] mt-auto bg-slate-50/30">
                     <button
                         onClick={onLogout}
-                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-500 hover:bg-red-50 group transition-all"
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-error font-bold hover:bg-red-50 group transition-all ${isSidebarCollapsed ? 'justify-center' : ''}`}
                     >
-                        <LogOut size={20} />
-                        {isSidebarOpen && <span className="text-sm font-bold uppercase tracking-widest">Terminate</span>}
+                        <LogOut size={18} strokeWidth={3} />
+                        {!isSidebarCollapsed && <span className="text-[11px] uppercase tracking-widest">Sign Out</span>}
                     </button>
                 </div>
             </aside>
 
+            {/* Mobile Sidebar Overlay */}
+            {isMobileSidebarOpen && (
+                <div
+                    className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 md:hidden animate-fade-in"
+                    onClick={() => setIsMobileSidebarOpen(false)}
+                />
+            )}
+
             {/* Main Content Area */}
-            <main className={`flex-1 flex flex-col transition-all duration-300 ${isSidebarOpen ? 'ml-72' : 'ml-20'}`}>
+            <main className={`
+                flex-1 flex flex-col min-h-screen relative
+                ${isSidebarCollapsed ? 'md:ml-[80px]' : 'md:ml-[250px]'}
+                transition-all duration-300 ease-[var(--transition-cubic)]
+            `}>
+                {/* Hero Background Decoration */}
+                <div className="absolute top-0 left-0 right-0 h-[300px] bg-gradient-primary z-0 rounded-b-[2rem] shadow-lg opacity-90" />
+
                 {/* Top Header */}
-                <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-200 px-8 flex items-center justify-between sticky top-0 z-40">
-                    <div className="flex items-center gap-6 flex-1">
+                <header className="h-16 flex items-center px-4 md:px-8 bg-transparent z-30 justify-between mt-2">
+                    <div className="flex items-center gap-4 flex-1">
                         <button
-                            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                            className="p-2 hover:bg-slate-100 rounded-lg text-slate-500"
+                            onClick={() => setIsMobileSidebarOpen(true)}
+                            className="p-2.5 hover:bg-white/10 rounded-xl transition-all md:hidden active:scale-90 text-white"
                         >
-                            {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
+                            <Menu size={22} />
                         </button>
 
-                        <div className="max-w-md w-full relative group">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={18} />
+                        <button
+                            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                            className="p-2.5 hover:bg-white/10 rounded-xl transition-all hidden md:block active:scale-90 text-white"
+                        >
+                            <Menu size={20} />
+                        </button>
+
+                        <div className="relative hidden lg:block group max-w-sm w-full ml-4">
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/60 transition-colors group-focus-within:text-white" size={16} />
                             <input
                                 type="text"
-                                placeholder="Universal command scan..."
-                                className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold placeholder:text-slate-400 focus:bg-white focus:border-blue-500 transition-all outline-none"
+                                placeholder="Universal scan..."
+                                className="w-full h-10 pl-11 pr-4 bg-white/10 border border-white/20 rounded-xl text-sm font-medium text-white placeholder:text-white/60 focus:bg-white/20 focus:outline-none transition-all"
                             />
                         </div>
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <div className="hidden md:flex flex-col items-end leading-none mr-2">
-                            <p className="text-sm font-black text-slate-900">Muneeswaran</p>
-                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Platform Owner</p>
+                        <div className="relative">
+                            <button
+                                onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+                                className="h-10 px-3 flex items-center gap-3 rounded-xl hover:bg-white/10 transition-all active:scale-95 text-white"
+                            >
+                                <div className="hidden md:flex flex-col items-end leading-none">
+                                    <p className="text-sm font-bold">{user?.name || 'Admin User'}</p>
+                                    <p className="text-[10px] font-bold text-white/70 uppercase tracking-widest">Platform Owner</p>
+                                </div>
+                                <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-md">
+                                    <User size={16} />
+                                </div>
+                                <ChevronDown size={14} className="opacity-60" />
+                            </button>
                         </div>
-                        <div className="w-12 h-12 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 hover:border-blue-500 transition-all cursor-pointer">
-                            <User size={24} />
-                        </div>
-                        <div className="w-1 h-8 bg-slate-200"></div>
-                        <button className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-white hover:bg-blue-600 transition-all">
-                            <Plus size={20} />
-                        </button>
                     </div>
                 </header>
 
                 {/* Page Content */}
-                <div className="flex-1 overflow-y-auto">
-                    {children || <Outlet />}
+                <div className="flex-1 overflow-y-auto p-4 md:p-8 scrollbar-hide relative z-10 mt-4">
+                    <div className="max-w-[1600px] mx-auto animate-fade-in">
+                        {children || <Outlet />}
+                    </div>
                 </div>
             </main>
         </div>

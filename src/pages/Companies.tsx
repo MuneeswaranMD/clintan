@@ -1,24 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Building2, Mail, Lock, Search, AlertCircle, Phone, X as XIcon, Edit2, Trash2, Globe, MoreVertical, ShieldCheck, MapPin, Activity } from 'lucide-react';
-import { companyService } from '../services/companyService';
+import { Plus, Building2, Mail, Lock, Search, AlertCircle, Phone, X as XIcon, Edit2, Trash2, Globe, MoreVertical, ShieldCheck, Activity, Download, Filter, Eye, RefreshCw, CheckCircle2, Copy } from 'lucide-react';
+import { tenantService } from '../services/firebaseService';
+import { Tenant } from '../types';
 import { authService } from '../services/authService';
 import { ViewToggle } from '../components/ViewToggle';
 import { getIndustryPreset } from '../config/industryPresets';
 import axios from 'axios';
 
-interface Company {
-    id: string;
-    userId: string;
-    name: string;
-    email: string;
-    phone?: string;
-    logoUrl?: string;
-    createdAt?: any;
-    config?: any; // BusinessConfig
-}
-
 export const Companies: React.FC = () => {
-    const [companies, setCompanies] = useState<Company[]>([]);
+    const [companies, setCompanies] = useState<Tenant[]>([]);
     const [loading, setLoading] = useState(true);
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
     const [showModal, setShowModal] = useState(false);
@@ -53,9 +43,10 @@ export const Companies: React.FC = () => {
     }, []);
 
     const fetchCompanies = async () => {
+        setLoading(true);
         try {
-            const data = await companyService.getAllCompanies();
-            setCompanies(data as Company[]);
+            const data = await tenantService.getAllTenants();
+            setCompanies(data);
         } catch (err) {
             console.error("Failed to load companies", err);
         } finally {
@@ -88,14 +79,14 @@ export const Companies: React.FC = () => {
         }
     };
 
-    const handleEdit = (company: Company) => {
+    const handleEdit = (company: Tenant) => {
         setFormData({
-            name: company.name,
-            email: company.email,
+            name: company.companyName,
+            email: company.ownerEmail,
             phone: company.phone || '',
             password: '',
             logoUrl: company.logoUrl || '',
-            industry: (company.config?.industry || 'Retail') as any
+            industry: (company.industry || 'Retail') as any
         });
         setEditingId(company.id);
         setShowModal(true);
@@ -110,23 +101,18 @@ export const Companies: React.FC = () => {
 
         try {
             if (editingId) {
-                await companyService.updateCompany(editingId, {
-                    name: formData.name,
-                    phone: formData.phone,
-                    logoUrl: formData.logoUrl
-                });
-
-                // Update SaaS Config using industry preset
                 const preset = getIndustryPreset(formData.industry);
-                await companyService.updateCompanyConfig(editingId, preset);
-
+                await tenantService.updateTenant(editingId, {
+                    companyName: formData.name,
+                    phone: formData.phone,
+                    logoUrl: formData.logoUrl,
+                    industry: formData.industry,
+                    config: preset as any
+                });
                 setSuccess('Company updated successfully!');
             } else {
                 const preset = getIndustryPreset(formData.industry);
-                console.log('🏭 Creating company with industry:', formData.industry);
-                console.log('📦 Industry Preset:', preset);
-
-                await companyService.createCompanyWithPassword(
+                await tenantService.createTenantWithAuth(
                     formData.name,
                     formData.email.trim(),
                     formData.password,
@@ -137,11 +123,12 @@ export const Companies: React.FC = () => {
                 setSuccess('Company created successfully!');
             }
 
-            // eslint-disable-next-line
             setFormData({ name: '', email: '', phone: '', password: '', logoUrl: '', industry: 'Retail' });
-            setShowModal(false);
-            setEditingId(null);
-            fetchCompanies();
+            setTimeout(() => {
+                setShowModal(false);
+                setEditingId(null);
+                fetchCompanies();
+            }, 1000);
         } catch (err: any) {
             setError(err.message || 'Failed to save company');
         } finally {
@@ -160,7 +147,7 @@ export const Companies: React.FC = () => {
             return;
         }
         try {
-            await companyService.deleteCompany(companyId);
+            await tenantService.deleteTenant(companyId);
             setSuccess('Organization deleted successfully!');
             fetchCompanies();
             setOpenMenuId(null);
@@ -170,43 +157,59 @@ export const Companies: React.FC = () => {
     };
 
     const filteredCompanies = companies.filter(c =>
-        c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.email.toLowerCase().includes(searchTerm.toLowerCase())
+        c.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.ownerEmail.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return (
-        <div className="space-y-10 animate-fade-in pb-20">
+        <div className="p-8 space-y-10 animate-fade-in pb-20">
             {/* Header Section */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div>
-                    <h1 className="text-3xl font-bold text-slate-800 tracking-tight flex items-center gap-4">
-                        <div className="w-14 h-14 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-blue-200">
-                            <Building2 size={28} />
-                        </div>
-                        <div>
-                            Organization Directory
-                            <p className="text-slate-500 text-sm font-medium mt-1">Manage institutional accounts and system nodes.</p>
-                        </div>
+                    <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-4 uppercase">
+                        <Building2 className="text-blue-600" size={32} strokeWidth={3} />
+                        Instance Matrix
                     </h1>
+                    <p className="text-slate-500 font-bold text-sm mt-1">Global directory of provisioned company nodes and SaaS instances.</p>
                 </div>
                 <div className="flex items-center gap-4 w-full md:w-auto">
                     <ViewToggle view={viewMode} onViewChange={setViewMode} />
                     <button
                         onClick={openCreateModal}
-                        className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-bold flex items-center gap-2 hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 text-sm active:scale-95 flex-1 md:flex-none justify-center"
+                        className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-[11px] flex items-center gap-2 hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 active:scale-95"
                     >
-                        <Plus size={20} /> Add New Company
+                        <Plus size={20} strokeWidth={3} /> Register Entity
                     </button>
                 </div>
             </div>
 
+            {/* Platform Metrics Placeholder (To match SuperAdmin aesthetic) */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {[
+                    { label: 'Total Instances', val: companies.length, sub: 'Active Across All Verticals', icon: Globe, color: 'text-blue-600 bg-blue-50' },
+                    { label: 'System Health', val: '99.9%', sub: 'Node Connectivity Optimized', icon: Activity, color: 'text-emerald-600 bg-emerald-50' },
+                    { label: 'Active Sessions', val: '842', sub: 'Calculated across all nodes', icon: ShieldCheck, color: 'text-amber-600 bg-amber-50' },
+                ].map((stat, i) => (
+                    <div key={i} className="bg-white p-6 rounded-[1.5rem] shadow-premium flex items-center gap-5 group hover:translate-y-[-4px] transition-all border border-slate-50">
+                        <div className={`w-14 h-14 rounded-2xl ${stat.color} flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                            <stat.icon size={26} strokeWidth={2.5} />
+                        </div>
+                        <div>
+                            <p className="text-3xl font-black text-slate-900 leading-none tracking-tight">{stat.val}</p>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1.5">{stat.label}</p>
+                            <p className="text-[10px] text-slate-400 font-bold mt-0.5 opacity-60 italic">{stat.sub}</p>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
             {/* Search Bar */}
             <div className="relative group">
-                <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={22} />
+                <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={22} strokeWidth={3} />
                 <input
                     type="text"
-                    placeholder="Search by company name, email or ID..."
-                    className="w-full pl-16 pr-6 py-5 bg-white border border-slate-200 rounded-2xl text-slate-900 outline-none focus:border-blue-500 shadow-sm transition-all font-medium text-lg"
+                    placeholder="UNIVERSAL SEARCH BY NAME, EMAIL OR INSTANCE ID..."
+                    className="w-full pl-16 pr-6 py-5 bg-white border border-slate-100 rounded-[1.5rem] text-slate-900 outline-none focus:ring-4 focus:ring-blue-50 shadow-sm transition-all font-bold text-sm placeholder:text-slate-300 placeholder:uppercase placeholder:tracking-[0.2em] placeholder:text-[10px]"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -214,63 +217,50 @@ export const Companies: React.FC = () => {
 
             {loading ? (
                 <div className="py-40 text-center">
-                    <div className="w-16 h-16 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin mx-auto mb-6"></div>
-                    <p className="text-slate-400 font-bold uppercase tracking-widest text-sm italic">Syncing Enterprise Matrix...</p>
+                    <div className="w-16 h-16 border-4 border-slate-100 border-t-blue-600 rounded-full animate-spin mx-auto mb-6"></div>
+                    <p className="text-slate-400 font-black uppercase tracking-[0.3em] text-[10px] animate-pulse">Syncing Instance Matrix...</p>
                 </div>
             ) : filteredCompanies.length === 0 ? (
-                <div className="py-40 text-center bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200">
-                    <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm text-slate-200">
+                <div className="py-40 text-center bg-white rounded-[2rem] border-2 border-dashed border-slate-100 shadow-sm">
+                    <div className="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center mx-auto mb-6 text-slate-200">
                         <Building2 size={40} />
                     </div>
-                    <h3 className="text-slate-800 font-bold text-xl mb-2">No Organizations Found</h3>
-                    <p className="text-slate-500 text-sm max-w-xs mx-auto mb-8">Your directory is empty. Initialize your first organization account to get started.</p>
-                    <button onClick={openCreateModal} className="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-md active:scale-95 inline-flex items-center gap-2">
-                        <Plus size={20} /> Register Company
+                    <h3 className="text-slate-800 font-black uppercase tracking-tight text-xl mb-2">No Instances Detected</h3>
+                    <p className="text-slate-500 text-sm max-w-xs mx-auto mb-8 font-medium">Your global matrix is empty. Register your first institutional node to begin.</p>
+                    <button onClick={openCreateModal} className="bg-blue-600 text-white px-8 py-4 rounded-xl font-black uppercase tracking-widest text-[11px] hover:bg-blue-700 transition-all shadow-lg active:scale-95 inline-flex items-center gap-2">
+                        <Plus size={20} strokeWidth={3} /> Register Entity
                     </button>
                 </div>
             ) : viewMode === 'grid' ? (
                 /* Grid View */
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {filteredCompanies.map((company) => (
-                        <div key={company.id} className="bg-white rounded-3xl border border-slate-200 hover:border-blue-400 hover:shadow-2xl transition-all group relative overflow-hidden flex flex-col p-8 cursor-default">
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 opacity-0 group-hover:opacity-100 -translate-y-1/2 translate-x-1/2 rounded-full transition-all duration-500 blur-2xl"></div>
-
+                        <div key={company.id} className="bg-white rounded-[2rem] border border-slate-50 hover:border-blue-200 hover:shadow-2xl transition-all group relative overflow-hidden flex flex-col p-8 cursor-default">
                             <div className="flex justify-between items-start mb-8 relative z-10">
-                                <div className="w-20 h-20 rounded-2xl border border-slate-100 bg-slate-50 flex items-center justify-center text-blue-600 overflow-hidden shadow-sm group-hover:shadow-md transition-all group-hover:scale-105">
+                                <div className="w-16 h-16 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-blue-600 overflow-hidden shadow-sm group-hover:scale-105 transition-all">
                                     {company.logoUrl ? (
-                                        <img src={company.logoUrl} alt={company.name} className="w-full h-full object-cover" />
+                                        <img src={company.logoUrl} alt={company.companyName} className="w-full h-full object-cover" />
                                     ) : (
-                                        <Building2 size={36} />
+                                        <Building2 size={28} strokeWidth={2.5} />
                                     )}
                                 </div>
                                 <div className="relative">
                                     <button
                                         onClick={() => setOpenMenuId(openMenuId === company.id ? null : company.id)}
-                                        className="w-10 h-10 bg-slate-50 hover:bg-blue-600 hover:text-white rounded-xl flex items-center justify-center text-slate-400 transition-all shadow-sm"
+                                        className="w-10 h-10 bg-slate-50 hover:bg-blue-600 hover:text-white rounded-xl flex items-center justify-center text-slate-400 transition-all active:scale-90"
                                     >
                                         <MoreVertical size={18} />
                                     </button>
 
                                     {openMenuId === company.id && (
                                         <>
-                                            <div
-                                                className="fixed inset-0 z-10"
-                                                onClick={() => setOpenMenuId(null)}
-                                            ></div>
-                                            <div className="absolute right-0 top-12 z-20 bg-white rounded-2xl shadow-2xl border-2 border-slate-200 overflow-hidden min-w-[180px] animate-scale-in">
-                                                <button
-                                                    onClick={() => handleEdit(company)}
-                                                    className="w-full px-5 py-3 text-left hover:bg-blue-50 transition-colors flex items-center gap-3 text-slate-700 hover:text-blue-600 font-semibold text-sm"
-                                                >
-                                                    <Edit2 size={16} />
-                                                    Edit Organization
+                                            <div className="fixed inset-0 z-10" onClick={() => setOpenMenuId(null)}></div>
+                                            <div className="absolute right-0 top-12 z-20 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden min-w-[200px] animate-scale-in">
+                                                <button onClick={() => handleEdit(company)} className="w-full px-5 py-4 text-left hover:bg-blue-50 transition-colors flex items-center gap-3 text-slate-700 font-bold text-[11px] uppercase tracking-widest">
+                                                    <Edit2 size={16} strokeWidth={3} /> Edit Node
                                                 </button>
-                                                <button
-                                                    onClick={() => handleDelete(company.id)}
-                                                    className="w-full px-5 py-3 text-left hover:bg-red-50 transition-colors flex items-center gap-3 text-slate-700 hover:text-red-600 font-semibold text-sm border-t border-slate-100"
-                                                >
-                                                    <Trash2 size={16} />
-                                                    Delete Organization
+                                                <button onClick={() => handleDelete(company.id)} className="w-full px-5 py-4 text-left hover:bg-rose-50 transition-colors flex items-center gap-3 text-rose-600 font-bold text-[11px] uppercase tracking-widest border-t border-slate-50">
+                                                    <Trash2 size={16} strokeWidth={3} /> Terminate
                                                 </button>
                                             </div>
                                         </>
@@ -280,115 +270,93 @@ export const Companies: React.FC = () => {
 
                             <div className="space-y-6 relative z-10 flex-1">
                                 <div>
-                                    <h3 className="text-2xl font-bold text-slate-800 group-hover:text-blue-600 transition-colors line-clamp-1">{company.name}</h3>
-                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-2 italic">ID: {(company.userId || company.id || '').substring(0, 15)}...</p>
+                                    <h3 className="text-xl font-black text-slate-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight line-clamp-1">{company.companyName}</h3>
+                                    <div className="flex items-center gap-2 mt-1.5">
+                                        <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-600 text-[8px] font-black uppercase tracking-widest">{company.industry}</span>
+                                        <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest italic">{(company.id).substring(0, 8)}</span>
+                                    </div>
                                 </div>
 
                                 <div className="space-y-3">
-                                    <div className="flex items-center gap-3 text-slate-500 text-sm font-medium">
-                                        <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center shrink-0 border border-slate-100">
-                                            <Mail size={14} className="text-blue-500" />
-                                        </div>
-                                        <span className="truncate">{company.email}</span>
+                                    <div className="flex items-center gap-3 text-slate-500 text-[11px] font-bold">
+                                        <Mail size={14} className="text-blue-400" />
+                                        <span className="truncate">{company.ownerEmail}</span>
                                     </div>
-                                    <div className="flex items-center gap-3 text-slate-500 text-sm font-medium">
-                                        <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center shrink-0 border border-slate-100">
-                                            <Phone size={14} className="text-blue-500" />
-                                        </div>
-                                        <span>{company.phone || 'No phone set'}</span>
+                                    <div className="flex items-center gap-3 text-slate-500 text-[11px] font-bold">
+                                        <Phone size={14} className="text-blue-400" />
+                                        <span>{company.phone || 'NO CONTACT SET'}</span>
+                                    </div>
+                                    <div className="flex items-center gap-3 text-slate-500 text-[11px] font-bold">
+                                        <Globe size={14} className="text-blue-400" />
+                                        <span>{company.subdomain}.averqon.com</span>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="mt-8 pt-8 border-t border-slate-50 flex items-center justify-between relative z-10">
-                                <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-100 uppercase tracking-widest italic">
-                                    <ShieldCheck size={12} />
-                                    Verified Account
+                            <div className="mt-8 pt-6 border-t border-slate-50 flex items-center justify-between relative z-10">
+                                <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-[9px] font-black bg-emerald-50 text-emerald-600 uppercase tracking-widest border border-emerald-100">
+                                    <CheckCircle2 size={12} strokeWidth={3} /> {company.status}
                                 </span>
-                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                    {company.createdAt ? new Date(company.createdAt).toLocaleDateString(undefined, { month: 'short', year: 'numeric' }) : 'Join Date N/A'}
+                                <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest italic">
+                                    {company.createdAt ? new Date(company.createdAt).toLocaleDateString(undefined, { month: 'short', year: 'numeric' }) : 'N/A'}
                                 </span>
                             </div>
                         </div>
                     ))}
                 </div>
             ) : (
-                /* List View */
-                <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden table-responsive">
+                /* List View - Reusing registry style */
+                <div className="bg-white rounded-[2rem] shadow-premium overflow-hidden border border-slate-50">
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left min-w-[1000px]">
+                        <table className="w-full text-left">
                             <thead>
-                                <tr className="border-b border-slate-50">
-                                    <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Organization</th>
-                                    <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Contact Persons</th>
-                                    <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Location</th>
-                                    <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Status</th>
-                                    <th className="px-8 py-6 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Actions</th>
+                                <tr className="bg-slate-50/50">
+                                    <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Instance Node</th>
+                                    <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Ownership Matrix</th>
+                                    <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
+                                    <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50">
                                 {filteredCompanies.map((company) => (
-                                    <tr key={company.id} className="hover:bg-blue-50/20 transition-all group">
-                                        <td className="px-10 py-8">
+                                    <tr key={company.id} className="hover:bg-slate-50/30 transition-all group">
+                                        <td className="px-10 py-6">
                                             <div className="flex items-center gap-6">
-                                                <div className="w-16 h-16 rounded-2xl bg-white border border-slate-100 flex items-center justify-center text-blue-600 overflow-hidden shadow-sm group-hover:scale-110 transition-transform">
+                                                <div className="w-14 h-14 rounded-2xl bg-white border border-slate-100 flex items-center justify-center text-blue-600 overflow-hidden shadow-sm group-hover:scale-110 transition-transform">
                                                     {company.logoUrl ? (
-                                                        <img src={company.logoUrl} alt={company.name} className="w-full h-full object-cover" />
+                                                        <img src={company.logoUrl} alt={company.companyName} className="w-full h-full object-cover" />
                                                     ) : (
-                                                        <Building2 size={28} />
+                                                        <Building2 size={24} strokeWidth={2.5} />
                                                     )}
                                                 </div>
                                                 <div>
-                                                    <span className="font-bold text-slate-800 text-lg leading-tight block mb-1">{company.name}</span>
-                                                    <div className="flex items-center gap-2 text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                                                        <Globe size={10} className="text-blue-400" />
-                                                        ID: {(company.userId || company.id || '').substring(0, 16)}...
+                                                    <span className="font-black text-slate-800 text-base uppercase tracking-tight block mb-1">{company.companyName}</span>
+                                                    <div className="flex items-center gap-2 text-[10px] text-slate-400 font-bold uppercase tracking-widest italic">
+                                                        <Globe size={12} className="text-blue-400" />
+                                                        {company.subdomain}.averqon.com
                                                     </div>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-10 py-8">
-                                            <div className="space-y-2">
-                                                <p className="text-slate-700 font-bold text-sm tracking-tight">{company.email}</p>
-                                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-100 uppercase tracking-[0.1em] italic">
-                                                    <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse"></div>
-                                                    Fully Indexed & Active
-                                                </span>
+                                        <td className="px-10 py-6">
+                                            <div className="space-y-1.5">
+                                                <p className="text-slate-700 font-black text-xs tracking-tight uppercase">{company.ownerEmail}</p>
+                                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest italic">{company.phone || 'no phone'}</p>
                                             </div>
                                         </td>
-                                        <td className="px-10 py-8 text-right">
-                                            <div className="relative inline-block">
-                                                <button
-                                                    onClick={() => setOpenMenuId(openMenuId === company.id ? null : company.id)}
-                                                    className="w-10 h-10 bg-slate-50 hover:bg-blue-600 hover:text-white rounded-xl flex items-center justify-center text-slate-400 transition-all shadow-sm"
-                                                >
-                                                    <MoreVertical size={18} />
+                                        <td className="px-10 py-6">
+                                            <span className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest ${company.status === 'Active' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-rose-50 text-rose-600 border border-rose-100'}`}>
+                                                {company.status}
+                                            </span>
+                                        </td>
+                                        <td className="px-10 py-6 text-right">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <button onClick={() => handleEdit(company)} className="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center active:scale-90">
+                                                    <Edit2 size={16} strokeWidth={3} />
                                                 </button>
-
-                                                {openMenuId === company.id && (
-                                                    <>
-                                                        <div
-                                                            className="fixed inset-0 z-10"
-                                                            onClick={() => setOpenMenuId(null)}
-                                                        ></div>
-                                                        <div className="absolute right-0 top-12 z-20 bg-white rounded-2xl shadow-2xl border-2 border-slate-200 overflow-hidden min-w-[180px] animate-scale-in">
-                                                            <button
-                                                                onClick={() => handleEdit(company)}
-                                                                className="w-full px-5 py-3 text-left hover:bg-blue-50 transition-colors flex items-center gap-3 text-slate-700 hover:text-blue-600 font-semibold text-sm"
-                                                            >
-                                                                <Edit2 size={16} />
-                                                                Edit Organization
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleDelete(company.id)}
-                                                                className="w-full px-5 py-3 text-left hover:bg-red-50 transition-colors flex items-center gap-3 text-slate-700 hover:text-red-600 font-semibold text-sm border-t border-slate-100"
-                                                            >
-                                                                <Trash2 size={16} />
-                                                                Delete Organization
-                                                            </button>
-                                                        </div>
-                                                    </>
-                                                )}
+                                                <button onClick={() => handleDelete(company.id)} className="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 hover:bg-rose-600 hover:text-white transition-all flex items-center justify-center active:scale-90">
+                                                    <Trash2 size={16} strokeWidth={3} />
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
@@ -399,310 +367,153 @@ export const Companies: React.FC = () => {
                 </div>
             )}
 
-            {/* Premium Landscape Form */}
+            {/* Premium Full-Screen Modal */}
             {showModal && (
-                <div className="fixed inset-0 z-[100] bg-slate-100 overflow-y-auto animate-fade-in">
-                    <div className="min-h-screen p-8">
-                        {/* Header */}
-                        <div className="mb-8 flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 flex items-center justify-center shadow-lg">
-                                    <Building2 size={32} className="text-white" />
-                                </div>
-                                <div>
-                                    <h2 className="text-4xl font-black bg-gradient-to-r from-slate-900 via-purple-900 to-blue-900 bg-clip-text text-transparent tracking-tight">
-                                        {editingId ? 'Edit Organization' : 'New Organization'}
-                                    </h2>
-                                    <p className="text-slate-600 text-sm font-semibold mt-1 flex items-center gap-2">
-                                        <ShieldCheck size={16} className="text-purple-600" />
-                                        Enterprise-grade configuration
-                                    </p>
-                                </div>
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-xl animate-fade-in">
+                    <div className="bg-white w-full max-w-5xl rounded-[2.5rem] shadow-2xl relative overflow-hidden border border-white/20 flex flex-col max-h-[90vh]">
+                        <div className="p-10 border-b border-slate-100 flex items-center justify-between shrink-0">
+                            <div>
+                                <h2 className="text-3xl font-black text-slate-900 tracking-tight uppercase flex items-center gap-3">
+                                    <Building2 className="text-blue-600" size={32} strokeWidth={3} />
+                                    {editingId ? 'Modify Instance' : 'Provision Instance'}
+                                </h2>
+                                <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.3em] mt-2 italic">Neural Node Architecture Config</p>
                             </div>
-                            <button
-                                onClick={() => setShowModal(false)}
-                                className="w-12 h-12 flex items-center justify-center bg-white hover:bg-red-50 border-2 border-slate-200 hover:border-red-300 rounded-2xl text-slate-500 hover:text-red-600 transition-all shadow-sm hover:shadow-md active:scale-95"
-                            >
-                                <XIcon size={22} />
+                            <button onClick={() => setShowModal(false)} className="w-12 h-12 bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-2xl transition-all shadow-sm border border-slate-100 flex items-center justify-center active:scale-90">
+                                <XIcon size={24} strokeWidth={3} />
                             </button>
                         </div>
 
-                        {/* Form Content - Landscape Layout */}
-                        <form onSubmit={handleSubmit} className="space-y-6">
-                            {/* Alerts */}
-                            {error && (
-                                <div className="p-5 bg-gradient-to-r from-red-50 to-pink-50 text-red-700 text-sm font-semibold rounded-2xl flex items-center gap-3 border-2 border-red-200 shadow-sm animate-shake">
-                                    <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center shrink-0">
-                                        <AlertCircle size={20} className="text-red-600" />
+                        <div className="overflow-y-auto p-10 custom-scrollbar">
+                            <form onSubmit={handleSubmit} className="space-y-8">
+                                {error && (
+                                    <div className="p-6 bg-rose-50 border-2 border-rose-100 rounded-2xl flex items-center gap-3 text-rose-600 animate-shake">
+                                        <AlertCircle size={24} strokeWidth={3} />
+                                        <p className="font-black uppercase tracking-widest text-[11px]">{error}</p>
                                     </div>
-                                    <span>{error}</span>
-                                </div>
-                            )}
+                                )}
 
-                            {success && (
-                                <div className="p-5 bg-gradient-to-r from-emerald-50 to-green-50 text-emerald-700 text-sm font-semibold rounded-2xl flex items-center gap-3 border-2 border-emerald-200 shadow-sm">
-                                    <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
-                                        <ShieldCheck size={20} className="text-emerald-600" />
-                                    </div>
-                                    <span>{success}</span>
-                                </div>
-                            )}
-
-                            {/* Main Grid - Landscape Layout */}
-                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                                {/* Left Column - Logo Upload */}
-                                <div className="lg:col-span-1">
-                                    <div className="bg-white rounded-3xl p-8 border-2 border-slate-200 shadow-lg h-full">
-                                        <div className="flex flex-col items-center gap-6 h-full justify-center">
-                                            <div className="relative group">
-                                                <div className="w-48 h-48 rounded-3xl bg-gradient-to-br from-slate-50 to-white border-2 border-dashed border-slate-300 group-hover:border-purple-400 flex items-center justify-center overflow-hidden transition-all duration-300 shadow-xl group-hover:shadow-2xl">
-                                                    {formData.logoUrl ? (
-                                                        <img src={formData.logoUrl} alt="Logo" className="w-full h-full object-cover" />
-                                                    ) : (
-                                                        <div className="flex flex-col items-center gap-3 text-slate-300 group-hover:text-purple-500 transition-colors">
-                                                            <Plus size={48} strokeWidth={2.5} />
-                                                            <span className="text-sm font-bold">Upload Logo</span>
-                                                        </div>
-                                                    )}
-                                                    <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 opacity-0 group-hover:opacity-95 flex items-center justify-center transition-all duration-300 cursor-pointer">
-                                                        <Plus className="text-white" size={48} strokeWidth={2.5} />
-                                                    </div>
-                                                    <input
-                                                        type="file"
-                                                        accept="image/*"
-                                                        onChange={handleFileChange}
-                                                        className="absolute inset-0 opacity-0 cursor-pointer"
-                                                    />
-                                                </div>
-                                                {formData.logoUrl && (
-                                                    <div className="absolute -top-3 -right-3 w-10 h-10 bg-gradient-to-br from-emerald-500 to-green-600 rounded-full flex items-center justify-center shadow-lg border-3 border-white">
-                                                        <ShieldCheck size={20} className="text-white" />
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div className="text-center space-y-2">
-                                                <h3 className="text-base font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent uppercase tracking-wider">
-                                                    Company Logo
-                                                </h3>
-                                                <p className="text-sm font-semibold text-slate-500">
-                                                    {uploading ? (
-                                                        <span className="flex items-center gap-2 justify-center">
-                                                            <div className="w-4 h-4 border-2 border-purple-200 border-t-purple-600 rounded-full animate-spin"></div>
-                                                            Uploading...
-                                                        </span>
-                                                    ) : (
-                                                        'Click or drag to upload'
-                                                    )}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Right Column - Form Fields */}
-                                <div className="lg:col-span-2 space-y-6">
-                                    {/* Basic Information Card */}
-                                    <div className="bg-white rounded-3xl p-8 border-2 border-slate-200 shadow-lg">
-                                        <div className="flex items-center gap-3 mb-6">
-                                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
-                                                <Building2 size={20} className="text-white" />
-                                            </div>
-                                            <h3 className="text-xl font-black text-slate-900 uppercase tracking-wide">Basic Information</h3>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            {/* Organization Name */}
-                                            <div className="md:col-span-2 space-y-2.5">
-                                                <label className="text-xs font-bold text-slate-600 uppercase tracking-wider ml-1 flex items-center gap-2">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-blue-600 to-purple-600"></div>
-                                                    Organization Name
-                                                </label>
-                                                <div className="relative group">
-                                                    <div className="absolute left-5 w-11 h-11 rounded-xl bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center group-focus-within:from-blue-500 group-focus-within:to-purple-500 transition-all">
-                                                        <Building2 size={20} className="text-blue-600 group-focus-within:text-white transition-colors" />
-                                                    </div>
-                                                    <input
-                                                        type="text"
-                                                        required
-                                                        className="w-full pl-20 pr-6 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl focus:bg-white focus:border-purple-400 focus:shadow-lg text-slate-900 outline-none transition-all font-semibold text-base placeholder:text-slate-400"
-                                                        placeholder="Enter company name"
-                                                        value={formData.name}
-                                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            {/* Email */}
-                                            <div className="space-y-2.5">
-                                                <label className="text-xs font-bold text-slate-600 uppercase tracking-wider ml-1 flex items-center gap-2">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-purple-600 to-pink-600"></div>
-                                                    Primary Email
-                                                </label>
-                                                <div className="relative group">
-                                                    <div className="absolute left-5 w-11 h-11 rounded-xl bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center group-focus-within:from-purple-500 group-focus-within:to-pink-500 transition-all">
-                                                        <Mail size={20} className="text-purple-600 group-focus-within:text-white transition-colors" />
-                                                    </div>
-                                                    <input
-                                                        type="email"
-                                                        required
-                                                        disabled={!!editingId}
-                                                        className="w-full pl-20 pr-6 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl focus:bg-white focus:border-purple-400 focus:shadow-lg text-slate-900 outline-none transition-all font-semibold text-base placeholder:text-slate-400 disabled:opacity-60 disabled:cursor-not-allowed"
-                                                        placeholder="admin@company.com"
-                                                        value={formData.email}
-                                                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            {/* Phone */}
-                                            <div className="space-y-2.5">
-                                                <label className="text-xs font-bold text-slate-600 uppercase tracking-wider ml-1 flex items-center gap-2">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-cyan-600 to-blue-600"></div>
-                                                    Phone Number
-                                                </label>
-                                                <div className="relative group">
-                                                    <div className="absolute left-5 w-11 h-11 rounded-xl bg-gradient-to-br from-cyan-100 to-blue-100 flex items-center justify-center group-focus-within:from-cyan-500 group-focus-within:to-blue-500 transition-all">
-                                                        <Phone size={20} className="text-cyan-600 group-focus-within:text-white transition-colors" />
-                                                    </div>
-                                                    <input
-                                                        type="tel"
-                                                        className="w-full pl-20 pr-6 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl focus:bg-white focus:border-cyan-400 focus:shadow-lg text-slate-900 outline-none transition-all font-semibold text-base placeholder:text-slate-400"
-                                                        placeholder="+91 1234567890"
-                                                        value={formData.phone}
-                                                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            {/* Password (only for new) */}
-                                            {!editingId && (
-                                                <div className="md:col-span-2 space-y-2.5">
-                                                    <label className="text-xs font-bold text-slate-600 uppercase tracking-wider ml-1 flex items-center gap-2">
-                                                        <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-pink-600 to-red-600"></div>
-                                                        Password
-                                                    </label>
-                                                    <div className="relative group">
-                                                        <div className="absolute left-5 w-11 h-11 rounded-xl bg-gradient-to-br from-pink-100 to-red-100 flex items-center justify-center group-focus-within:from-pink-500 group-focus-within:to-red-500 transition-all">
-                                                            <Lock size={20} className="text-pink-600 group-focus-within:text-white transition-colors" />
-                                                        </div>
-                                                        <input
-                                                            type="password"
-                                                            required
-                                                            minLength={6}
-                                                            className="w-full pl-20 pr-6 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl focus:bg-white focus:border-pink-400 focus:shadow-lg text-slate-900 outline-none transition-all font-semibold text-base placeholder:text-slate-400"
-                                                            placeholder="••••••••"
-                                                            value={formData.password}
-                                                            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    {/* Industry Configuration Card */}
-                                    <div className="bg-white rounded-3xl p-8 border-2 border-slate-200 shadow-lg">
-                                        <div className="flex items-center gap-3 mb-6">
-                                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center">
-                                                <Activity size={20} className="text-white" />
-                                            </div>
-                                            <div>
-                                                <h3 className="text-xl font-black text-slate-900 uppercase tracking-wide">Industry Configuration</h3>
-                                                <p className="text-xs font-semibold text-slate-500 mt-0.5">Customize platform features for your business</p>
-                                            </div>
-                                        </div>
-
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                                    {/* Column 1: Identity */}
+                                    <div className="space-y-8">
                                         <div className="space-y-6">
-                                            <div className="space-y-2.5">
-                                                <label className="text-xs font-bold text-slate-600 uppercase tracking-wider ml-1 flex items-center gap-2">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600"></div>
-                                                    Business Vertical
-                                                </label>
-                                                <div className="relative">
-                                                    <select
-                                                        className="w-full pl-6 pr-12 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl focus:bg-white focus:border-purple-400 focus:shadow-lg text-slate-900 outline-none transition-all font-semibold text-base appearance-none cursor-pointer hover:border-purple-300"
-                                                        value={formData.industry}
-                                                        onChange={(e) => setFormData({ ...formData, industry: e.target.value as any })}
-                                                    >
-                                                        <option value="Freelancer">🧑‍💼 Freelancer / Consultant (Service-Based)</option>
-                                                        <option value="Retail">�️ Retail & Shop (POS & Inventory)</option>
-                                                        <option value="Manufacturing">� Manufacturing & Production (BOM)</option>
-                                                        <option value="Tours">🧳 Tours & Travels (Booking Management)</option>
-                                                        <option value="Service">🧑‍🔧 Service Business (Appointments)</option>
-                                                        <option value="Wholesale">🏢 Wholesale & Distribution (B2B)</option>
-                                                        <option value="Construction">🏗️ Construction & Contracting (Project-Based)</option>
-                                                        <option value="Clinic">🏥 Healthcare & Clinic (Patient Management)</option>
-                                                    </select>
-                                                    <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
-                                                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-100 to-indigo-100 flex items-center justify-center">
-                                                            <Activity size={16} className="text-purple-600" />
+                                            <h3 className="text-[10px] font-black text-slate-300 uppercase tracking-[0.4em] flex items-center gap-2">
+                                                <span className="w-4 h-[2px] bg-slate-200"></span> 01 Identity Profile
+                                            </h3>
+
+                                            <div className="flex items-center gap-8">
+                                                <div className="relative group shrink-0">
+                                                    <div className="w-32 h-32 rounded-3xl bg-slate-50 border-2 border-dashed border-slate-200 group-hover:border-blue-400 flex items-center justify-center overflow-hidden transition-all shadow-inner">
+                                                        {formData.logoUrl ? (
+                                                            <img src={formData.logoUrl} alt="Logo" className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <Building2 className="text-slate-200 group-hover:text-blue-400 transition-colors" size={40} />
+                                                        )}
+                                                        <div className="absolute inset-0 bg-blue-600/90 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center transition-all cursor-pointer text-white">
+                                                            <Plus size={24} strokeWidth={3} />
+                                                            <span className="text-[8px] font-black uppercase tracking-widest mt-1 text-center px-2">Update Visual</span>
                                                         </div>
+                                                        <input type="file" accept="image/*" onChange={handleFileChange} className="absolute inset-0 opacity-0 cursor-pointer" />
+                                                    </div>
+                                                </div>
+                                                <div className="flex-1 space-y-4">
+                                                    <div className="space-y-1">
+                                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Entity Name</label>
+                                                        <input type="text" required className="w-full bg-slate-50 border-none p-4 rounded-xl text-slate-900 outline-none focus:ring-4 focus:ring-blue-100 transition-all font-black text-sm placeholder:text-slate-300 uppercase italic tracking-tight" placeholder="e.g. ACME GLOBAL CORP" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
                                                     </div>
                                                 </div>
                                             </div>
+                                        </div>
 
-                                            <div className="flex items-start gap-3 p-5 bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl border-2 border-blue-200">
-                                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shrink-0 shadow-md">
-                                                    <Activity size={18} className="text-white" />
+                                        <div className="space-y-4">
+                                            <h3 className="text-[10px] font-black text-slate-300 uppercase tracking-[0.4em] flex items-center gap-2">
+                                                <span className="w-4 h-[2px] bg-slate-200"></span> 02 Authentication Matrix
+                                            </h3>
+                                            <div className="grid grid-cols-1 gap-4">
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Owner Email Protocol</label>
+                                                    <div className="relative group">
+                                                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-600 transition-colors" size={18} strokeWidth={3} />
+                                                        <input type="email" required disabled={!!editingId} className="w-full bg-slate-50 border-none p-4 pl-12 rounded-xl text-slate-900 outline-none focus:ring-4 focus:ring-blue-100 transition-all font-black text-sm disabled:opacity-50 lowercase tracking-tight" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
+                                                    </div>
                                                 </div>
-                                                <div className="space-y-1 flex-1">
-                                                    <p className="text-sm font-bold text-blue-900">Smart Auto-Configuration</p>
-                                                    <p className="text-xs text-blue-700 leading-relaxed">
-                                                        Your selected industry will automatically configure modules like Inventory, Estimates, and Manufacturing to match industry best practices.
-                                                    </p>
-                                                </div>
+                                                {!editingId && (
+                                                    <div className="space-y-1">
+                                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Secure Pass-Key</label>
+                                                        <div className="relative group">
+                                                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-600 transition-colors" size={18} strokeWidth={3} />
+                                                            <input type="password" required className="w-full bg-slate-50 border-none p-4 pl-12 rounded-xl text-slate-900 outline-none focus:ring-4 focus:ring-blue-100 transition-all font-black text-sm" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} />
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            </div>
 
-                            {/* Action Buttons */}
-                            <div className="flex justify-end gap-4 pt-4">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowModal(false)}
-                                    className="px-8 py-4 bg-white hover:bg-slate-50 border-2 border-slate-300 hover:border-slate-400 text-slate-700 font-bold rounded-2xl transition-all shadow-sm hover:shadow-md active:scale-[0.98] uppercase tracking-wide text-sm"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={creating || uploading}
-                                    className="px-10 py-4 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:via-purple-700 hover:to-pink-700 text-white font-black rounded-2xl transition-all shadow-xl hover:shadow-2xl uppercase tracking-wide text-sm disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden group active:scale-[0.98]"
-                                >
-                                    <span className="relative z-10 flex items-center justify-center gap-2">
-                                        {creating ? (
-                                            <>
-                                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                                Processing...
-                                            </>
-                                        ) : (
-                                            <>
-                                                {editingId ? (
-                                                    <>
-                                                        <Edit2 size={18} />
-                                                        Update Organization
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <Plus size={18} />
-                                                        Create Organization
-                                                    </>
-                                                )}
-                                            </>
-                                        )}
-                                    </span>
-                                    <div className="absolute inset-0 bg-gradient-to-r from-pink-600 via-purple-600 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                                </button>
-                            </div>
-                        </form>
+                                    {/* Column 2: Configuration */}
+                                    <div className="space-y-8">
+                                        <div className="space-y-4">
+                                            <h3 className="text-[10px] font-black text-slate-300 uppercase tracking-[0.4em] flex items-center gap-2">
+                                                <span className="w-4 h-[2px] bg-slate-200"></span> 03 Industry Logic
+                                            </h3>
+                                            <div className="space-y-1">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Business Vertical</label>
+                                                <select
+                                                    className="w-full bg-slate-50 border-none p-5 rounded-2xl text-slate-900 outline-none focus:ring-4 focus:ring-blue-100 transition-all font-black text-sm appearance-none cursor-pointer uppercase tracking-tight italic"
+                                                    value={formData.industry}
+                                                    onChange={(e) => setFormData({ ...formData, industry: e.target.value as any })}
+                                                >
+                                                    <option value="Freelancer">🧑‍💼 Service Business</option>
+                                                    <option value="Retail">️ Retail & Inventory</option>
+                                                    <option value="Manufacturing"> Production Line</option>
+                                                    <option value="Tours">🧳 Tourism Matrix</option>
+                                                    <option value="Wholesale">🏢 Enterprise B2B</option>
+                                                    <option value="Construction">🏗️ Heavy Infrastructure</option>
+                                                    <option value="Clinic">🏥 Medical Node</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-4">
+                                            <h3 className="text-[10px] font-black text-slate-300 uppercase tracking-[0.4em] flex items-center gap-2">
+                                                <span className="w-4 h-[2px] bg-slate-200"></span> 04 Telemetry Sync
+                                            </h3>
+                                            <div className="space-y-1">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Contact Handshake (Phone)</label>
+                                                <div className="relative group">
+                                                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-600 transition-colors" size={18} strokeWidth={3} />
+                                                    <input type="tel" className="w-full bg-slate-50 border-none p-4 pl-12 rounded-xl text-slate-900 outline-none focus:ring-4 focus:ring-blue-100 transition-all font-black text-sm tracking-widest" placeholder="+1-XXX-XXX-XXXX" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="p-6 bg-blue-600 rounded-[2rem] text-white shadow-xl shadow-blue-100">
+                                            <div className="flex items-center gap-3 mb-4">
+                                                <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                                                    <ShieldCheck size={20} strokeWidth={3} />
+                                                </div>
+                                                <p className="font-black uppercase tracking-widest text-[11px]">System Provisioning Active</p>
+                                            </div>
+                                            <p className="text-[10px] text-blue-100 font-bold leading-relaxed italic opacity-80">
+                                                By committing these changes, you will initialize a dedicated node in the matrix. All modules related to the selected vertical will be automatically provisioned.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-end gap-4 pt-10 border-t border-slate-50">
+                                    <button type="button" onClick={() => setShowModal(false)} className="px-10 py-4 bg-slate-50 text-slate-400 font-black uppercase tracking-widest text-[11px] hover:bg-rose-50 hover:text-rose-600 transition-all active:scale-95 rounded-xl border border-slate-100">
+                                        Cancel Operation
+                                    </button>
+                                    <button type="submit" disabled={creating} className="px-12 py-4 bg-blue-600 text-white font-black uppercase tracking-widest text-[11px] hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 active:scale-95 rounded-xl disabled:opacity-50">
+                                        {creating ? 'Processing...' : editingId ? 'Commit Update' : 'Initialize Node'}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
             )}
         </div>
     );
 };
-
-
-

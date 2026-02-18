@@ -37,7 +37,9 @@ const DEFAULT_CONFIG: BusinessConfig = {
         enableAdvancedAnalytics: true,
         enableMultiBranch: false,
         enableWhatsAppIntegration: true,
-        enablePaymentGateway: true
+        enablePaymentGateway: true,
+        enableProjectManagement: false,
+        enableServiceManagement: false
     },
     customFields: {},
     workflows: {
@@ -102,7 +104,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const fetchCompanyConfig = async () => {
             try {
                 const { getAuth } = await import('firebase/auth');
-                const { collection, query, where, getDocs, getFirestore } = await import('firebase/firestore');
+                const { collection, query, where, getDocs, getFirestore, addDoc, serverTimestamp } = await import('firebase/firestore');
 
                 const auth = getAuth();
                 const user = auth.currentUser;
@@ -111,53 +113,58 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
                 const db = getFirestore();
 
-                // Query companies collection by userId field
-                const companiesRef = collection(db, 'companies');
-                const q = query(companiesRef, where('userId', '==', user.uid));
+                // Query tenants collection by userId field (formerly companies)
+                const tenantsRef = collection(db, 'tenants');
+                const q = query(tenantsRef, where('userId', '==', user.uid));
                 const querySnapshot = await getDocs(q);
 
                 if (!querySnapshot.empty) {
-                    const companyDoc = querySnapshot.docs[0];
-                    const companyData = companyDoc.data();
+                    const tenantDoc = querySnapshot.docs[0];
+                    const tenantData = tenantDoc.data();
 
-                    console.log('🔍 Loaded Company Config:', companyData.config);
+                    console.log('🔍 Loaded Tenant Config:', tenantData.config);
 
-                    // If company has a config, use it
-                    if (companyData.config) {
+                    // If tenant has a config, use it
+                    if (tenantData.config) {
                         setBusinessConfig(prev => ({
                             ...prev,
-                            ...companyData.config
+                            ...tenantData.config
                         }));
-                        console.log('✅ Business Config Updated:', companyData.config);
+                        console.log('✅ Business Config Updated:', tenantData.config);
                     } else {
-                        console.warn('⚠️ No config found in company document');
+                        console.warn('⚠️ No config found in tenant document');
                     }
                 } else {
-                    console.warn('⚠️ No company document found for user:', user.uid);
-                    console.log('🛠️ Creating default company document...');
+                    console.warn('⚠️ No tenant document found for user:', user.uid);
+                    console.log('🛠️ Creating default tenant document...');
 
                     try {
-                        const { addDoc, serverTimestamp } = await import('firebase/firestore');
-
-                        const newCompany = {
+                        const subdomain = (user.displayName || 'company').toLowerCase().replace(/[^a-z0-9]/g, '') || 'company-' + Date.now();
+                        const newTenant = {
                             userId: user.uid,
-                            name: user.displayName || 'My Company',
-                            email: user.email,
+                            companyName: user.displayName || 'My Company',
+                            ownerEmail: user.email,
+                            subdomain: subdomain,
                             createdAt: serverTimestamp(),
+                            status: 'Active',
+                            plan: 'Pro',
+                            industry: 'Retail',
+                            isDomainVerified: false,
+                            usersCount: 1,
+                            mrr: '0',
                             config: { ...DEFAULT_CONFIG, userId: user.uid, companyName: user.displayName || 'My Company' }
                         };
 
-                        await addDoc(companiesRef, newCompany);
-                        console.log('✅ Default company created successfully');
+                        await addDoc(tenantsRef, newTenant);
+                        console.log('✅ Default tenant created successfully');
 
-                        // Set state immediately to reflect the default config
                         setBusinessConfig(DEFAULT_CONFIG);
                     } catch (createError) {
-                        console.error('❌ Failed to create default company:', createError);
+                        console.error('❌ Failed to create default tenant:', createError);
                     }
                 }
             } catch (error) {
-                console.error('❌ Failed to fetch company config:', error);
+                console.error('❌ Failed to fetch tenant config:', error);
             }
         };
 

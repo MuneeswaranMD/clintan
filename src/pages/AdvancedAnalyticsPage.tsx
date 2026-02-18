@@ -1,13 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
     TrendingUp, TrendingDown, Package, DollarSign, AlertTriangle,
     CheckCircle, AlertCircle, ArrowUpRight, ArrowDownRight, Zap,
-    ShoppingCart, Users, Clock, Target, Activity, RefreshCw
+    ShoppingCart, Users, Clock, Target, Activity, RefreshCw,
+    Search, Calendar, Filter, Download, ChevronRight, BarChart3,
+    Activity as HealthIcon
 } from 'lucide-react';
 import { authService } from '../services/authService';
 import { analyticsService } from '../services/analyticsService';
 import { AdvancedAnalytics } from '../types/analytics';
-import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, AreaChart, Area } from 'recharts';
 
 export const AdvancedAnalyticsPage: React.FC = () => {
     const [analytics, setAnalytics] = useState<AdvancedAnalytics | null>(null);
@@ -34,390 +36,320 @@ export const AdvancedAnalyticsPage: React.FC = () => {
         loadAnalytics();
     }, []);
 
+    const COLORS = ['#5e72e4', '#2dce89', '#fb6340', '#f5365c', '#11cdef'];
+
     if (loading || !analytics) {
         return (
-            <div className="flex items-center justify-center h-96">
-                <div className="text-center">
-                    <RefreshCw className="animate-spin mx-auto mb-4 text-blue-600" size={40} />
-                    <p className="text-slate-600">Loading analytics...</p>
-                </div>
+            <div className="flex flex-col items-center justify-center h-[70vh] animate-fade-in relative z-10">
+                <div className="w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin mb-6" />
+                <p className="text-white font-black uppercase tracking-[0.2em] text-xs">Calibrating Intelligence Engines...</p>
             </div>
         );
     }
 
-    const getStatusColor = (value: number, type: 'growth' | 'score') => {
-        if (type === 'growth') {
-            if (value > 10) return 'text-green-600 bg-green-50 border-green-200';
-            if (value > 0) return 'text-blue-600 bg-blue-50 border-blue-200';
-            if (value > -10) return 'text-orange-600 bg-orange-50 border-orange-200';
-            return 'text-red-600 bg-red-50 border-red-200';
-        } else {
-            if (value >= 80) return 'text-green-600 bg-green-50 border-green-200';
-            if (value >= 60) return 'text-blue-600 bg-blue-50 border-blue-200';
-            if (value >= 40) return 'text-orange-600 bg-orange-50 border-orange-200';
-            return 'text-red-600 bg-red-50 border-red-200';
-        }
-    };
-
-    const getRiskColor = (risk: 'LOW' | 'MEDIUM' | 'HIGH') => {
-        if (risk === 'LOW') return 'text-green-600 bg-green-50 border-green-200';
-        if (risk === 'MEDIUM') return 'text-orange-600 bg-orange-50 border-orange-200';
-        return 'text-red-600 bg-red-50 border-red-200';
-    };
-
-    const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
-
     return (
-        <div className="p-6 space-y-6 bg-slate-50 min-h-screen">
-            {/* Header */}
-            <div className="flex items-center justify-between">
+        <div className="space-y-6 relative z-10 animate-fade-in pb-20">
+            {/* Header Section */}
+            <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-slate-900">📊 Business Intelligence</h1>
-                    <p className="text-slate-500 mt-1">Advanced analytics and insights for smarter decisions</p>
+                    <h1 className="text-2xl font-bold text-white tracking-tight leading-tight uppercase flex items-center gap-3">
+                        <Activity size={28} className="text-white animate-pulse" strokeWidth={3} />
+                        Intelligence Engine
+                    </h1>
+                    <p className="text-white/80 text-sm font-bold flex items-center gap-2">
+                        Predictive insights & business health score <span className="bg-white/20 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest text-white">Version 2.0 - LIVE</span>
+                    </p>
                 </div>
-                <button
-                    onClick={loadAnalytics}
-                    disabled={refreshing}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all disabled:opacity-50"
-                >
-                    <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
-                    Refresh
-                </button>
-            </div>
-
-            {/* Business Health Score - Hero Section */}
-            <div className="bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl p-8 text-white shadow-2xl">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h2 className="text-lg font-medium opacity-90 mb-2">Business Health Score</h2>
-                        <div className="flex items-baseline gap-3">
-                            <span className="text-6xl font-bold">{analytics.businessHealthScore.overallScore}</span>
-                            <span className="text-3xl opacity-75">/ 100</span>
-                        </div>
-                        <p className="mt-4 text-blue-100 text-sm">
-                            {analytics.businessHealthScore.overallScore >= 80 ? '🎉 Excellent! Your business is thriving.' :
-                                analytics.businessHealthScore.overallScore >= 60 ? '👍 Good! Keep up the momentum.' :
-                                    analytics.businessHealthScore.overallScore >= 40 ? '⚠️ Fair. Some areas need attention.' :
-                                        '🚨 Critical. Immediate action required.'}
-                        </p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-white/10 backdrop-blur rounded-xl p-4 text-center">
-                            <div className="text-2xl font-bold">{analytics.businessHealthScore.revenueScore}</div>
-                            <div className="text-xs opacity-75 mt-1">Revenue</div>
-                        </div>
-                        <div className="bg-white/10 backdrop-blur rounded-xl p-4 text-center">
-                            <div className="text-2xl font-bold">{analytics.businessHealthScore.inventoryScore}</div>
-                            <div className="text-xs opacity-75 mt-1">Inventory</div>
-                        </div>
-                        <div className="bg-white/10 backdrop-blur rounded-xl p-4 text-center">
-                            <div className="text-2xl font-bold">{analytics.businessHealthScore.cashFlowScore}</div>
-                            <div className="text-xs opacity-75 mt-1">Cash Flow</div>
-                        </div>
-                        <div className="bg-white/10 backdrop-blur rounded-xl p-4 text-center">
-                            <div className="text-2xl font-bold">{analytics.businessHealthScore.supplierScore}</div>
-                            <div className="text-xs opacity-75 mt-1">Suppliers</div>
-                        </div>
-                    </div>
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={loadAnalytics}
+                        disabled={refreshing}
+                        className="bg-white text-primary px-6 py-2.5 rounded-xl shadow-lg font-black text-xs uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center gap-2 disabled:opacity-50"
+                    >
+                        <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} strokeWidth={3} /> {refreshing ? 'Processing' : 'Force Sync'}
+                    </button>
                 </div>
             </div>
 
-            {/* KPI Metrics */}
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                <div className={`border rounded-xl p-4 ${getStatusColor(analytics.kpiMetrics.revenueGrowth, 'growth')}`}>
-                    <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-bold uppercase tracking-wider opacity-75">Revenue Growth</span>
-                        {analytics.kpiMetrics.revenueGrowth > 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
-                    </div>
-                    <div className="text-2xl font-bold">{analytics.kpiMetrics.revenueGrowth > 0 ? '+' : ''}{analytics.kpiMetrics.revenueGrowth.toFixed(1)}%</div>
-                    <div className="text-xs mt-1 opacity-75">
-                        {analytics.kpiMetrics.revenueGrowth > 0 ? '🟢 Growing' : '🔴 Declining'}
-                    </div>
+            {/* Health Score Hero Section */}
+            <div className="bg-white rounded-3xl shadow-premium overflow-hidden border-none relative">
+                <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
+                    <Activity size={300} strokeWidth={1} />
                 </div>
+                <div className="p-8 md:p-10 flex flex-col lg:flex-row items-center gap-10">
+                    <div className="relative">
+                        <div className="w-48 h-48 rounded-full border-[12px] border-slate-50 flex flex-col items-center justify-center shadow-inner">
+                            <span className="text-5xl font-black text-slate-800 leading-none">{analytics.businessHealthScore.overallScore}</span>
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">Health Index</span>
+                        </div>
+                        <svg className="absolute top-0 left-0 w-48 h-48 -rotate-90">
+                            <circle
+                                cx="96"
+                                cy="96"
+                                r="88"
+                                fill="transparent"
+                                stroke="url(#healthGradient)"
+                                strokeWidth="12"
+                                strokeDasharray={552.92}
+                                strokeDashoffset={552.92 - (552.92 * analytics.businessHealthScore.overallScore) / 100}
+                                strokeLinecap="round"
+                                className="transition-all duration-1000 ease-out"
+                            />
+                            <defs>
+                                <linearGradient id="healthGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" stopColor="#5e72e4" />
+                                    <stop offset="100%" stopColor="#825ee4" />
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                    </div>
 
-                <div className={`border rounded-xl p-4 ${getStatusColor(analytics.kpiMetrics.profitMargin, 'score')}`}>
-                    <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-bold uppercase tracking-wider opacity-75">Profit Margin</span>
-                        <DollarSign size={16} />
-                    </div>
-                    <div className="text-2xl font-bold">{analytics.kpiMetrics.profitMargin.toFixed(0)}%</div>
-                    <div className="text-xs mt-1 opacity-75">
-                        {analytics.kpiMetrics.profitMargin >= 15 ? '🟢 Healthy' : '🟡 Monitor'}
-                    </div>
-                </div>
+                    <div className="flex-1 space-y-6">
+                        <div>
+                            <h2 className="text-2xl font-black text-slate-800 tracking-tight uppercase mb-2">Protocol: Core Business Health</h2>
+                            <p className="text-slate-500 font-bold text-sm max-w-xl">
+                                {analytics.businessHealthScore.overallScore >= 80 ? 'Operation Status: OPTIMAL. All primary systems reporting healthy velocity.' :
+                                    analytics.businessHealthScore.overallScore >= 60 ? 'Operation Status: STABLE. Business is operating within projected boundaries.' :
+                                        analytics.businessHealthScore.overallScore >= 40 ? 'Operation Status: FLAGGED. Specific sub-systems require manual calibration.' :
+                                            'Operation Status: CRITICAL. Universal intervention protocol recommended immediately.'}
+                            </p>
+                        </div>
 
-                <div className={`border rounded-xl p-4 ${getStatusColor(analytics.kpiMetrics.stockHealth, 'score')}`}>
-                    <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-bold uppercase tracking-wider opacity-75">Stock Health</span>
-                        <Package size={16} />
-                    </div>
-                    <div className="text-2xl font-bold">{analytics.kpiMetrics.stockHealth.toFixed(0)}/100</div>
-                    <div className="text-xs mt-1 opacity-75">
-                        {analytics.kpiMetrics.stockHealth >= 70 ? '🟢 Optimal' : '🟡 Review'}
-                    </div>
-                </div>
-
-                <div className={`border rounded-xl p-4 ${getRiskColor(analytics.kpiMetrics.cashRisk)}`}>
-                    <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-bold uppercase tracking-wider opacity-75">Cash Risk</span>
-                        <AlertTriangle size={16} />
-                    </div>
-                    <div className="text-2xl font-bold">{analytics.kpiMetrics.cashRisk}</div>
-                    <div className="text-xs mt-1 opacity-75">
-                        {analytics.kpiMetrics.cashRisk === 'LOW' ? '🟢 Safe' :
-                            analytics.kpiMetrics.cashRisk === 'MEDIUM' ? '🟡 Watch' : '🔴 Alert'}
-                    </div>
-                </div>
-
-                <div className={`border rounded-xl p-4 ${getStatusColor(analytics.kpiMetrics.supplierReliability, 'score')}`}>
-                    <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-bold uppercase tracking-wider opacity-75">Supplier Score</span>
-                        <CheckCircle size={16} />
-                    </div>
-                    <div className="text-2xl font-bold">{analytics.kpiMetrics.supplierReliability}%</div>
-                    <div className="text-xs mt-1 opacity-75">
-                        {analytics.kpiMetrics.supplierReliability >= 80 ? '🟢 Reliable' : '🟡 Review'}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            {[
+                                { label: 'Revenue', score: analytics.businessHealthScore.revenueScore, icon: TrendingUp, color: 'text-primary bg-primary/5' },
+                                { label: 'Inventory', score: analytics.businessHealthScore.inventoryScore, icon: Package, color: 'text-warning bg-warning/5' },
+                                { label: 'Cash Flow', score: analytics.businessHealthScore.cashFlowScore, icon: DollarSign, color: 'text-success bg-success/5' },
+                                { label: 'Suppliers', score: analytics.businessHealthScore.supplierScore, icon: Users, color: 'text-info bg-info/5' }
+                            ].map((node, i) => (
+                                <div key={i} className="bg-slate-50 p-4 rounded-2xl flex flex-col items-center text-center group hover:bg-white hover:shadow-md transition-all">
+                                    <div className={`w-9 h-9 rounded-lg ${node.color} flex items-center justify-center mb-3`}>
+                                        <node.icon size={16} strokeWidth={3} />
+                                    </div>
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{node.label}</span>
+                                    <span className="text-lg font-black text-slate-800">{node.score}%</span>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
             </div>
 
-            {/* Main Content Grid */}
+            {/* KPI Stat Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+                <DashboardStatCard
+                    title="Revenue Growth"
+                    value={`${analytics.kpiMetrics.revenueGrowth > 0 ? '+' : ''}${analytics.kpiMetrics.revenueGrowth.toFixed(1)}%`}
+                    icon={TrendingUp}
+                    iconBg="bg-gradient-primary"
+                    percentage={analytics.kpiMetrics.revenueGrowth > 0 ? '+4.2' : '-2.1'}
+                    trend="vs last cycle"
+                />
+                <DashboardStatCard
+                    title="Profit Margin"
+                    value={`${analytics.kpiMetrics.profitMargin.toFixed(0)}%`}
+                    icon={DollarSign}
+                    iconBg="bg-gradient-success"
+                    percentage="+1.5"
+                    trend="efficiency up"
+                />
+                <DashboardStatCard
+                    title="Stock Health"
+                    value={`${analytics.kpiMetrics.stockHealth.toFixed(0)}/100`}
+                    icon={Package}
+                    iconBg="bg-gradient-warning"
+                    percentage="-0.5"
+                    trend="stock optimized"
+                />
+                <DashboardStatCard
+                    title="Cash Risk"
+                    value={analytics.kpiMetrics.cashRisk}
+                    icon={AlertTriangle}
+                    iconBg={analytics.kpiMetrics.cashRisk === 'LOW' ? 'bg-gradient-success' : 'bg-gradient-danger'}
+                    percentage="0"
+                    trend="risk profile"
+                />
+                <DashboardStatCard
+                    title="Supplier Score"
+                    value={`${analytics.kpiMetrics.supplierReliability}%`}
+                    icon={Users}
+                    iconBg="bg-gradient-info"
+                    percentage="+3"
+                    trend="vetted nodes"
+                />
+            </div>
+
+            {/* Intelligence Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Left Column - Revenue & Inventory */}
+                {/* Revenue Intelligence */}
                 <div className="lg:col-span-2 space-y-6">
-                    {/* Revenue Insights */}
-                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-                        <div className="flex items-center justify-between mb-6">
-                            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                                <TrendingUp className="text-blue-600" size={20} />
-                                Revenue Intelligence
-                            </h3>
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-4 mb-6">
-                            <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
-                                <div className="text-xs text-blue-600 font-bold mb-1">Current Month</div>
-                                <div className="text-2xl font-bold text-slate-900">
-                                    ₹{(analytics.revenueInsights.currentMonthRevenue / 1000).toFixed(1)}K
-                                </div>
+                    <div className="bg-white rounded-3xl p-8 shadow-premium border-none min-h-[500px] flex flex-col">
+                        <div className="flex items-center justify-between mb-8">
+                            <div>
+                                <h3 className="text-xl font-black text-slate-800 tracking-tight uppercase flex items-center gap-3">
+                                    <BarChart3 className="text-primary" size={24} strokeWidth={3} />
+                                    Revenue Telemetry
+                                </h3>
+                                <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Real-time revenue flow & projection</p>
                             </div>
-                            <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                                <div className="text-xs text-slate-600 font-bold mb-1">Last Month</div>
-                                <div className="text-2xl font-bold text-slate-900">
-                                    ₹{(analytics.revenueInsights.lastMonthRevenue / 1000).toFixed(1)}K
-                                </div>
-                            </div>
-                            <div className="bg-green-50 rounded-lg p-4 border border-green-100">
-                                <div className="text-xs text-green-600 font-bold mb-1">Avg Order Value</div>
-                                <div className="text-2xl font-bold text-slate-900">
-                                    ₹{(analytics.revenueInsights.averageOrderValue / 1000).toFixed(1)}K
-                                </div>
+                            <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-100">
+                                <span className="px-3 py-1 bg-white text-primary text-[10px] font-black rounded-lg shadow-sm cursor-pointer uppercase tracking-widest">Monthly</span>
+                                <span className="px-3 py-1 text-slate-400 text-[10px] font-black cursor-pointer uppercase tracking-widest hover:text-slate-600 transition-colors">Quarterly</span>
                             </div>
                         </div>
 
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                            <div className="flex items-start gap-3">
-                                <Zap className="text-blue-600 mt-0.5" size={18} />
-                                <div>
-                                    <div className="font-bold text-blue-900 text-sm mb-1">Smart Insight</div>
-                                    <div className="text-blue-800 text-sm">{analytics.revenueInsights.smartInsight}</div>
-                                </div>
+                        <div className="bg-primary/5 rounded-2xl p-6 border border-primary/10 mb-8 flex items-start gap-4">
+                            <div className="w-10 h-10 bg-gradient-primary rounded-xl flex items-center justify-center text-white shadow-lg flex-shrink-0">
+                                <Zap size={18} strokeWidth={3} />
+                            </div>
+                            <div>
+                                <h4 className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-1">Intelligence Insight</h4>
+                                <p className="text-slate-700 font-bold text-sm leading-relaxed">{analytics.revenueInsights.smartInsight}</p>
                             </div>
                         </div>
 
-                        <div className="h-64">
+                        <div className="flex-1 min-h-[300px]">
                             <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={analytics.revenueInsights.revenueTrend}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                                    <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="#64748b" />
-                                    <YAxis tick={{ fontSize: 12 }} stroke="#64748b" />
-                                    <Tooltip
-                                        formatter={(value: number) => `₹${(value / 1000).toFixed(1)}K`}
-                                        contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0' }}
+                                <AreaChart data={analytics.revenueInsights.revenueTrend}>
+                                    <defs>
+                                        <linearGradient id="revenueFlow" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#5e72e4" stopOpacity={0.2} />
+                                            <stop offset="95%" stopColor="#5e72e4" stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                    <XAxis
+                                        dataKey="month"
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}
                                     />
-                                    <Line
+                                    <YAxis
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }}
+                                        tickFormatter={(v) => `₹${v / 1000}K`}
+                                    />
+                                    <Tooltip
+                                        contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', padding: '12px' }}
+                                        labelStyle={{ fontWeight: 900, color: '#1e293b', textTransform: 'uppercase', fontSize: '10px', letterSpacing: '0.1em', marginBottom: '4px' }}
+                                        itemStyle={{ fontWeight: 700, color: '#5e72e4', fontSize: '12px' }}
+                                    />
+                                    <Area
                                         type="monotone"
                                         dataKey="revenue"
-                                        stroke="#3b82f6"
-                                        strokeWidth={3}
-                                        dot={{ fill: '#3b82f6', r: 4 }}
-                                        activeDot={{ r: 6 }}
+                                        stroke="#5e72e4"
+                                        strokeWidth={4}
+                                        fillOpacity={1}
+                                        fill="url(#revenueFlow)"
                                     />
-                                </LineChart>
+                                </AreaChart>
                             </ResponsiveContainer>
                         </div>
                     </div>
 
-                    {/* Inventory Intelligence */}
-                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-                        <div className="flex items-center justify-between mb-6">
-                            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                                <Package className="text-orange-600" size={20} />
-                                Inventory Intelligence
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Inventory Context */}
+                        <div className="bg-white rounded-3xl p-8 shadow-premium border-none">
+                            <h3 className="text-lg font-black text-slate-800 tracking-tight uppercase flex items-center gap-3 mb-6">
+                                <Package className="text-warning" size={20} strokeWidth={3} />
+                                Inventory Health
                             </h3>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4 mb-6">
-                            <div className="bg-orange-50 rounded-lg p-4 border border-orange-100">
-                                <div className="text-xs text-orange-600 font-bold mb-1">Stock Turnover</div>
-                                <div className="text-2xl font-bold text-slate-900">
-                                    {analytics.inventoryInsights.stockTurnoverRatio.toFixed(1)}x
+                            <div className="grid grid-cols-2 gap-4 mb-6">
+                                <div className="bg-slate-50 p-4 rounded-2xl">
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Turnover Ratio</span>
+                                    <span className="text-xl font-black text-slate-800">{analytics.inventoryInsights.stockTurnoverRatio.toFixed(1)}x</span>
                                 </div>
-                                <div className="text-xs text-orange-600 mt-1">per year</div>
+                                <div className="bg-slate-50 p-4 rounded-2xl">
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Days on Hand</span>
+                                    <span className="text-xl font-black text-slate-800">{analytics.inventoryInsights.daysInventoryOutstanding} Days</span>
+                                </div>
                             </div>
-                            <div className="bg-purple-50 rounded-lg p-4 border border-purple-100">
-                                <div className="text-xs text-purple-600 font-bold mb-1">Days Inventory</div>
-                                <div className="text-2xl font-bold text-slate-900">
-                                    {analytics.inventoryInsights.daysInventoryOutstanding}
-                                </div>
-                                <div className="text-xs text-purple-600 mt-1">days</div>
+                            <div className="bg-warning/5 border border-warning/10 p-4 rounded-2xl">
+                                <p className="text-xs text-slate-600 font-bold leading-relaxed italic opacity-80">
+                                    {analytics.inventoryInsights.smartInsight}
+                                </p>
                             </div>
                         </div>
 
-                        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4">
-                            <div className="flex items-start gap-3">
-                                <AlertTriangle className="text-orange-600 mt-0.5" size={18} />
-                                <div>
-                                    <div className="font-bold text-orange-900 text-sm mb-1">Inventory Alert</div>
-                                    <div className="text-orange-800 text-sm">{analytics.inventoryInsights.smartInsight}</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="border border-slate-200 rounded-lg p-4">
-                                <div className="text-xs font-bold text-slate-600 mb-2">🔥 Fast Moving</div>
-                                <div className="text-2xl font-bold text-green-600">
-                                    {analytics.inventoryInsights.fastMovingProducts.length}
-                                </div>
-                                <div className="text-xs text-slate-500 mt-1">products</div>
-                            </div>
-                            <div className="border border-slate-200 rounded-lg p-4">
-                                <div className="text-xs font-bold text-slate-600 mb-2">🐌 Slow Moving</div>
-                                <div className="text-2xl font-bold text-red-600">
-                                    {analytics.inventoryInsights.slowMovingProducts.length}
-                                </div>
-                                <div className="text-xs text-slate-500 mt-1">products</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Cash Flow Intelligence */}
-                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-                        <div className="flex items-center justify-between mb-6">
-                            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                                <DollarSign className="text-green-600" size={20} />
-                                Cash Flow Intelligence
+                        {/* Cashflow Velocity */}
+                        <div className="bg-white rounded-3xl p-8 shadow-premium border-none">
+                            <h3 className="text-lg font-black text-slate-800 tracking-tight uppercase flex items-center gap-3 mb-6">
+                                <DollarSign className="text-success" size={20} strokeWidth={3} />
+                                Cash Flow Protocol
                             </h3>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4 mb-6">
-                            <div className="bg-green-50 rounded-lg p-4 border border-green-100">
-                                <div className="text-xs text-green-600 font-bold mb-1">Receivables</div>
-                                <div className="text-2xl font-bold text-slate-900">
-                                    ₹{(analytics.cashFlowInsights.totalReceivables / 1000).toFixed(1)}K
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Receivables</span>
+                                    <span className="text-sm font-black text-slate-800">₹{(analytics.cashFlowInsights.totalReceivables / 1000).toFixed(1)}K</span>
                                 </div>
-                            </div>
-                            <div className="bg-red-50 rounded-lg p-4 border border-red-100">
-                                <div className="text-xs text-red-600 font-bold mb-1">Payables</div>
-                                <div className="text-2xl font-bold text-slate-900">
-                                    ₹{(analytics.cashFlowInsights.totalPayables / 1000).toFixed(1)}K
+                                <div className="h-2 bg-slate-50 rounded-full overflow-hidden">
+                                    <div className="h-full bg-success w-[70%]" />
                                 </div>
-                            </div>
-                        </div>
-
-                        <div className={`border rounded-lg p-4 mb-4 ${getRiskColor(analytics.cashFlowInsights.cashRiskLevel)}`}>
-                            <div className="flex items-start gap-3">
-                                <AlertCircle className="mt-0.5" size={18} />
-                                <div>
-                                    <div className="font-bold text-sm mb-1">Cash Flow Alert</div>
-                                    <div className="text-sm">{analytics.cashFlowInsights.smartAlert}</div>
+                                <div className="flex items-center justify-between pt-2">
+                                    <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Payables</span>
+                                    <span className="text-sm font-black text-error">₹{(analytics.cashFlowInsights.totalPayables / 1000).toFixed(1)}K</span>
                                 </div>
-                            </div>
-                        </div>
-
-                        <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                                <span className="text-sm text-slate-600">0-30 days</span>
-                                <span className="font-bold text-slate-900">₹{(analytics.cashFlowInsights.aging0to30 / 1000).toFixed(1)}K</span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <span className="text-sm text-slate-600">30-60 days</span>
-                                <span className="font-bold text-orange-600">₹{(analytics.cashFlowInsights.aging30to60 / 1000).toFixed(1)}K</span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <span className="text-sm text-slate-600">60+ days</span>
-                                <span className="font-bold text-red-600">₹{(analytics.cashFlowInsights.aging60plus / 1000).toFixed(1)}K</span>
+                                <div className="h-2 bg-slate-50 rounded-full overflow-hidden">
+                                    <div className="h-full bg-error w-[30%]" />
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Right Column - Action Recommendations */}
+                {/* Tactical Actions Sidebar */}
                 <div className="space-y-6">
-                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 sticky top-6">
-                        <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                            <Target className="text-purple-600" size={20} />
-                            Suggested Actions
+                    <div className="bg-white rounded-3xl p-8 shadow-premium border-none sticky top-6">
+                        <h3 className="text-xl font-black text-slate-800 tracking-tight uppercase flex items-center gap-3 mb-8">
+                            <Target className="text-purple-600" size={24} strokeWidth={3} />
+                            Tactical Queue
                         </h3>
 
-                        {analytics.actionRecommendations.length === 0 ? (
-                            <div className="text-center py-8">
-                                <CheckCircle className="mx-auto mb-3 text-green-600" size={40} />
-                                <p className="text-sm text-slate-600">All good! No urgent actions needed.</p>
-                            </div>
-                        ) : (
-                            <div className="space-y-3">
-                                {analytics.actionRecommendations.map((action, index) => (
-                                    <div
-                                        key={index}
-                                        className={`border rounded-lg p-4 ${action.priority === 'HIGH' ? 'border-red-200 bg-red-50' :
-                                                action.priority === 'MEDIUM' ? 'border-orange-200 bg-orange-50' :
-                                                    'border-blue-200 bg-blue-50'
-                                            }`}
-                                    >
-                                        <div className="flex items-start gap-3">
-                                            <div className={`mt-0.5 ${action.priority === 'HIGH' ? 'text-red-600' :
-                                                    action.priority === 'MEDIUM' ? 'text-orange-600' :
-                                                        'text-blue-600'
-                                                }`}>
-                                                {action.priority === 'HIGH' ? <AlertTriangle size={18} /> :
-                                                    action.priority === 'MEDIUM' ? <AlertCircle size={18} /> :
-                                                        <Activity size={18} />}
-                                            </div>
-                                            <div className="flex-1">
-                                                <div className={`text-xs font-bold uppercase tracking-wider mb-1 ${action.priority === 'HIGH' ? 'text-red-600' :
-                                                        action.priority === 'MEDIUM' ? 'text-orange-600' :
-                                                            'text-blue-600'
-                                                    }`}>
-                                                    {action.priority} PRIORITY
-                                                </div>
-                                                <div className="font-bold text-slate-900 text-sm mb-1">
-                                                    {action.title}
-                                                </div>
-                                                <div className="text-xs text-slate-600 mb-3">
-                                                    {action.description}
-                                                </div>
-                                                {action.actionUrl && (
-                                                    <a
-                                                        href={action.actionUrl}
-                                                        className={`inline-flex items-center gap-1 text-xs font-bold ${action.priority === 'HIGH' ? 'text-red-600 hover:text-red-700' :
-                                                                action.priority === 'MEDIUM' ? 'text-orange-600 hover:text-orange-700' :
-                                                                    'text-blue-600 hover:text-blue-700'
-                                                            }`}
-                                                    >
-                                                        Take Action <ArrowUpRight size={12} />
-                                                    </a>
-                                                )}
-                                            </div>
-                                        </div>
+                        <div className="space-y-4">
+                            {analytics.actionRecommendations.map((action, i) => (
+                                <div key={i} className="group p-5 bg-slate-50 hover:bg-white rounded-2xl border border-transparent hover:border-slate-100 transition-all hover:shadow-md cursor-pointer">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest text-white shadow-sm ${action.priority === 'HIGH' ? 'bg-error' : action.priority === 'MEDIUM' ? 'bg-warning' : 'bg-primary'
+                                            }`}>
+                                            {action.priority} Priority
+                                        </span>
                                     </div>
-                                ))}
-                            </div>
-                        )}
+                                    <h4 className="font-extrabold text-slate-800 text-sm mb-2 group-hover:text-primary transition-colors uppercase leading-tight">{action.title}</h4>
+                                    <p className="text-[11px] font-bold text-slate-400 leading-relaxed mb-4">{action.description}</p>
+                                    <div className="flex items-center justify-between pt-3 border-t border-slate-100/50">
+                                        <span className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-1 group-hover:gap-2 transition-all">
+                                            Execute <ChevronRight size={12} strokeWidth={3} />
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        <button className="w-full mt-8 py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black rounded-2xl text-[10px] uppercase tracking-widest transition-all">
+                            Audit Performance Logs
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
     );
 };
+
+const DashboardStatCard = ({ title, value, icon: Icon, iconBg, percentage, trend }: any) => (
+    <div className="bg-white p-5 rounded-2xl shadow-premium hover:translate-y-[-2px] transition-all group flex flex-col justify-between h-full border-none">
+        <div className="flex justify-between items-start">
+            <div className="flex-1">
+                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1 leading-none">{title}</p>
+                <h4 className="text-xl font-bold text-slate-800 tracking-tight leading-none group-hover:text-primary transition-colors">{value}</h4>
+            </div>
+            <div className={`w-11 h-11 rounded-lg ${iconBg} flex items-center justify-center shadow-lg transform group-hover:rotate-12 transition-transform`}>
+                <Icon size={18} className="text-white" strokeWidth={3} />
+            </div>
+        </div>
+        <div className="mt-4 flex items-center gap-2">
+            <span className={`text-xs font-bold ${percentage.startsWith('+') ? 'text-success' : 'text-error'}`}>{percentage}%</span>
+            <span className="text-[11px] font-bold text-slate-400 lowercase">{trend}</span>
+        </div>
+    </div>
+);

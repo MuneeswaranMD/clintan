@@ -1,8 +1,9 @@
 const mongoose = require('mongoose');
 
 const industrySchema = new mongoose.Schema({
+    key: { type: String, required: true, unique: true },
     name: { type: String, required: true, unique: true },
-    defaultModules: [{ type: String }], // Array of module keys
+    extensions: [{ type: String }], // Array of module keys (extensions) - e.g. ['expenses', 'projects']
     defaultWorkflow: {
         order: [{ type: String }],
         estimate: [{ type: String }]

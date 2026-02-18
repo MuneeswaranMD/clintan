@@ -419,6 +419,8 @@ export interface FeatureToggles {
   enableMultiBranch: boolean; // Enterprise
   enableWhatsAppIntegration: boolean; // All
   enablePaymentGateway: boolean; // All
+  enableProjectManagement: boolean; // Construction, Agencies
+  enableServiceManagement: boolean; // Clinic, Salon, Service centers
 }
 
 export interface WorkflowStep {
@@ -454,4 +456,29 @@ export interface BusinessConfig {
 
   taxName: string; // GST, VAT, Sales Tax
   orderFormConfig?: OrderFormConfig;
+}
+
+export interface Tenant {
+  id: string;
+  companyName: string;
+  subdomain: string;
+  customDomain?: string;
+  isDomainVerified: boolean;
+  industry: BusinessConfig['industry'] | string;
+  plan: 'Basic' | 'Pro' | 'Enterprise';
+  status: 'Active' | 'Pending' | 'Suspended';
+  ownerEmail: string;
+  createdAt: string;
+  usersCount: number;
+  mrr: string;
+  userId?: string; // Auth UID of the company owner
+  phone?: string;
+  logoUrl?: string;
+  config?: BusinessConfig;
+  dnsConfig?: {
+    type: 'CNAME';
+    host: string;
+    pointsTo: string;
+    status: 'Verified' | 'Pending' | 'Failed';
+  };
 }

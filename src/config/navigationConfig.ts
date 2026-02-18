@@ -17,7 +17,10 @@ import {
     Zap,
     UserCog,
     Receipt,
-    Settings
+    Settings,
+    Briefcase,
+    Calendar,
+    Shield
 } from 'lucide-react';
 import { FeatureToggles } from '../types';
 
@@ -27,7 +30,7 @@ export interface NavItem {
     icon: any;
     requiredFeature?: keyof FeatureToggles;
     description?: string;
-    category?: 'core' | 'sales' | 'inventory' | 'finance' | 'advanced' | 'settings';
+    category?: 'core' | 'sales' | 'inventory' | 'finance' | 'advanced' | 'settings' | 'industry';
 }
 
 /**
@@ -60,6 +63,14 @@ export const UNIVERSAL_NAV_ITEMS: NavItem[] = [
         description: 'Advanced analytics & forecasting',
         category: 'core'
     },
+    {
+        label: 'Customers',
+        path: '/customers',
+        icon: Users,
+        requiredFeature: 'enableCustomers',
+        description: 'Customer relationship management',
+        category: 'core'
+    },
 
     // 📦 SALES & OPERATIONS
     {
@@ -86,6 +97,14 @@ export const UNIVERSAL_NAV_ITEMS: NavItem[] = [
         description: 'Billing & invoicing',
         category: 'sales'
     },
+    {
+        label: 'Recurring',
+        path: '/recurring',
+        icon: Repeat,
+        requiredFeature: 'enableRecurringBilling',
+        description: 'Subscription billing',
+        category: 'sales'
+    },
 
     // 💰 FINANCE
     {
@@ -94,14 +113,6 @@ export const UNIVERSAL_NAV_ITEMS: NavItem[] = [
         icon: CreditCard,
         requiredFeature: 'enablePayments',
         description: 'Payment tracking & collection',
-        category: 'finance'
-    },
-    {
-        label: 'Recurring',
-        path: '/recurring',
-        icon: Repeat,
-        requiredFeature: 'enableRecurringBilling',
-        description: 'Subscription billing',
         category: 'finance'
     },
     {
@@ -127,16 +138,6 @@ export const UNIVERSAL_NAV_ITEMS: NavItem[] = [
         requiredFeature: 'enableExpenses',
         description: 'Business expenses',
         category: 'finance'
-    },
-
-    // 👥 CRM
-    {
-        label: 'Customers',
-        path: '/customers',
-        icon: Users,
-        requiredFeature: 'enableCustomers',
-        description: 'Customer relationship management',
-        category: 'core'
     },
 
     // 📦 INVENTORY & SUPPLY CHAIN
@@ -179,6 +180,24 @@ export const UNIVERSAL_NAV_ITEMS: NavItem[] = [
         requiredFeature: 'enableDispatch',
         description: 'Logistics & delivery',
         category: 'inventory'
+    },
+
+    // 🏗️ INDUSTRY SPECIFIC
+    {
+        label: 'Projects',
+        path: '/projects',
+        icon: Briefcase,
+        requiredFeature: 'enableProjectManagement',
+        description: 'Project & milestone tracking',
+        category: 'industry'
+    },
+    {
+        label: 'Services',
+        path: '/services',
+        icon: Calendar,
+        requiredFeature: 'enableServiceManagement',
+        description: 'Service catalog & appointments',
+        category: 'industry'
     },
 
     // 🚀 ADVANCED MODULES
@@ -225,6 +244,14 @@ export const getFilteredNavItems = (features: FeatureToggles, isSuperAdmin: bool
     // Add super admin items
     if (isSuperAdmin) {
         filtered.unshift({
+            label: 'Control Center',
+            path: '/super/dashboard',
+            icon: Shield,
+            description: 'Platform management',
+            category: 'settings'
+        });
+
+        filtered.unshift({
             label: 'Companies',
             path: '/companies',
             icon: Building2,
@@ -264,10 +291,11 @@ export const getGroupedNavItems = (features: FeatureToggles, isSuperAdmin: boole
  * Category display names
  */
 export const CATEGORY_LABELS: Record<string, string> = {
-    core: 'Core',
+    core: 'Core Business',
     sales: 'Sales & Operations',
-    finance: 'Finance',
-    inventory: 'Inventory & Supply',
-    advanced: 'Advanced',
+    finance: 'Finance & Payments',
+    inventory: 'Inventory & Supply Chain',
+    industry: 'Industry Specific',
+    advanced: 'Advanced Tools',
     settings: 'Settings'
 };

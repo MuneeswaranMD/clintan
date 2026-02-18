@@ -6,6 +6,7 @@ const morgan = require('morgan');
 const webhookRoutes = require('./routes/webhookRoutes');
 const automationRoutes = require('./routes/automationRoutes');
 const whatsappWebhookController = require('./controllers/whatsappWebhookController');
+const tenantMiddleware = require('./middleware/tenant');
 
 const app = express();
 
@@ -25,11 +26,11 @@ app.use(cors({
     if (!origin) return callback(null, true);
     
     if (allowedOrigins.indexOf(origin) === -1) {
-      // For development, we can be permissive or log it
-      console.log('⚠️ CORS: Request from unknown origin:', origin);
-      // return callback(null, true); // Uncomment to allow all
+      // For development, we allow all
+      // console.log('⚠️ CORS: Request from unknown origin:', origin);
+      return callback(null, true);
     }
-    return callback(null, true); // Reflect origin
+    return callback(null, true);
   },
   credentials: true
 }));
@@ -58,10 +59,16 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Detect Tenant from Domain/Subdomain
+app.use(tenantMiddleware);
+
 // API Routes
 app.use('/api/webhook', webhookRoutes);
 app.use('/api/automation', automationRoutes);
 app.use('/api/orders', require('./routes/orderRoutes'));
+app.use('/api/estimates', require('./routes/estimateRoutes'));
+app.use('/api/menu', require('./routes/menuRoutes'));
+app.use('/api/super', require('./routes/superAdminRoutes'));
 
 // WhatsApp Webhook
 app.get('/api/whatsapp-webhook', whatsappWebhookController.verifyWebhook);

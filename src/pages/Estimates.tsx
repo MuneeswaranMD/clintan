@@ -2,9 +2,10 @@ import React, { useEffect, useState, useMemo } from 'react';
 import {
     ClipboardList, Plus, Search, Filter, IndianRupee,
     ArrowUpRight, Download, Trash2, Edit2, CheckCircle2,
-    Calendar, Mail, X, FileText, CheckCircle, Send, ChevronLeft
+    Calendar, Mail, X, FileText, CheckCircle, Send, ChevronLeft,
+    TrendingUp, FileCheck, Clock, ShieldCheck, ChevronRight
 } from 'lucide-react';
-import { estimateService, customerService, invoiceService, productService } from '../services/firebaseService';
+import { estimateService, customerService, invoiceService, productService, tenantService } from '../services/firebaseService';
 import { authService } from '../services/authService';
 import { Estimate, Customer, Invoice, InvoiceStatus, Product, InvoiceItem } from '../types';
 import { useNavigate } from 'react-router-dom';
@@ -41,7 +42,6 @@ export const Estimates: React.FC = () => {
     });
 
     const [currentUser, setCurrentUser] = useState<any>(null);
-
     const [companyDetails, setCompanyDetails] = useState<any>(null);
 
     useEffect(() => {
@@ -52,9 +52,7 @@ export const Estimates: React.FC = () => {
         // Fetch company details
         const fetchCompany = async () => {
             try {
-                // @ts-ignore
-                const { companyService } = await import('../services/companyService');
-                const details = await companyService.getCompanyByUserId(user.id);
+                const details = await tenantService.getTenantByUserId(user.id);
                 if (details) setCompanyDetails(details);
             } catch (error) {
                 console.error("Error fetching company details:", error);
@@ -76,7 +74,7 @@ export const Estimates: React.FC = () => {
         };
     }, []);
 
-    const companyName = currentUser?.email === 'muneeswaran@averqon.in' ? 'Averqon' : (companyDetails?.name || currentUser?.name || 'Sivajoy Creatives');
+    const companyName = currentUser?.email === 'muneeswaran@averqon.in' ? 'Averqon' : (companyDetails?.companyName || currentUser?.name || 'Sivajoy Creatives');
     const companyPhone = currentUser?.email === 'muneeswaran@averqon.in' ? '8300864083' : (companyDetails?.phone || '');
     const companyLogo = companyDetails?.logoUrl || currentUser?.logoUrl || currentUser?.photoURL;
 
@@ -86,9 +84,10 @@ export const Estimates: React.FC = () => {
     );
 
     const stats = useMemo(() => {
-        const active = estimates.filter(e => e.status === 'Sent' || e.status === 'Draft').reduce((sum, e) => sum + e.amount, 0);
-        const accepted = estimates.filter(e => e.status === 'Accepted').length;
-        return { active, accepted };
+        const activeValue = estimates.filter(e => e.status === 'Sent' || e.status === 'Draft').reduce((sum, e) => sum + e.amount, 0);
+        const acceptedCount = estimates.filter(e => e.status === 'Accepted').length;
+        const totalValue = estimates.reduce((sum, e) => sum + e.amount, 0);
+        return { activeValue, acceptedCount, totalValue };
     }, [estimates]);
 
     const handleSave = async (e: React.FormEvent) => {
@@ -168,19 +167,20 @@ export const Estimates: React.FC = () => {
         });
     };
 
-
     if (view === 'details' && selectedEstimate) {
         const est = selectedEstimate;
         return (
-            <div className="max-w-4xl mx-auto pb-24">
-                <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
-                    <button onClick={() => setView('list')} className="flex items-center gap-2 text-gray-600 hover:text-blue-600">
-                        <ChevronLeft size={20} />
+            <div className="space-y-6 relative z-10 animate-fade-in pb-20">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                    <button onClick={() => setView('list')} className="flex items-center gap-2 text-white/80 hover:text-white font-bold text-sm transition-all group">
+                        <div className="w-8 h-8 rounded-xl border border-white/20 flex items-center justify-center group-hover:bg-white/10 transition-all">
+                            <ChevronLeft size={18} />
+                        </div>
                         Back to List
                     </button>
-                    <div className="flex flex-wrap gap-3">
-                        <button onClick={() => sendInvoiceEmail(est, companyName)} className="border border-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-50 flex items-center gap-2">
-                            <Send size={16} /> Send Email
+                    <div className="flex flex-wrap gap-2">
+                        <button onClick={() => sendInvoiceEmail(est, companyName)} className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-widest backdrop-blur-md transition-all flex items-center gap-2">
+                            <Send size={14} /> Email
                         </button>
                         <button onClick={async () => {
                             try {
@@ -188,94 +188,92 @@ export const Estimates: React.FC = () => {
                             } catch (e) {
                                 await alert('Failed to generate PDF', { variant: 'danger' });
                             }
-                        }} className="border border-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-50 flex items-center gap-2">
-                            <Download size={16} /> Download
+                        }} className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-widest backdrop-blur-md transition-all flex items-center gap-2">
+                            <Download size={14} /> PDF
                         </button>
                         {est.status !== 'Accepted' && (
-                            <button onClick={() => convertToInvoice(est)} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 flex items-center gap-2">
-                                <CheckCircle size={18} /> Convert to Invoice
+                            <button onClick={() => convertToInvoice(est)} className="bg-white text-primary px-5 py-2 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg hover:bg-slate-50 transition-all flex items-center gap-2">
+                                <CheckCircle size={16} strokeWidth={3} /> Convert to Invoice
                             </button>
                         )}
                     </div>
                 </div>
 
-                <div className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
-                    {/* Header */}
-                    <div className="p-8 border-b border-gray-200 flex flex-col md:flex-row justify-between gap-6">
-                        <div>
-                            <h2 className="text-2xl font-bold text-gray-900">{companyName}</h2>
-                            <p className="text-sm text-gray-600 mt-1">Estimate</p>
+                <div className="bg-white rounded-2xl shadow-premium overflow-hidden border-none text-sm font-medium">
+                    <div className="p-8 flex flex-col md:flex-row justify-between items-start gap-8">
+                        <div className="space-y-1">
+                            <div className="flex items-center gap-3">
+                                <h2 className="text-2xl font-black text-slate-800 tracking-tight leading-none uppercase">Quote #{est.estimateNumber}</h2>
+                                <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest text-white ${est.status === 'Accepted' ? 'bg-success' : est.status === 'Sent' ? 'bg-primary' : 'bg-slate-400'} shadow-sm`}>
+                                    {est.status}
+                                </span>
+                            </div>
+                            <p className="text-slate-400 text-[10px] font-bold italic tracking-widest uppercase">Issued on {new Date(est.date).toLocaleDateString('en-GB')}</p>
                         </div>
-                        <div className="md:text-right">
-                            <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${est.status === 'Accepted' ? 'bg-green-100 text-green-700' : est.status === 'Sent' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
-                                {est.status}
-                            </span>
-                            <h1 className="text-3xl font-bold text-gray-900 mt-2">#{est.estimateNumber}</h1>
-                            <p className="text-sm text-gray-600 mt-1">{new Date(est.date).toLocaleDateString()}</p>
+                        <div className="text-right">
+                            <p className="text-xs font-black text-slate-800 tracking-tight uppercase">{companyName}</p>
+                            <p className="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-widest">Digital Proposal Node</p>
                         </div>
                     </div>
 
-                    {/* Information Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-gray-200">
-                        <div className="bg-white p-8">
-                            <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Customer</p>
-                            <h3 className="text-xl font-bold text-gray-900">{est.customerName}</h3>
-                            <p className="text-sm text-gray-600 mt-2">
-                                {est.customerAddress || customers.find(c => c.name === est.customerName)?.address || "No address provided"}
-                            </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-slate-50 border-t border-slate-50">
+                        <div className="bg-white p-8 space-y-4">
+                            <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest leading-none">Recipient</p>
+                            <div>
+                                <h4 className="font-black text-slate-800 text-lg leading-none">{est.customerName}</h4>
+                                <p className="text-slate-500 font-bold mt-3 text-xs leading-relaxed">{est.customerAddress || "Logistics address not specified."}</p>
+                            </div>
                         </div>
-                        <div className="bg-white p-8 md:text-right">
+                        <div className="bg-white p-8 md:text-right space-y-4">
                             <div className="mb-4">
-                                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Valid Until</p>
-                                <p className="font-semibold text-gray-900">{new Date(est.validUntil).toLocaleDateString()}</p>
+                                <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest leading-none mb-3">Validity Node</p>
+                                <p className="font-black text-slate-800 text-sm tracking-widest uppercase">Until {new Date(est.validUntil).toLocaleDateString('en-GB')}</p>
                             </div>
-                            <div className="bg-gray-50 px-4 py-2 rounded inline-block">
-                                <p className="text-xs text-gray-500">ID</p>
-                                <p className="text-sm font-semibold text-gray-700">{est.id?.substring(0, 8).toUpperCase()}</p>
+                            <div className="bg-slate-50 px-4 py-2 rounded-xl inline-block">
+                                <p className="text-[9px] font-black text-slate-300 uppercase tracking-tight">System Unique ID</p>
+                                <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">{est.id?.substring(0, 12).toUpperCase()}</p>
                             </div>
                         </div>
                     </div>
 
-                    {/* Items Table */}
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead className="bg-gray-50 border-y border-gray-200">
+                    <div className="p-0 border-t border-slate-50">
+                        <table className="w-full text-left">
+                            <thead className="bg-slate-50/50">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Item</th>
-                                    <th className="px-6 py-3 text-center text-xs font-semibold text-gray-700 uppercase">Qty</th>
-                                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-700 uppercase">Price</th>
-                                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-700 uppercase">Total</th>
+                                    <th className="px-8 py-5 text-[10px] font-black text-slate-300 uppercase tracking-widest">Service / Product</th>
+                                    <th className="px-8 py-5 text-[10px] font-black text-slate-300 uppercase tracking-widest text-center">Qty</th>
+                                    <th className="px-8 py-5 text-[10px] font-black text-slate-300 uppercase tracking-widest text-right">Unit Net</th>
+                                    <th className="px-8 py-5 text-[10px] font-black text-slate-300 uppercase tracking-widest text-right">Total</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-200">
+                            <tbody className="divide-y divide-slate-50">
                                 {est.items?.map((item, idx) => (
-                                    <tr key={idx} className="hover:bg-gray-50">
-                                        <td className="px-6 py-4">
-                                            <p className="font-semibold text-gray-900">{item.productName}</p>
-                                            <p className="text-xs text-gray-500">{item.productId}</p>
+                                    <tr key={idx} className="hover:bg-slate-50/30 transition-colors">
+                                        <td className="px-8 py-6">
+                                            <p className="font-bold text-slate-800">{item.productName}</p>
+                                            <p className="text-[9px] font-black text-slate-300 uppercase mt-0.5 tracking-tighter">REF: {item.productId?.slice(-8)}</p>
                                         </td>
-                                        <td className="px-6 py-4 text-center">
-                                            <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded font-semibold text-sm">{item.quantity}</span>
+                                        <td className="px-8 py-6 text-center">
+                                            <span className="bg-slate-50 text-slate-700 px-3 py-1 rounded-lg font-black text-xs uppercase tracking-tighter">x{item.quantity}</span>
                                         </td>
-                                        <td className="px-6 py-4 text-right text-gray-700">₹{item.price.toLocaleString()}</td>
-                                        <td className="px-6 py-4 text-right font-bold text-gray-900">₹{item.total.toLocaleString()}</td>
+                                        <td className="px-8 py-6 text-right text-slate-400 font-bold">₹{item.price.toLocaleString()}</td>
+                                        <td className="px-8 py-6 text-right font-black text-slate-900">₹{item.total.toLocaleString()}</td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
                     </div>
 
-                    {/* Footer Summary */}
-                    <div className="p-8 bg-gray-50 border-t border-gray-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                    <div className="p-8 bg-slate-50/50 border-t border-slate-50 flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
                         <div className="max-w-md">
-                            <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Notes</p>
-                            <p className="text-sm text-gray-700">
-                                {est.notes || "This estimate is valid for 30 days from date of generation. Final pricing is subject to validation. All amounts in INR."}
+                            <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-3 leading-none">Terms & Conditions</p>
+                            <p className="text-[11px] font-bold text-slate-500 leading-relaxed italic">
+                                {est.notes || "Standard corporate validity: 30 days. Proposed pricing is contingent upon final verification of work scope. Amounts denominated in INR."}
                             </p>
                         </div>
                         <div className="md:text-right">
-                            <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Total Amount</p>
-                            <span className="text-4xl font-bold text-blue-600">₹{est.amount.toLocaleString()}</span>
+                            <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-2 leading-none">Gross Proposal Value</p>
+                            <span className="text-4xl font-black text-primary tracking-tighter">₹{est.amount.toLocaleString()}</span>
                         </div>
                     </div>
                 </div>
@@ -285,318 +283,346 @@ export const Estimates: React.FC = () => {
 
     if (view === 'form') {
         return (
-            <div className="max-w-3xl mx-auto pb-24">
+            <div className="space-y-6 relative z-10 animate-fade-in pb-20">
                 <CustomerSearchModal
                     isOpen={showCustomerSearch}
                     onClose={() => setShowCustomerSearch(false)}
                     customers={customers}
                     onSelect={handleCustomerSelect}
                 />
-                <div className="bg-white rounded-lg shadow p-6 mb-6">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h1 className="text-2xl font-bold text-gray-900">
-                                {formData.id ? 'Edit Estimate' : 'New Estimate'}
-                            </h1>
-                            <p className="text-sm text-gray-600 mt-1">Fill in the details below</p>
-                        </div>
-                        <button onClick={() => setView('list')} className="text-gray-500 hover:text-gray-700">
-                            <X size={24} />
-                        </button>
+
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h1 className="text-2xl font-bold text-white tracking-tight leading-tight uppercase">
+                            {formData.id ? 'Modify Proposal' : 'New Quote Node'}
+                        </h1>
+                        <p className="text-white/80 text-sm font-bold">Configure a new business quote for selection.</p>
                     </div>
+                    <button onClick={() => setView('list')} className="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-xl text-white transition-all flex items-center justify-center backdrop-blur-md">
+                        <X size={20} />
+                    </button>
                 </div>
 
-
                 <form onSubmit={handleSave} className="space-y-6">
-                    {/* Basic Info Card */}
-                    <div className="bg-white p-6 rounded-lg shadow space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div className="lg:col-span-2 space-y-6">
+                            {/* Entity Selection */}
+                            <div className="bg-white p-7 rounded-2xl shadow-premium space-y-5">
                                 <div className="flex justify-between items-center mb-2">
-                                    <label className="block text-sm font-semibold text-gray-700">Customer</label>
-                                    <button type="button" onClick={() => setShowCustomerSearch(true)} className="text-blue-600 text-xs font-bold flex items-center gap-1 hover:underline">
-                                        <Search size={14} /> Search Existing
+                                    <h3 className="font-bold text-slate-800">Target Entity</h3>
+                                    <button type="button" onClick={() => setShowCustomerSearch(true)} className="text-primary font-black text-[10px] uppercase tracking-widest bg-primary/10 px-3 py-1.5 rounded-xl hover:bg-primary hover:text-white transition-all">
+                                        Scan Directory
                                     </button>
                                 </div>
-                                <input
-                                    required
-                                    type="text"
-                                    placeholder="Enter or Search Customer"
-                                    className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-blue-500"
-                                    value={formData.customerName}
-                                    onChange={e => setFormData({ ...formData, customerName: e.target.value })}
-                                />
+                                <div className="space-y-2">
+                                    <input
+                                        required
+                                        type="text"
+                                        placeholder="Identification / Name"
+                                        className="w-full bg-slate-50 border border-slate-100 p-3 rounded-xl text-slate-900 outline-none focus:bg-white focus:border-primary transition-all font-bold text-sm"
+                                        value={formData.customerName}
+                                        onChange={e => setFormData({ ...formData, customerName: e.target.value })}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Shipping / Billing Hub</label>
+                                    <input
+                                        type="text"
+                                        className="w-full bg-slate-50 border border-slate-100 p-3 rounded-xl text-slate-900 outline-none focus:bg-white focus:border-primary transition-all font-bold text-sm"
+                                        placeholder="..."
+                                        value={formData.customerAddress || ''}
+                                        onChange={e => setFormData({ ...formData, customerAddress: e.target.value })}
+                                    />
+                                </div>
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Estimate Number</label>
-                                <input
-                                    type="text"
-                                    className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-blue-500"
-                                    placeholder="EST-0000"
-                                    value={formData.estimateNumber}
-                                    onChange={e => setFormData({ ...formData, estimateNumber: e.target.value })}
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">PDF Design Template</label>
-                                <select
-                                    className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-blue-500 bg-white"
-                                    value={formData.templateId || 'modern'}
-                                    onChange={e => setFormData({ ...formData, templateId: e.target.value })}
-                                >
-                                    <option value="modern">Modern Professional</option>
-                                    <option value="classic">Classic Letterhead</option>
-                                    <option value="minimal">Clean Minimalist</option>
-                                    <option value="corporate">Corporate Elite</option>
-                                </select>
+                            {/* Line Items */}
+                            <div className="bg-white rounded-2xl shadow-premium overflow-hidden">
+                                <div className="p-7 flex justify-between items-center bg-slate-50/50">
+                                    <h3 className="font-bold text-slate-800">Bill of Materials</h3>
+                                    <select
+                                        className="bg-primary text-white font-black text-[10px] uppercase tracking-widest rounded-xl px-4 py-2 border-none outline-none cursor-pointer hover:bg-primary-hover transition-all shadow-lg shadow-primary/20"
+                                        onChange={(e) => { if (e.target.value) addItem(e.target.value); e.target.value = ""; }}
+                                        value=""
+                                    >
+                                        <option value="">+ Add Asset</option>
+                                        {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                    </select>
+                                </div>
+
+                                <div className="p-0">
+                                    <table className="w-full text-left">
+                                        <thead>
+                                            <tr className="border-b border-slate-50">
+                                                <th className="px-7 py-4 text-[10px] font-black text-slate-300 uppercase tracking-widest">Description</th>
+                                                <th className="px-7 py-4 text-[10px] font-black text-slate-300 uppercase tracking-widest text-center">Qty</th>
+                                                <th className="px-7 py-4 text-[10px] font-black text-slate-300 uppercase tracking-widest text-right">Price</th>
+                                                <th className="px-7 py-4"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-50">
+                                            {(formData.items || []).map((item, idx) => (
+                                                <tr key={idx} className="hover:bg-slate-50/50 transition-all">
+                                                    <td className="px-7 py-4">
+                                                        <p className="font-bold text-slate-800 text-sm">{item.productName}</p>
+                                                    </td>
+                                                    <td className="px-7 py-4 text-center">
+                                                        <span className="bg-slate-50 px-3 py-1 rounded-lg text-xs font-black">x{item.quantity}</span>
+                                                    </td>
+                                                    <td className="px-7 py-4 text-right">
+                                                        <span className="font-black text-slate-900">₹{item.total.toLocaleString()}</span>
+                                                    </td>
+                                                    <td className="px-7 py-4 text-center">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                const newItems = [...(formData.items || [])];
+                                                                newItems.splice(idx, 1);
+                                                                const newAmount = newItems.reduce((sum, i) => sum + i.total, 0);
+                                                                setFormData({ ...formData, items: newItems, amount: newAmount });
+                                                            }}
+                                                            className="text-slate-300 hover:text-error transition-all"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                            {(!formData.items || formData.items.length === 0) && (
+                                                <tr>
+                                                    <td colSpan={4} className="px-7 py-16 text-center text-slate-300 text-[11px] font-bold uppercase tracking-[0.2em]">Deploy items to populate quote</td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
 
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">Customer Address</label>
-                            <input
-                                type="text"
-                                className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-blue-500"
-                                placeholder="Enter Customer Address"
-                                value={formData.customerAddress || ''}
-                                onChange={e => setFormData({ ...formData, customerAddress: e.target.value })}
-                            />
-                        </div>
+                        {/* Config Column */}
+                        <div className="space-y-6">
+                            <div className="bg-white p-7 rounded-2xl shadow-premium space-y-5">
+                                <h3 className="font-bold text-slate-800">Protocol Settings</h3>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Date</label>
-                                <input
-                                    type="date"
-                                    className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-blue-500"
-                                    value={formData.date}
-                                    onChange={e => setFormData({ ...formData, date: e.target.value })}
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Valid Until</label>
-                                <input
-                                    type="date"
-                                    className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-blue-500"
-                                    value={formData.validUntil}
-                                    onChange={e => setFormData({ ...formData, validUntil: e.target.value })}
-                                />
+                                <div className="space-y-1.5">
+                                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Proposal ID</label>
+                                    <input
+                                        type="text"
+                                        className="w-full bg-slate-50 border border-slate-100 p-3 rounded-xl text-slate-900 outline-none focus:bg-white focus:border-primary transition-all font-black text-sm"
+                                        placeholder="REF-0000"
+                                        value={formData.estimateNumber}
+                                        onChange={e => setFormData({ ...formData, estimateNumber: e.target.value })}
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Visual Logic</label>
+                                    <select
+                                        className="w-full bg-slate-50 border border-slate-100 p-3 rounded-xl text-slate-900 outline-none focus:bg-white focus:border-primary transition-all font-bold text-sm appearance-none cursor-pointer"
+                                        value={formData.templateId || 'modern'}
+                                        onChange={e => setFormData({ ...formData, templateId: e.target.value })}
+                                    >
+                                        <option value="modern">Modern Elite</option>
+                                        <option value="classic">Standard Heritage</option>
+                                        <option value="minimal">Pure Surface</option>
+                                        <option value="corporate">Institutional Blue</option>
+                                    </select>
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Expiry Window</label>
+                                    <input
+                                        type="date"
+                                        className="w-full bg-slate-50 border border-slate-100 p-3 rounded-xl text-slate-900 outline-none focus:bg-white focus:border-primary transition-all font-bold text-sm"
+                                        value={formData.validUntil}
+                                        onChange={e => setFormData({ ...formData, validUntil: e.target.value })}
+                                    />
+                                </div>
+
+                                <div className="pt-4 border-t border-slate-50 flex justify-between items-center">
+                                    <span className="text-sm font-black text-slate-400 uppercase tracking-tighter">Gross Value</span>
+                                    <h3 className="text-2xl font-black text-primary">₹{(formData.amount || 0).toLocaleString()}</h3>
+                                </div>
+
+                                <button type="submit" className="w-full bg-gradient-primary text-white py-4 rounded-xl font-black text-xs uppercase tracking-[0.2em] shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all">
+                                    {formData.id ? 'Commit Modification' : 'Deploy Proposal'}
+                                </button>
                             </div>
                         </div>
                     </div>
-
-                    {/* Products & Items Card */}
-                    <div className="bg-white p-6 rounded-lg shadow space-y-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <h3 className="text-lg font-bold text-gray-900">Items</h3>
-                                <p className="text-sm text-gray-600">Add products to this estimate</p>
-                            </div>
-                            <select
-                                className="border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
-                                onChange={(e) => addItem(e.target.value)}
-                                value=""
-                            >
-                                <option value="">+ Add Product</option>
-                                {products.map(p => <option key={p.id} value={p.id}>{p.name} - ₹{(p.pricing?.sellingPrice || 0).toLocaleString()}</option>)}
-                            </select>
-                        </div>
-
-                        <div className="space-y-3">
-                            {(formData.items || []).map((item, idx) => (
-                                <div key={idx} className="flex items-center justify-between p-4 bg-gray-50 rounded border border-gray-200">
-                                    <div className="flex-1">
-                                        <p className="font-semibold text-gray-900">{item.productName}</p>
-                                        <div className="flex items-center gap-3 mt-1">
-                                            <span className="text-xs text-gray-600">Price: ₹{item.price.toLocaleString()}</span>
-                                            <span className="text-xs text-gray-600">Qty: {item.quantity}</span>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-4">
-                                        <span className="font-bold text-blue-600">₹{item.total.toLocaleString()}</span>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                const newItems = [...(formData.items || [])];
-                                                newItems.splice(idx, 1);
-                                                const newAmount = newItems.reduce((sum, i) => sum + i.total, 0);
-                                                setFormData({ ...formData, items: newItems, amount: newAmount });
-                                            }}
-                                            className="text-red-500 hover:text-red-700"
-                                        >
-                                            <Trash2 size={18} />
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                            {(!formData.items || formData.items.length === 0) && (
-                                <div className="py-12 text-center border-2 border-dashed border-gray-200 rounded bg-gray-50">
-                                    <Plus size={32} className="mx-auto text-gray-300 mb-2" />
-                                    <p className="text-sm text-gray-500">No items added yet</p>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="pt-4 border-t border-gray-200 flex justify-between items-center">
-                            <span className="text-lg font-semibold text-gray-700">Total Amount</span>
-                            <span className="text-2xl font-bold text-blue-600">₹{formData.amount?.toLocaleString()}</span>
-                        </div>
-                    </div>
-
-                    <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded hover:bg-blue-700 font-semibold">
-                        {formData.id ? 'Update Estimate' : 'Create Estimate'}
-                    </button>
                 </form>
             </div>
         );
     }
 
     return (
-        <div className="space-y-6 pb-16">
-            <div className="bg-white rounded-lg shadow p-6">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-                            <ClipboardList size={28} className="text-blue-600" />
-                            Estimates
-                        </h1>
-                        <p className="text-sm text-gray-600 mt-1">Manage your business quotes and proposals</p>
-                    </div>
-                    <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto mt-4 sm:mt-0">
-                        <ViewToggle view={viewMode} onViewChange={setViewMode} />
-                        <button
-                            onClick={() => { setFormData({ estimateNumber: `EST-${Math.floor(Math.random() * 10000)}`, customerName: '', amount: 0, date: new Date().toISOString().split('T')[0], validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], status: 'Draft', templateId: undefined, notes: '', items: [] }); setView('form'); }}
-                            className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 flex items-center justify-center gap-2 w-full sm:w-auto"
-                        >
-                            <Plus size={20} /> New Estimate
-                        </button>
-                    </div>
+        <div className="space-y-6 relative z-10 animate-fade-in pb-20">
+            <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold text-white tracking-tight leading-tight uppercase flex items-center gap-3">
+                        <ClipboardList size={28} className="text-white" strokeWidth={3} />
+                        Estimation Hub
+                    </h1>
+                    <p className="text-white/80 text-sm font-bold flex items-center gap-2">
+                        Tracking <span className="bg-white/20 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-widest">{estimates.length} active proposals</span>
+                    </p>
                 </div>
+                <div className="flex items-center gap-3">
+                    <ViewToggle view={viewMode} onViewChange={setViewMode} />
+                    <button
+                        onClick={() => { setFormData({ estimateNumber: `EST-${Math.floor(Math.random() * 10000)}`, customerName: '', amount: 0, date: new Date().toISOString().split('T')[0], validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], status: 'Draft', templateId: undefined, notes: '', items: [] }); setView('form'); }}
+                        className="bg-white text-primary px-6 py-2.5 rounded-xl shadow-lg font-black text-xs uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center gap-2"
+                    >
+                        <Plus size={16} strokeWidth={3} /> Create Quote
+                    </button>
+                </div>
+            </div>
 
-                <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <DashboardStatCard title="Active Quotes" value={`₹${stats.activeValue.toLocaleString()}`} icon={ClipboardList} iconBg="bg-gradient-primary" percentage="+8" trend="pending conversion" />
+                <DashboardStatCard title="Total Pipeline" value={`₹${stats.totalValue.toLocaleString()}`} icon={TrendingUp} iconBg="bg-gradient-info" percentage="+15%" trend="all time" />
+                <DashboardStatCard title="Win Ratio" value={`${estimates.length > 0 ? Math.round((stats.acceptedCount / estimates.length) * 100) : 0}%`} icon={FileCheck} iconBg="bg-gradient-success" percentage="+2" trend="converted" />
+            </div>
+
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 flex flex-col md:flex-row gap-4 border border-white/20">
+                <div className="relative flex-1">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/60" size={16} />
                     <input
-                        placeholder="Search estimates..."
-                        className="w-full border border-gray-300 pl-10 pr-4 py-2 rounded focus:outline-none focus:border-blue-500"
+                        placeholder="Scan for quote numbers or entity IDs..."
+                        className="w-full bg-white/10 border border-white/20 rounded-xl px-11 py-2.5 text-sm font-bold text-white placeholder:text-white/40 focus:outline-none focus:bg-white/20 transition-all"
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
                     />
                 </div>
+                <button className="px-6 py-2.5 bg-white/10 border border-white/20 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-white/20 transition-all">
+                    Archive List
+                </button>
             </div>
 
-            {
-                loading ? (
-                    <div className="bg-white rounded-lg shadow p-12 text-center">
-                        <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
-                        <p className="text-gray-600">Loading estimates...</p>
-                    </div>
-                ) : filtered.length > 0 ? (
-                    viewMode === 'grid' ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {filtered.map(est => (
-                                <div key={est.id} onClick={() => { setSelectedEstimate(est); setView('details'); }} className="bg-white p-6 rounded-lg border border-gray-200 hover:border-blue-500 hover:shadow-lg transition-all cursor-pointer">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <div className="flex items-center gap-3">
-                                            <ClipboardList size={24} className="text-blue-600" />
-                                            <div>
-                                                <h3 className="text-lg font-bold text-gray-900">#{est.estimateNumber}</h3>
-                                                <p className="text-xs text-gray-500">{new Date(est.date).toLocaleDateString()}</p>
-                                            </div>
+            {loading ? (
+                <div className="py-20 text-center">
+                    <div className="w-10 h-10 border-4 border-white/20 border-t-white rounded-full animate-spin mx-auto mb-4" />
+                    <p className="text-white/60 text-[10px] font-black uppercase tracking-[0.2em]">Synchronizing Registry...</p>
+                </div>
+            ) : filtered.length > 0 ? (
+                viewMode === 'grid' ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        {filtered.map(est => (
+                            <div key={est.id} onClick={() => { setSelectedEstimate(est); setView('details'); }} className="group bg-white rounded-2xl p-7 shadow-premium hover:translate-y-[-6px] transition-all cursor-pointer border-none relative overflow-hidden">
+                                <div className="flex items-center justify-between mb-6">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-12 h-12 bg-slate-50 text-slate-300 rounded-2xl flex items-center justify-center group-hover:bg-gradient-primary group-hover:text-white transition-all shadow-sm">
+                                            <ClipboardList size={22} strokeWidth={2.5} />
                                         </div>
-                                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${est.status === 'Accepted' ? 'bg-green-100 text-green-700' : est.status === 'Sent' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
-                                            {est.status}
-                                        </span>
-                                    </div>
-
-                                    <div className="space-y-4">
                                         <div>
-                                            <p className="text-xs text-gray-500 mb-1">Customer</p>
-                                            <p className="font-semibold text-gray-900">{est.customerName}</p>
-                                        </div>
-
-                                        <div className="pt-4 border-t border-gray-200 flex justify-between items-end">
-                                            <div>
-                                                <p className="text-xs text-gray-500 mb-1">Valid Until</p>
-                                                <p className="text-sm text-gray-700">{new Date(est.validUntil).toLocaleDateString()}</p>
-                                            </div>
-                                            <div className="text-right">
-                                                <p className="text-xs text-gray-500 mb-1">Amount</p>
-                                                <p className="text-2xl font-bold text-blue-600">₹{est.amount.toLocaleString()}</p>
-                                            </div>
+                                            <h3 className="font-black text-slate-800 text-base uppercase tracking-tight group-hover:text-primary transition-colors">#{est.estimateNumber}</h3>
+                                            <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest leading-none mt-1">{new Date(est.date).toLocaleDateString()}</p>
                                         </div>
                                     </div>
+                                    <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${est.status === 'Accepted' ? 'bg-success text-white' : est.status === 'Sent' ? 'bg-primary text-white' : 'bg-slate-400 text-white'} shadow-sm`}>
+                                        {est.status}
+                                    </span>
+                                </div>
 
-                                    <div className="mt-4 pt-4 border-t border-gray-200 flex gap-2">
-                                        <button
-                                            onClick={(event) => { event.stopPropagation(); sendInvoiceEmail(est, companyName); }}
-                                            className="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700 flex items-center justify-center gap-2 text-sm"
-                                        >
-                                            <Send size={14} /> Send
-                                        </button>
-                                        <button
-                                            onClick={async (event) => {
-                                                event.stopPropagation();
-                                                try {
-                                                    await generateInvoicePDF(est, companyName, companyPhone, companyLogo, 'ESTIMATE');
-                                                } catch (e) {
-                                                    await alert('Failed to generate PDF', { variant: 'danger' });
-                                                }
-                                            }}
-                                            className="p-2 border border-gray-300 text-gray-600 rounded hover:bg-gray-50"
-                                            title="Download PDF"
-                                        >
-                                            <Download size={18} />
-                                        </button>
+                                <div className="space-y-4 mb-8">
+                                    <div>
+                                        <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-1">Target Client</p>
+                                        <p className="font-black text-slate-700 text-sm tracking-tight line-clamp-1">{est.customerName}</p>
+                                    </div>
+
+                                    <div className="pt-4 border-t border-slate-50 flex justify-between items-end">
+                                        <div>
+                                            <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-1">Valid To</p>
+                                            <p className="text-xs font-black text-slate-600 tracking-widest uppercase">{new Date(est.validUntil).toLocaleDateString('en-GB')}</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-1">Exposure</p>
+                                            <p className="text-2xl font-black text-slate-900 tracking-tighter leading-none">₹{est.amount.toLocaleString()}</p>
+                                        </div>
                                     </div>
                                 </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="bg-white rounded-lg shadow overflow-hidden table-responsive">
-                            <div className="overflow-x-auto">
-                                <table className="w-full min-w-[1000px]">
-                                    <thead className="bg-gray-50 border-b border-gray-200">
-                                        <tr>
-                                            <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Estimate #</th>
-                                            <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Customer</th>
-                                            <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Date</th>
-                                            <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Valid Until</th>
-                                            <th className="px-6 py-3 text-right text-xs font-semibold text-gray-700 uppercase">Amount</th>
-                                            <th className="px-6 py-3 text-center text-xs font-semibold text-gray-700 uppercase">Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-200">
-                                        {filtered.map(est => (
-                                            <tr key={est.id} onClick={() => { setSelectedEstimate(est); setView('details'); }} className="hover:bg-gray-50 cursor-pointer">
-                                                <td className="px-6 py-4 font-semibold text-gray-900">{est.estimateNumber}</td>
-                                                <td className="px-6 py-4 text-gray-700">{est.customerName}</td>
-                                                <td className="px-6 py-4 text-gray-600 text-sm">{new Date(est.date).toLocaleDateString()}</td>
-                                                <td className="px-6 py-4 text-gray-600 text-sm">{new Date(est.validUntil).toLocaleDateString()}</td>
-                                                <td className="px-6 py-4 text-right font-bold text-blue-600">₹{est.amount.toLocaleString()}</td>
-                                                <td className="px-6 py-4 text-center">
-                                                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${est.status === 'Accepted' ? 'bg-green-100 text-green-700' : est.status === 'Sent' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
-                                                        {est.status}
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+
+                                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0">
+                                    <button
+                                        onClick={(event) => { event.stopPropagation(); sendInvoiceEmail(est, companyName); }}
+                                        className="flex-1 bg-slate-900 text-white py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all"
+                                    >
+                                        Deploy
+                                    </button>
+                                    <button
+                                        onClick={async (event) => {
+                                            event.stopPropagation();
+                                            try {
+                                                await generateInvoicePDF(est, companyName, companyPhone, companyLogo, 'ESTIMATE');
+                                            } catch (e) {
+                                                await alert('Failed to generate PDF', { variant: 'danger' });
+                                            }
+                                        }}
+                                        className="p-2.5 bg-slate-50 text-slate-400 rounded-xl hover:bg-primary hover:text-white transition-all shadow-sm"
+                                    >
+                                        <Download size={16} />
+                                    </button>
+                                </div>
                             </div>
-                        </div>
-                    )
+                        ))}
+                    </div>
                 ) : (
-                    <div className="bg-white rounded-lg shadow p-12 text-center">
-                        <ClipboardList size={48} className="mx-auto text-gray-300 mb-4" />
-                        <h3 className="text-lg font-bold text-gray-900 mb-2">No Estimates Found</h3>
-                        <p className="text-gray-600 mb-6">Create your first estimate to get started</p>
-                        <button onClick={() => setView('form')} className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 inline-flex items-center gap-2">
-                            <Plus size={20} /> Create Estimate
-                        </button>
+                    <div className="bg-white rounded-2xl shadow-premium overflow-hidden border-none text-sm font-medium">
+                        <table className="w-full text-left">
+                            <thead>
+                                <tr className="border-b border-slate-50">
+                                    <th className="px-8 py-5 text-[11px] font-bold text-slate-300 uppercase tracking-widest">Protocol ID</th>
+                                    <th className="px-8 py-5 text-[11px] font-bold text-slate-300 uppercase tracking-widest">Client</th>
+                                    <th className="px-8 py-5 text-[11px] font-bold text-slate-300 uppercase tracking-widest text-center">Status</th>
+                                    <th className="px-8 py-5 text-[11px] font-bold text-slate-300 uppercase tracking-widest text-right">Value</th>
+                                    <th className="px-8 py-5"></th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-50">
+                                {filtered.map(est => (
+                                    <tr key={est.id} onClick={() => { setSelectedEstimate(est); setView('details'); }} className="hover:bg-slate-50/50 cursor-pointer group">
+                                        <td className="px-8 py-5 font-black text-slate-800 text-xs tracking-widest uppercase">#{est.estimateNumber}</td>
+                                        <td className="px-8 py-5 text-slate-600 font-bold tracking-tight uppercase">{est.customerName}</td>
+                                        <td className="px-8 py-5 text-center">
+                                            <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest text-white ${est.status === 'Accepted' ? 'bg-success' : est.status === 'Sent' ? 'bg-primary' : 'bg-slate-400'} shadow-sm`}>
+                                                {est.status}
+                                            </span>
+                                        </td>
+                                        <td className="px-8 py-5 text-right font-black text-slate-900">₹{est.amount.toLocaleString()}</td>
+                                        <td className="px-8 py-5 text-right">
+                                            <ChevronRight size={16} className="text-slate-100 group-hover:text-primary transition-colors inline-block" strokeWidth={3} />
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
                 )
+            ) : (
+                <div className="py-32 text-center bg-white/5 rounded-2xl border border-dashed border-white/20">
+                    <p className="text-white font-black text-xl mb-4 uppercase tracking-[0.2em]">Zero Projections</p>
+                    <button onClick={() => setView('form')} className="bg-white text-primary px-10 py-3 rounded-xl font-black text-[11px] uppercase tracking-widest shadow-lg">Issue Quote</button>
+                </div>
+            )
             }
         </div >
     );
 };
+
+const DashboardStatCard = ({ title, value, icon: Icon, iconBg, percentage, trend }: any) => (
+    <div className="bg-white p-5 rounded-2xl shadow-premium hover:translate-y-[-2px] transition-all group flex flex-col justify-between h-full border-none">
+        <div className="flex justify-between items-start">
+            <div className="flex-1">
+                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1 leading-none">{title}</p>
+                <h4 className="text-xl font-bold text-slate-800 tracking-tight leading-none group-hover:text-primary transition-colors">{value}</h4>
+            </div>
+            <div className={`w-11 h-11 rounded-lg ${iconBg} flex items-center justify-center shadow-lg transform group-hover:rotate-12 transition-transform`}>
+                <Icon size={18} className="text-white" strokeWidth={3} />
+            </div>
+        </div>
+        <div className="mt-4 flex items-center gap-2">
+            <span className={`text-xs font-bold ${percentage.startsWith('+') ? 'text-success' : 'text-error'}`}>{percentage}</span>
+            <span className="text-[11px] font-bold text-slate-400 lowercase">{trend}</span>
+        </div>
+    </div>
+);

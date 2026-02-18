@@ -17,7 +17,10 @@ import { NotificationPreferences } from '../components/NotificationPreferences';
 import { TestNotifications } from '../components/TestNotifications';
 import { automationService } from '../services/automationService';
 
+import { useNavigate } from 'react-router-dom';
+
 export const SettingsPage: React.FC = () => {
+    const navigate = useNavigate();
     const [settings, setSettings] = useState<Partial<Settings>>({
         n8nWebhookUrl: '',
         razorpayKey: '',
@@ -115,6 +118,28 @@ export const SettingsPage: React.FC = () => {
             )}
 
             <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Menu Customization */}
+                <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm space-y-6 md:col-span-2">
+                    <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
+                        <div className="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-600">
+                            <SettingsIcon size={20} />
+                        </div>
+                        <h3 className="text-lg font-bold text-slate-800">Menu Customization</h3>
+                    </div>
+                    <div className="flex items-center justify-between">
+                        <p className="text-sm text-slate-500 max-w-xl">
+                            Customize the sidebar menu for your organization. Reorder modules, enable or disable features to tailor the experience for your team.
+                        </p>
+                        <button
+                            type="button"
+                            onClick={() => navigate('/settings/menu')}
+                            className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200"
+                        >
+                            Customize Menu
+                        </button>
+                    </div>
+                </div>
+
                 {/* n8n Integration */}
                 <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm space-y-6">
                     <div className="flex items-center gap-3 border-b border-slate-100 pb-4">

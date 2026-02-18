@@ -1,4 +1,6 @@
 // Firestore Data Service - Firebase Backend for Invoices and Products
+import { initializeApp as initApp, getApp } from 'firebase/app';
+import { getAuth, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import {
     collection,
     addDoc,
@@ -18,8 +20,8 @@ import {
     startAfter,
     DocumentSnapshot
 } from 'firebase/firestore';
-import { db } from './firebase';
-import { Invoice, Product, Estimate, Payment, RecurringInvoice, CheckoutLink, Customer, Order, OrderStatus, StockLog, Supplier, StockMovementType, OrderFormConfig, PurchaseOrder, SupplierPayment } from '../types';
+import { db, firebaseConfig } from './firebase';
+import { Invoice, Product, Estimate, Payment, RecurringInvoice, CheckoutLink, Customer, Order, OrderStatus, StockLog, Supplier, StockMovementType, OrderFormConfig, PurchaseOrder, SupplierPayment, Tenant } from '../types';
 import { createOrderNotification, createStockNotification, createPaymentNotification, createPurchaseOrderNotification } from './notificationService';
 import { automationService } from './automationService';
 
@@ -564,5 +566,124 @@ export const checkoutLinkService = {
     },
     deleteCheckout: async (id: string) => {
         await deleteDoc(doc(db, 'checkout_links', id));
+    }
+};
+// Helper to interact with a secondary app instance for creating users without logging out
+const getSecondaryAuth = () => {
+    const appName = 'secondary';
+    let app;
+    try {
+        app = getApp(appName);
+    } catch (e) {
+        app = initApp(firebaseConfig, appName);
+    }
+    return getAuth(app);
+};
+
+// ========== TENANT OPERATIONS ==========
+export const tenantService = {
+    getTenantByHostname: async (hostname: string): Promise<Tenant | null> => {
+        // Handle local development
+        if (hostname.includes('localhost') || hostname.includes('127.0.0.1')) {
+            return null;
+        }
+
+        // Check for known main domains to extract subdomain
+        const mainDomains = ['clintan.com', 'averqon.in', 'onrender.com'];
+        let subdomain = '';
+
+        for (const domain of mainDomains) {
+            if (hostname.endsWith(domain)) {
+                const parts = hostname.split('.');
+                // Assuming format subdomain.domain.com or just domain.com
+                // For onrender.com it might be service-name.onrender.com
+                if (parts.length > 2) {
+                    // Simple check: if it's not the main domain itself
+                    // e.g. "billing.averqon.in" -> parts=["billing", "averqon", "in"]
+                    const potentialSub = hostname.substring(0, hostname.length - domain.length - 1); // remove .domain
+                    if (potentialSub && !['www', 'app', 'billing'].includes(potentialSub)) {
+                        subdomain = potentialSub;
+                    }
+                }
+                break;
+            }
+        }
+
+        try {
+            let q;
+            if (subdomain) {
+                console.log(`🔍 Looking up tenant by subdomain: ${subdomain}`);
+                q = query(collection(db, 'tenants'), where('subdomain', '==', subdomain));
+            } else {
+                console.log(`🔍 Looking up tenant by custom domain: ${hostname}`);
+                q = query(collection(db, 'tenants'), where('customDomain', '==', hostname));
+            }
+
+            const snapshot = await getDocs(q);
+            if (snapshot.empty) {
+                console.log('⚠️ No tenant found for hostname:', hostname);
+                return null;
+            }
+
+            const d = snapshot.docs[0];
+            return { id: d.id, ...d.data() } as Tenant;
+        } catch (error) {
+            console.error('❌ Error fetching tenant by hostname:', error);
+            return null;
+        }
+    },
+    getAllTenants: async (): Promise<Tenant[]> => {
+        const snapshot = await getDocs(collection(db, 'tenants'));
+        const tenants: Tenant[] = [];
+        snapshot.forEach(d => tenants.push({ id: d.id, ...d.data() } as Tenant));
+        return tenants;
+    },
+    getTenantByUserId: async (uid: string): Promise<Tenant | null> => {
+        const q = query(collection(db, 'tenants'), where('userId', '==', uid));
+        const snapshot = await getDocs(q);
+        if (snapshot.empty) return null;
+        const d = snapshot.docs[0];
+        return { id: d.id, ...d.data() } as Tenant;
+    },
+    createTenant: async (tenant: Omit<Tenant, 'id'>) => {
+        return addDoc(collection(db, 'tenants'), {
+            ...tenant,
+            createdAt: new Date().toISOString(),
+            status: tenant.status || 'Active'
+        });
+    },
+    createTenantWithAuth: async (name: string, email: string, password: string, logoUrl: string = '', phone: string = '', config: any = {}) => {
+        const auth2 = getSecondaryAuth();
+        const userCredential = await createUserWithEmailAndPassword(auth2, email, password);
+        const user = userCredential.user;
+        await updateProfile(user, { displayName: name, photoURL: logoUrl });
+
+        const subdomain = name.toLowerCase().replace(/[^a-z0-9]/g, '') || 'company-' + Date.now();
+
+        const tenantData: Omit<Tenant, 'id'> = {
+            companyName: name,
+            ownerEmail: email,
+            subdomain: subdomain,
+            userId: user.uid,
+            phone: phone,
+            logoUrl: logoUrl,
+            industry: config.industry || 'Retail',
+            plan: 'Pro',
+            status: 'Active',
+            isDomainVerified: false,
+            createdAt: new Date().toISOString(),
+            usersCount: 1,
+            mrr: '0',
+            config: config
+        };
+
+        const docRef = await addDoc(collection(db, 'tenants'), tenantData);
+        return { id: docRef.id, ...tenantData };
+    },
+    updateTenant: async (id: string, updates: Partial<Tenant>) => {
+        await updateDoc(doc(db, 'tenants', id), updates);
+    },
+    deleteTenant: async (id: string) => {
+        await deleteDoc(doc(db, 'tenants', id));
     }
 };

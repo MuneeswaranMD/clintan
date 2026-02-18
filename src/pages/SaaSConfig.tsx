@@ -3,7 +3,7 @@ import { useShop } from '../context/ShopContext';
 import { ToggleLeft, ToggleRight, Save, LayoutTemplate, Briefcase, CheckCircle, AlertCircle, Loader, Zap, Plus, X } from 'lucide-react';
 import { getIndustryPreset } from '../config/industryPresets';
 import { getAuth } from 'firebase/auth';
-import { collection, query, where, getDocs, updateDoc, doc, getFirestore } from 'firebase/firestore';
+import { tenantService } from '../services/firebaseService';
 
 export const SaaSConfig: React.FC = () => {
     const { businessConfig, updateConfig } = useShop();
@@ -19,13 +19,9 @@ export const SaaSConfig: React.FC = () => {
                 const user = auth.currentUser;
                 if (!user) return;
 
-                const db = getFirestore();
-                const companiesRef = collection(db, 'companies');
-                const q = query(companiesRef, where('userId', '==', user.uid));
-                const querySnapshot = await getDocs(q);
-
-                if (!querySnapshot.empty) {
-                    setCompanyId(querySnapshot.docs[0].id);
+                const tenant = await tenantService.getTenantByUserId(user.uid);
+                if (tenant) {
+                    setCompanyId(tenant.id);
                 }
             } catch (error) {
                 console.error('Failed to fetch company ID:', error);
@@ -45,9 +41,7 @@ export const SaaSConfig: React.FC = () => {
         setMessage(null);
 
         try {
-            const db = getFirestore();
-            const companyRef = doc(db, 'companies', companyId);
-            await updateDoc(companyRef, { config });
+            await tenantService.updateTenant(companyId, { config });
 
             setMessage({ type: 'success', text: '✅ Configuration saved successfully!' });
 
@@ -131,6 +125,14 @@ export const SaaSConfig: React.FC = () => {
                         <span className="font-semibold text-sm">{message.text}</span>
                     </div>
                 )}
+
+                <button
+                    onClick={() => window.location.href = '/settings/menu'}
+                    className="ml-auto flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-xl hover:bg-black transition-all shadow-md active:scale-95 text-sm font-bold"
+                >
+                    <ToggleRight size={18} />
+                    <span>Customize Menu</span>
+                </button>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
