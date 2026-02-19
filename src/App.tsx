@@ -47,6 +47,8 @@ import { SuperAdminGrowth } from './pages/super-admin/SuperAdminGrowth';
 import { SuperAdminAutomation } from './pages/super-admin/SuperAdminAutomation';
 import { SuperAdminInfra } from './pages/super-admin/SuperAdminInfra';
 import { SuperAdminLogs } from './pages/super-admin/SuperAdminLogs';
+import { SuperAdminVerification } from './pages/super-admin/SuperAdminVerification';
+import { SuperAdminTenantDetail } from './pages/super-admin/SuperAdminTenantDetail';
 import { SuperAdminPlaceholder } from './pages/super-admin/SuperAdminPlaceholder';
 import { Projects } from './pages/Projects';
 import { SuperAdminGuard } from './components/guards/SuperAdminGuard';
@@ -117,6 +119,8 @@ function App() {
                     <Routes>
                       <Route path="dashboard" element={<SuperAdminDashboard />} />
                       <Route path="tenants" element={<SuperAdminTenants />} />
+                      <Route path="tenants/:id" element={<SuperAdminTenantDetail />} />
+                      <Route path="verification" element={<SuperAdminVerification />} />
                       <Route path="industries" element={<SuperAdminIndustries />} />
                       <Route path="plans" element={<SuperAdminPlans />} />
                       <Route path="revenue" element={<SuperAdminRevenue />} />

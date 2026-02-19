@@ -140,14 +140,26 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
+    function isSuperAdmin() {
+      return request.auth != null && (
+        request.auth.token.email == 'muneeswaran@averqon.in' || 
+        request.auth.token.email == 'whatnew.live@gmail.com'
+      );
+    }
+
+    // ========== PLANS ==========
+    match /plans/{planId} {
+      allow read: if true; // Publicly readable for subscription selection
+      allow write: if isSuperAdmin();
+    }
+
     // ========== TENANTS ==========
     match /tenants/{tenantId} {
       allow read: if true; // Public access required for domain detection
       allow create: if request.auth != null;
       allow update, delete: if request.auth != null && (
         resource.data.userId == request.auth.uid || 
-        request.auth.token.email == 'muneeswaran@averqon.in' || 
-        request.auth.token.email == 'whatnew.live@gmail.com'
+        isSuperAdmin()
       );
     }
   }

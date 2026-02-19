@@ -1,31 +1,5 @@
 import React, { useState } from 'react';
-import {
-    LayoutDashboard,
-    Building2,
-    Users,
-    Settings,
-    Bell,
-    Search,
-    CreditCard,
-    DollarSign,
-    TrendingUp,
-    Package,
-    ToggleLeft,
-    Database,
-    Zap,
-    FileText,
-    MessageSquare,
-    Share2,
-    Tag,
-    Menu,
-    X,
-    ChevronRight,
-    LogOut,
-    User,
-    ChevronDown,
-    Command,
-    Plus
-} from 'lucide-react';
+import { LayoutDashboard, Building2, ShieldCheck, Users, Settings, Bell, Search, CreditCard, DollarSign, TrendingUp, Package, ToggleLeft, Database, Zap, FileText, MessageSquare, Share2, Tag, Menu, X, ChevronRight, LogOut, User, ChevronDown, Command, Plus } from 'lucide-react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
 
 interface SuperAdminLayoutProps {
@@ -47,6 +21,7 @@ export const SuperAdminLayout: React.FC<SuperAdminLayoutProps> = ({ onLogout, us
     const menuItems = [
         { label: 'Dashboard', path: '/super/dashboard', icon: LayoutDashboard },
         { label: 'Tenants', path: '/super/tenants', icon: Building2, badge: '128' },
+        { label: 'Verification', path: '/super/verification', icon: ShieldCheck },
         { label: 'Industries', path: '/super/industries', icon: Tag },
         { label: 'Modules', path: '/super/modules', icon: Package },
         { label: 'Subscription Plans', path: '/super/plans', icon: CreditCard },

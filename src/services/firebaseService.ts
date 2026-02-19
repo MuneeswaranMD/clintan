@@ -21,7 +21,7 @@ import {
     DocumentSnapshot
 } from 'firebase/firestore';
 import { db, firebaseConfig } from './firebase';
-import { Invoice, Product, Estimate, Payment, RecurringInvoice, CheckoutLink, Customer, Order, OrderStatus, StockLog, Supplier, StockMovementType, OrderFormConfig, PurchaseOrder, SupplierPayment, Tenant } from '../types';
+import { Invoice, Product, Estimate, Payment, RecurringInvoice, CheckoutLink, Customer, Order, OrderStatus, StockLog, Supplier, StockMovementType, OrderFormConfig, PurchaseOrder, SupplierPayment, Tenant, SubscriptionPlan } from '../types';
 import { createOrderNotification, createStockNotification, createPaymentNotification, createPurchaseOrderNotification } from './notificationService';
 import { automationService } from './automationService';
 
@@ -639,6 +639,11 @@ export const tenantService = {
         snapshot.forEach(d => tenants.push({ id: d.id, ...d.data() } as Tenant));
         return tenants;
     },
+    getTenantById: async (id: string): Promise<Tenant | null> => {
+        const d = await getDoc(doc(db, 'tenants', id));
+        if (!d.exists()) return null;
+        return { id: d.id, ...d.data() } as Tenant;
+    },
     getTenantByUserId: async (uid: string): Promise<Tenant | null> => {
         const q = query(collection(db, 'tenants'), where('userId', '==', uid));
         const snapshot = await getDocs(q);
@@ -680,7 +685,7 @@ export const tenantService = {
             phone: phone,
             logoUrl: logoUrl,
             industry: config.industry || 'Retail',
-            plan: 'Pro',
+            plan: 'Pro Business',
             status: 'Active',
             isDomainVerified: false,
             createdAt: new Date().toISOString(),
@@ -695,7 +700,55 @@ export const tenantService = {
     updateTenant: async (id: string, updates: Partial<Tenant>) => {
         await updateDoc(doc(db, 'tenants', id), updates);
     },
+    updateVerificationStatus: async (id: string, status: Tenant['config']['verification']['status'], reason?: string, verifiedBy?: string) => {
+        const tenantRef = doc(db, 'tenants', id);
+        const updateData: any = {
+            'config.verification.status': status,
+            'config.verification.verifiedAt': new Date().toISOString()
+        };
+        if (reason) updateData['config.verification.rejectionReason'] = reason;
+        if (verifiedBy) updateData['config.verification.verifiedBy'] = verifiedBy;
+        await updateDoc(tenantRef, updateData);
+    },
+    submitForVerification: async (id: string) => {
+        const tenantRef = doc(db, 'tenants', id);
+        await updateDoc(tenantRef, {
+            'config.verification.status': 'Pending',
+            'config.verification.submittedAt': new Date().toISOString()
+        });
+    },
     deleteTenant: async (id: string) => {
         await deleteDoc(doc(db, 'tenants', id));
+    }
+};
+
+// ========== PLAN OPERATIONS ==========
+export const planService = {
+    subscribeToPlans: (callback: (plans: SubscriptionPlan[]) => void) => {
+        const q = query(collection(db, 'plans'), orderBy('price', 'asc'));
+        return onSnapshot(q, (snapshot) => {
+            const plans: SubscriptionPlan[] = [];
+            snapshot.forEach(d => plans.push({ id: d.id, ...d.data() } as SubscriptionPlan));
+            callback(plans);
+        });
+    },
+    getPlans: async (): Promise<SubscriptionPlan[]> => {
+        const q = query(collection(db, 'plans'), orderBy('price', 'asc'));
+        const snapshot = await getDocs(q);
+        const plans: SubscriptionPlan[] = [];
+        snapshot.forEach(d => plans.push({ id: d.id, ...d.data() } as SubscriptionPlan));
+        return plans;
+    },
+    createPlan: async (plan: Omit<SubscriptionPlan, 'id'>) => {
+        return addDoc(collection(db, 'plans'), {
+            ...plan,
+            createdAt: new Date().toISOString()
+        });
+    },
+    updatePlan: async (id: string, updates: Partial<SubscriptionPlan>) => {
+        await updateDoc(doc(db, 'plans', id), updates);
+    },
+    deletePlan: async (id: string) => {
+        await deleteDoc(doc(db, 'plans', id));
     }
 };

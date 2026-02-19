@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { FileText, Upload, Trash2, Download, Eye, FileCheck, Shield, Save, Loader2, AlertCircle } from 'lucide-react';
+import { FileText, Upload, Trash2, Download, Eye, FileCheck, Shield, Save, Loader2, AlertCircle, CheckCircle2, Clock, XCircle, ShieldCheck } from 'lucide-react';
 import { Tenant } from '../../../types';
+import { tenantService } from '../../../services/firebaseService';
 
 interface DocumentsTabProps {
     tenant: Tenant;
@@ -10,219 +11,189 @@ interface DocumentsTabProps {
 }
 
 export const DocumentsTab: React.FC<DocumentsTabProps> = ({ tenant, onUpdate, saving, canEdit }) => {
-    const [documents, setDocuments] = useState(tenant.config?.documents || []);
-    const [isUploading, setIsUploading] = useState(false);
-    const [newDoc, setNewDoc] = useState({ name: '', url: '', type: 'GST Certificate' });
+    const [docs, setDocs] = useState(tenant.config?.documents || {});
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const handleAddDoc = () => {
-        if (!newDoc.name || !newDoc.url) return;
-        const doc = {
-            ...newDoc,
-            uploadedAt: new Date().toISOString()
-        };
-        const updated = [...documents, doc];
-        setDocuments(updated);
-        setNewDoc({ name: '', url: '', type: 'GST Certificate' });
-        setIsUploading(false);
-    };
-
-    const handleRemoveDoc = (index: number) => {
-        const updated = [...documents];
-        updated.splice(index, 1);
-        setDocuments(updated);
-    };
-
-    const handleSync = async () => {
+    const handleFileUpload = async (key: string, url: string) => {
+        const updatedDocs = { ...docs, [key]: url };
+        setDocs(updatedDocs);
         await onUpdate({
             config: {
                 ...tenant.config,
-                documents
+                documents: updatedDocs
             }
         });
     };
 
-    const docTypes = [
-        'GST Certificate',
-        'Trade License',
-        'Company PAN',
-        'Registration Certificate',
-        'Incorporate Certificate',
-        'Import Export Code',
-        'Other'
+    const handleRemoveDoc = async (key: string) => {
+        const updatedDocs = { ...docs };
+        delete (updatedDocs as any)[key];
+        setDocs(updatedDocs);
+        await onUpdate({
+            config: {
+                ...tenant.config,
+                documents: updatedDocs
+            }
+        });
+    };
+
+    const handleSubmitForVerification = async () => {
+        setIsSubmitting(true);
+        try {
+            await tenantService.submitForVerification(tenant.id);
+            // The subscription in parent will update the UI
+        } catch (error) {
+            console.error('Failed to submit for verification:', error);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const verificationStatus = tenant.config?.verification?.status || 'Active'; // Default to active if not set, or handle 'Unverified'
+
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case 'Verified': return 'text-emerald-600 bg-emerald-50 border-emerald-100';
+            case 'Pending': return 'text-amber-600 bg-amber-50 border-amber-100';
+            case 'Under Review': return 'text-blue-600 bg-blue-50 border-blue-100';
+            case 'Rejected': return 'text-rose-600 bg-rose-50 border-rose-100';
+            default: return 'text-slate-400 bg-slate-50 border-slate-100';
+        }
+    };
+
+    const requiredDocs = [
+        { label: 'GST Certificate', key: 'gstCertificate', required: true },
+        { label: 'PAN Card', key: 'panCard', required: true },
+        { label: 'Business License', key: 'businessLicense', required: true },
+        { label: 'Cancelled Cheque', key: 'cancelledCheque', required: true },
+        { label: 'ID Proof (Owner)', key: 'idProof', required: true },
     ];
 
     return (
         <div className="space-y-8">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 pb-6">
-                <div>
-                    <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide flex items-center gap-2">
-                        <FileCheck size={16} className="text-blue-600" /> Compliance Vault
-                    </h3>
-                    <p className="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-wide">Secure storage for legal certificates & business licenses.</p>
+            {/* Status Banner */}
+            <div className={`p-8 rounded-[2.5rem] border-2 flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden relative group ${getStatusColor(verificationStatus)}`}>
+                <div className="absolute top-0 right-0 w-32 h-32 opacity-10 pointer-events-none rotate-12">
+                    <ShieldCheck size={120} strokeWidth={1} />
                 </div>
 
-                {canEdit && (
+                <div className="flex items-center gap-5 relative z-10">
+                    <div className="w-16 h-16 rounded-3xl bg-white shadow-sm flex items-center justify-center">
+                        {verificationStatus === 'Verified' ? <CheckCircle2 size={32} /> :
+                            verificationStatus === 'Rejected' ? <XCircle size={32} /> :
+                                <Clock size={32} />}
+                    </div>
+                    <div>
+                        <h3 className="text-xl font-black uppercase tracking-tight leading-none">
+                            Identity Verification: {verificationStatus}
+                        </h3>
+                        <p className="text-[10px] font-bold uppercase tracking-widest mt-2 opacity-70">
+                            {verificationStatus === 'Verified' ? 'Your account is fully verified. All premium features unlocked.' :
+                                verificationStatus === 'Pending' ? 'Your profile is awaiting administrative review.' :
+                                    verificationStatus === 'Rejected' ? 'Verification failed. Please review documents and resubmit.' :
+                                        'Complete your profile to unlock all business capabilities.'}
+                        </p>
+                    </div>
+                </div>
+
+                {verificationStatus !== 'Verified' && verificationStatus !== 'Pending' && verificationStatus !== 'Under Review' && (
                     <button
-                        onClick={() => setIsUploading(true)}
-                        className="flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-xl font-bold uppercase tracking-wide text-[10px] shadow-lg hover:scale-105 active:scale-95 transition-all"
+                        onClick={handleSubmitForVerification}
+                        disabled={isSubmitting || saving}
+                        className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl hover:scale-105 transition-all disabled:opacity-50 relative z-10"
                     >
-                        <Upload size={14} /> Upload Document
+                        {isSubmitting ? 'Submitting...' : 'Submit for Compliance Review'}
                     </button>
+                )}
+
+                {verificationStatus === 'Rejected' && tenant.config?.verification?.rejectionReason && (
+                    <div className="w-full mt-4 p-4 bg-white/50 rounded-2xl border border-rose-200">
+                        <p className="text-[10px] font-black text-rose-600 uppercase tracking-widest mb-1">Rejection Reason</p>
+                        <p className="text-sm font-bold text-slate-700">{tenant.config.verification.rejectionReason}</p>
+                    </div>
                 )}
             </div>
 
-            {isUploading && (
-                <div className="bg-slate-50 p-8 rounded-3xl border border-slate-200 space-y-6 animate-slide-in">
-                    <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wide">Inbound Document Protocol</h4>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide ml-1">Document Name</label>
-                            <input
-                                type="text"
-                                className="w-full bg-white border border-slate-200 p-3 rounded-xl text-sm font-bold outline-none focus:border-blue-500 transition-all font-sans"
-                                placeholder="e.g. GST_Cert_2026"
-                                value={newDoc.name}
-                                onChange={e => setNewDoc({ ...newDoc, name: e.target.value })}
-                            />
-                        </div>
-                        <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide ml-1">Document Classification</label>
-                            <select
-                                className="w-full bg-white border border-slate-200 p-3 rounded-xl text-sm font-bold outline-none focus:border-blue-500 transition-all"
-                                value={newDoc.type}
-                                onChange={e => setNewDoc({ ...newDoc, type: e.target.value })}
-                            >
-                                {docTypes.map(type => <option key={type} value={type}>{type}</option>)}
-                            </select>
-                        </div>
-                        <div className="space-y-1 md:col-span-2">
-                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide ml-1">Public URL / Link (Storage bridge pending)</label>
-                            <div className="relative">
-                                <Upload size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
-                                <input
-                                    type="text"
-                                    className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-xs font-bold outline-none focus:border-blue-500 transition-all"
-                                    placeholder="https://..."
-                                    value={newDoc.url}
-                                    onChange={e => setNewDoc({ ...newDoc, url: e.target.value })}
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="flex justify-end gap-3 pt-4">
-                        <button
-                            onClick={() => setIsUploading(false)}
-                            className="px-6 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold uppercase tracking-wide text-slate-500 hover:bg-slate-50 transition-all"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            onClick={handleAddDoc}
-                            className="px-6 py-2.5 bg-slate-900 text-white rounded-xl text-xs font-bold uppercase tracking-wide shadow-lg hover:bg-black transition-all"
-                        >
-                            Register Document
-                        </button>
-                    </div>
-                </div>
-            )}
-
-            {/* Document Registry Table */}
-            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-                <table className="w-full text-left">
-                    <thead>
-                        <tr className="bg-slate-50/50 border-b border-slate-100">
-                            <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wide">Document</th>
-                            <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wide">Classification</th>
-                            <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wide">Uploaded</th>
-                            <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wide text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-50">
-                        {documents.length > 0 ? (
-                            documents.map((doc, index) => (
-                                <tr key={index} className="group hover:bg-slate-50/50 transition-colors">
-                                    <td className="px-6 py-5">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-9 h-9 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600">
-                                                <FileText size={16} />
-                                            </div>
-                                            <div>
-                                                <p className="text-sm font-bold text-slate-800">{doc.name}</p>
-                                                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wide">Security: encrypted</p>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-5">
-                                        <span className="px-2.5 py-1 bg-slate-100 text-slate-500 rounded-md text-[9px] font-bold uppercase tracking-wide border border-slate-200">
-                                            {doc.type}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-5">
-                                        <p className="text-xs font-bold text-slate-500">{new Date(doc.uploadedAt).toLocaleDateString()}</p>
-                                    </td>
-                                    <td className="px-6 py-5 text-right">
-                                        <div className="flex justify-end gap-1">
-                                            <a
-                                                href={doc.url}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="p-2 text-slate-400 hover:text-blue-600 hover:bg-white rounded-lg transition-all"
-                                            >
-                                                <Eye size={16} />
-                                            </a>
-                                            {canEdit && (
-                                                <button
-                                                    onClick={() => handleRemoveDoc(index)}
-                                                    className="p-2 text-slate-400 hover:text-red-500 hover:bg-white rounded-lg transition-all"
-                                                >
-                                                    <Trash2 size={16} />
-                                                </button>
-                                            )}
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))
-                        ) : (
-                            <tr>
-                                <td colSpan={4} className="px-6 py-20 text-center">
-                                    <div className="flex flex-col items-center gap-4">
-                                        <Shield size={40} className="text-slate-100" />
-                                        <div className="space-y-1">
-                                            <p className="text-sm font-bold text-slate-400 uppercase tracking-wide">Registry Empty</p>
-                                            <p className="text-[10px] text-slate-300 font-bold uppercase tracking-wide">Verified credentials will appear here.</p>
-                                        </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {requiredDocs.map((doc) => {
+                    const url = (docs as any)[doc.key];
+                    return (
+                        <div key={doc.key} className="bg-white p-6 rounded-[2rem] border-2 border-slate-50 hover:border-blue-100 transition-all group">
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center gap-3">
+                                    <div className={`p-2 rounded-xl ${url ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-50 text-slate-300'}`}>
+                                        <FileText size={20} />
                                     </div>
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
+                                    <div>
+                                        <p className="text-sm font-black text-slate-800 uppercase tracking-tight">{doc.label}</p>
+                                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                                            {doc.required ? 'Required compliance node' : 'Optional document'}
+                                        </p>
+                                    </div>
+                                </div>
+                                {url && (
+                                    <div className="flex gap-2">
+                                        <a href={url} target="_blank" rel="noreferrer" className="w-9 h-9 bg-slate-100 hover:bg-blue-600 hover:text-white rounded-xl flex items-center justify-center transition-all">
+                                            <Eye size={16} />
+                                        </a>
+                                        {canEdit && (
+                                            <button onClick={() => handleRemoveDoc(doc.key)} className="w-9 h-9 bg-slate-100 hover:bg-rose-500 hover:text-white rounded-xl flex items-center justify-center transition-all">
+                                                <Trash2 size={16} />
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
+                            {!url && canEdit && (
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        placeholder="Paste document URL or cloud bridge link..."
+                                        className="w-full bg-slate-50 border-none p-4 pr-12 rounded-2xl text-xs font-bold outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all font-sans"
+                                        onBlur={(e) => {
+                                            if (e.target.value) handleFileUpload(doc.key, e.target.value);
+                                        }}
+                                    />
+                                    <Upload size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300" />
+                                </div>
+                            )}
+
+                            {url && (
+                                <div className="mt-2 py-2 px-4 bg-emerald-50 rounded-xl flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                    <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest italic">Node Link Verified</span>
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
             </div>
 
-            <div className="bg-amber-50 p-6 rounded-2xl border border-amber-100 flex items-start gap-4">
-                <AlertCircle className="text-amber-500 flex-shrink-0" size={20} />
-                <div>
-                    <p className="text-xs font-bold text-amber-800 uppercase tracking-wide leading-none">KYC Warning</p>
-                    <p className="text-[10px] text-amber-600 font-bold mt-2 leading-relaxed">
-                        Ensure all documents are clear and valid. Expired documents may temporarily suspend automated billing and payment processing nodes.
-                    </p>
+            <div className="bg-blue-50 p-8 rounded-[2rem] border border-blue-100">
+                <div className="flex items-start gap-4">
+                    <ShieldCheck className="text-blue-600 flex-shrink-0 mt-1" size={24} />
+                    <div className="space-y-4">
+                        <div>
+                            <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Compliance Protocol</p>
+                            <h4 className="text-lg font-black text-slate-800 tracking-tight mt-1">Trust & Verification Policy</h4>
+                        </div>
+                        <ul className="space-y-3">
+                            {[
+                                'Documents must be original color scans in high resolution.',
+                                'GSTIN and PAN details must match the company legal name.',
+                                'Verification typically takes 24-48 business hours.',
+                                'Restriction: Unverified accounts cannot generate B2B GST invoices.'
+                            ].map((text, i) => (
+                                <li key={i} className="flex items-center gap-3 text-xs font-bold text-slate-500">
+                                    <div className="w-1 h-1 bg-blue-600 rounded-full" />
+                                    {text}
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
                 </div>
             </div>
-
-            {canEdit && (
-                <div className="pt-6 border-t border-slate-100 flex justify-end">
-                    <button
-                        onClick={handleSync}
-                        disabled={saving}
-                        className="flex items-center gap-3 bg-slate-900 text-white px-8 py-4 rounded-2xl font-bold uppercase tracking-wide text-[11px] shadow-xl hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
-                    >
-                        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save size={18} />}
-                        Synchronize Compliance Registry
-                    </button>
-                </div>
-            )}
         </div>
     );
 };

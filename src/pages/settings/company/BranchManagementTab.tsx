@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { GitBranch, MapPin, Phone, User, Hash, Plus, Trash2, Edit2, Shield, Save, Loader2, Search } from 'lucide-react';
 import { Tenant, Branch } from '../../../types';
+import { useDialog } from '../../../context/DialogContext';
 
 interface BranchManagementTabProps {
     tenant: Tenant;
@@ -10,6 +11,7 @@ interface BranchManagementTabProps {
 }
 
 export const BranchManagementTab: React.FC<BranchManagementTabProps> = ({ tenant, onUpdate, saving, canEdit }) => {
+    const dialog = useDialog();
     const [branches, setBranches] = useState<Branch[]>(tenant.config?.branches || []);
     const [isAdding, setIsAdding] = useState(false);
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -201,20 +203,27 @@ export const BranchManagementTab: React.FC<BranchManagementTabProps> = ({ tenant
                                 {canEdit && (
                                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <button
-                                            onClick={() => { setEditingIndex(index); setCurrentBranch(branch); }}
-                                            className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
-                                        >
-                                            <Edit2 size={14} />
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                const updated = [...branches];
-                                                updated.splice(index, 1);
-                                                setBranches(updated);
+                                            onClick={async () => {
+                                                const confirmed = await dialog.confirm('Are you sure you want to terminate this branch node? All associated operations will be affected.', {
+                                                    title: 'Terminate Branch',
+                                                    confirmText: 'Terminate',
+                                                    variant: 'danger'
+                                                });
+                                                if (confirmed) {
+                                                    const updated = [...branches];
+                                                    updated.splice(index, 1);
+                                                    setBranches(updated);
+                                                }
                                             }}
                                             className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
                                         >
                                             <Trash2 size={14} />
+                                        </button>
+                                        <button
+                                            onClick={() => { setEditingIndex(index); setCurrentBranch(branch); }}
+                                            className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                                        >
+                                            <Edit2 size={14} />
                                         </button>
                                     </div>
                                 )}

@@ -30,7 +30,22 @@ const tenantSchema = new mongoose.Schema({
         moduleKey: String,
         enabled: Boolean,
         order: Number
-    }]
+    }],
+    verificationStatus: {
+        type: String,
+        enum: ["Pending", "Under Review", "Verified", "Rejected"],
+        default: "Pending"
+    },
+    rejectionReason: String,
+    verifiedBy: String,
+    verifiedAt: Date,
+    documents: {
+        gstCertificate: String,
+        panCard: String,
+        businessLicense: String,
+        cancelledCheque: String,
+        idProof: String
+    }
 }, { timestamps: true });
 
 // Index for performance

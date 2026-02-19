@@ -12,9 +12,15 @@ import {
     Edit3,
     MoreHorizontal,
     ChevronRight,
-    ArrowRight
+    ArrowRight,
+    Trash2,
+    Building2,
+    LayoutGrid,
+    Settings2,
+    Zap
 } from 'lucide-react';
-import { getAvailableIndustries } from '../../config/industryPresets';
+import { getAvailableIndustries, getIndustryPreset, getEnabledModules } from '../../config/industryPresets';
+import { useDialog } from '../../context/DialogContext';
 
 interface ModuleOption {
     key: string;
@@ -24,18 +30,31 @@ interface ModuleOption {
 }
 
 export const SuperAdminIndustries: React.FC = () => {
-    useEffect(() => { document.title = 'Super Admin | Industry Builder'; }, []);
-
-    const [showCreateForm, setShowCreateForm] = useState(false);
+    const { alert, confirm } = useDialog();
+    const [industries, setIndustries] = useState<any[]>([]);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [showModal, setShowModal] = useState(false);
+    const [editingIndustry, setEditingIndustry] = useState<any | null>(null);
     const [formData, setFormData] = useState({
         name: '',
+        key: '',
         description: '',
         icon: '🏢',
-        defaultPlan: 'Pro',
         modules: [] as string[]
     });
 
-    const existingIndustries = getAvailableIndustries();
+    useEffect(() => {
+        document.title = 'Super Admin | Industries';
+        // Initialize from presets
+        const available = getAvailableIndustries().map(ind => {
+            const preset = getIndustryPreset(ind.key);
+            return {
+                ...ind,
+                modules: getEnabledModules(preset.features as any)
+            };
+        });
+        setIndustries(available);
+    }, []);
 
     const availableModules: ModuleOption[] = [
         { key: 'enableDashboard', label: 'Dashboard', description: 'Business overview & analytics', category: 'core' },
@@ -62,195 +81,297 @@ export const SuperAdminIndustries: React.FC = () => {
         { key: 'enablePaymentGateway', label: 'Payment Gateway', description: 'Online payment links', category: 'features' }
     ];
 
-    const toggleModule = (moduleKey: string) => {
+    const toggleModule = (moduleLabel: string) => {
         setFormData(prev => ({
             ...prev,
-            modules: prev.modules.includes(moduleKey)
-                ? prev.modules.filter(m => m !== moduleKey)
-                : [...prev.modules, moduleKey]
+            modules: prev.modules.includes(moduleLabel)
+                ? prev.modules.filter(m => m !== moduleLabel)
+                : [...prev.modules, moduleLabel]
         }));
     };
 
-    const handleSave = () => {
-        alert('Industry Builder: Save functionality coming soon!');
-        setShowCreateForm(false);
+    const handleOpenCreate = () => {
+        setEditingIndustry(null);
+        setFormData({
+            name: '',
+            key: '',
+            description: '',
+            icon: '🏢',
+            modules: []
+        });
+        setShowModal(true);
+    };
+
+    const handleOpenEdit = (industry: any) => {
+        setEditingIndustry(industry);
+        setFormData({
+            name: industry.name,
+            key: industry.key,
+            description: industry.description,
+            icon: industry.icon || '🏢',
+            modules: industry.modules || []
+        });
+        setShowModal(true);
+    };
+
+    const handleDelete = async (key: string) => {
+        const confirmed = await confirm('Are you sure you want to delete this industry?', {
+            title: 'Delete Industry',
+            confirmLabel: 'Delete',
+            variant: 'danger'
+        });
+        if (confirmed) {
+            setIndustries(industries.filter(i => i.key !== key));
+            await alert('Industry deleted successfully!');
+        }
+    };
+
+    const handleSave = async () => {
+        if (!formData.name || !formData.key) {
+            await alert('Please fill in required fields (Name and Key).', { variant: 'danger' });
+            return;
+        }
+
+        if (editingIndustry) {
+            setIndustries(industries.map(i => i.key === editingIndustry.key ? { ...formData } : i));
+            await alert('Industry updated successfully!');
+        } else {
+            if (industries.some(i => i.key === formData.key)) {
+                await alert('An industry with this key already exists.', { variant: 'danger' });
+                return;
+            }
+            setIndustries([...industries, { ...formData }]);
+            await alert('Industry created successfully!');
+        }
+        setShowModal(false);
     };
 
     const getCategoryColor = (category: string) => {
         switch (category) {
-            case 'core': return 'blue';
-            case 'conditional': return 'purple';
-            case 'advanced': return 'rose';
-            case 'features': return 'emerald';
-            default: return 'slate';
+            case 'core': return 'text-blue-600 bg-blue-50 border-blue-100';
+            case 'conditional': return 'text-purple-600 bg-purple-50 border-purple-100';
+            case 'advanced': return 'text-rose-600 bg-rose-50 border-rose-100';
+            case 'features': return 'text-emerald-600 bg-emerald-50 border-emerald-100';
+            default: return 'text-slate-600 bg-slate-50 border-slate-100';
         }
     };
 
+    const filteredIndustries = industries.filter(i =>
+        i.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        i.description.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
     return (
-        <div className="p-8 space-y-8 animate-in fade-in duration-700">
+        <div className="space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
                 <div>
-                    <h1 className="text-3xl font-black text-slate-900 tracking-tight">Industry Builder</h1>
-                    <p className="text-slate-500 font-semibold mt-1">Configure preset modules and logic for specific business sectors.</p>
+                    <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                        <Building2 className="text-blue-600" size={24} />
+                        Industries
+                    </h1>
+                    <p className="text-slate-500 text-sm mt-1">Configure module presets for different business types.</p>
                 </div>
-                <div className="flex gap-4">
-                    <button
-                        onClick={() => setShowCreateForm(true)}
-                        className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/30 flex items-center gap-2 active:scale-95"
-                    >
-                        <Plus size={20} strokeWidth={3} />
-                        Create Preset
-                    </button>
+                <button
+                    onClick={handleOpenCreate}
+                    className="w-full md:w-auto px-4 py-2 bg-slate-900 text-white rounded-lg font-bold text-[10px] uppercase tracking-widest hover:bg-black shadow-sm flex items-center justify-center gap-2"
+                >
+                    <Plus size={18} />
+                    New Industry
+                </button>
+            </div>
+
+            {/* Controls */}
+            <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm flex flex-col md:flex-row gap-4">
+                <div className="flex-1 bg-slate-50 p-1 rounded-lg border border-slate-100 flex items-center gap-3">
+                    <Search size={18} className="text-slate-400 ml-2" />
+                    <input
+                        type="text"
+                        placeholder="Search..."
+                        className="flex-1 bg-transparent border-none outline-none text-[10px] font-bold uppercase text-slate-800 placeholder:text-slate-400"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+                <div className="flex items-center gap-2">
+                    {['All', 'Services', 'Retail', 'Tech'].map(f => (
+                        <button key={f} className="px-3 py-1.5 rounded bg-white border border-slate-200 text-[10px] font-bold uppercase tracking-widest text-slate-600 hover:bg-slate-50">
+                            {f}
+                        </button>
+                    ))}
                 </div>
             </div>
 
-            {/* Existing Industries Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {existingIndustries.map((industry) => (
+            {/* Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {filteredIndustries.map((industry) => (
                     <div
                         key={industry.key}
-                        className="group bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all space-y-6"
+                        className="group bg-white rounded-lg border border-slate-200 p-6 shadow-sm hover:border-blue-400 transition-all flex flex-col h-full"
                     >
-                        <div className="flex items-start justify-between">
-                            <div className="w-16 h-16 rounded-[1.5rem] bg-slate-50 flex items-center justify-center text-4xl group-hover:scale-110 transition-transform">
-                                {industry.key === 'Freelancer' ? '🧑‍💼' :
-                                    industry.key === 'Retail' ? '🛍️' :
-                                        industry.key === 'Manufacturing' ? '🏭' :
-                                            industry.key === 'Tours' ? '🧳' :
-                                                industry.key === 'Service' ? '🧑‍🔧' :
-                                                    industry.key === 'Wholesale' ? '🏢' :
-                                                        industry.key === 'Construction' ? '🏗️' :
-                                                            industry.key === 'Clinic' ? '🏥' : '🏢'}
+                        <div className="flex items-start justify-between mb-4">
+                            <div className="w-12 h-12 rounded bg-slate-50 border border-slate-100 flex items-center justify-center text-2xl">
+                                {industry.icon || '🏢'}
                             </div>
                             <div className="flex gap-1">
-                                <button className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-blue-600 transition-all">
-                                    <Edit3 size={18} />
+                                <button
+                                    onClick={() => handleOpenEdit(industry)}
+                                    className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded"
+                                >
+                                    <Edit3 size={16} />
                                 </button>
-                                <button className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 transition-all">
-                                    <MoreHorizontal size={18} />
+                                <button
+                                    onClick={() => handleDelete(industry.key)}
+                                    className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded"
+                                >
+                                    <Trash2 size={16} />
                                 </button>
                             </div>
                         </div>
 
-                        <div>
-                            <h3 className="text-xl font-black text-slate-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight">
+                        <div className="flex-1">
+                            <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider group-hover:text-blue-600 transition-colors">
                                 {industry.name}
                             </h3>
-                            <p className="text-xs font-bold text-slate-400 mt-2 line-clamp-2">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase leading-relaxed mt-2 line-clamp-2">
                                 {industry.description}
                             </p>
                         </div>
 
-                        <div className="pt-6 border-t border-slate-50 flex items-center justify-between group-hover:border-slate-100 transition-colors">
-                            <div className="flex items-center gap-2">
-                                <Package size={14} className="text-slate-400" />
-                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Modules: Full Stack</span>
+                        <div className="mt-6 pt-4 border-t border-slate-100 space-y-4">
+                            <div className="flex flex-wrap gap-1">
+                                {industry.modules?.slice(0, 3).map((mod: string, idx: number) => (
+                                    <span key={idx} className="px-1.5 py-0.5 bg-slate-50 text-[8px] font-bold text-slate-500 rounded border border-slate-100 uppercase">
+                                        {mod}
+                                    </span>
+                                ))}
+                                {(industry.modules?.length || 0) > 3 && (
+                                    <span className="px-1.5 py-0.5 bg-blue-50 text-[8px] font-bold text-blue-500 rounded border border-blue-100 uppercase">
+                                        +{(industry.modules?.length || 0) - 3} more
+                                    </span>
+                                )}
                             </div>
-                            <button className="text-blue-600 hover:text-blue-700 transition-colors">
-                                <ArrowRight size={18} strokeWidth={3} />
+                            <button
+                                onClick={() => handleOpenEdit(industry)}
+                                className="w-full py-2 flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-widest text-blue-600 hover:bg-blue-50 rounded transition-all"
+                            >
+                                Setup <ChevronRight size={14} />
                             </button>
                         </div>
                     </div>
                 ))}
             </div>
 
-            {/* Create Industry Form Modal */}
-            {showCreateForm && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-12 overflow-hidden">
-                    <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setShowCreateForm(false)}></div>
+            {/* Empty State */}
+            {filteredIndustries.length === 0 && (
+                <div className="py-20 text-center bg-white rounded-lg border border-slate-200">
+                    <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">No industries found.</p>
+                </div>
+            )}
 
-                    <div className="bg-white w-full max-w-6xl max-h-full overflow-y-auto rounded-[3.5rem] shadow-2xl relative z-10 animate-in zoom-in-95 duration-300">
+            {/* Modal */}
+            {showModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 animate-fade-in">
+                    <div className="bg-white w-full max-w-4xl rounded-lg shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
                         {/* Modal Header */}
-                        <div className="sticky top-0 bg-white/80 backdrop-blur-md px-10 py-8 border-b border-slate-100 flex items-center justify-between z-20">
+                        <div className="p-6 border-b border-slate-200 flex items-center justify-between">
                             <div>
-                                <h2 className="text-2xl font-black text-slate-900 tracking-tight">Create Industry Node</h2>
-                                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">Configure global module mapping</p>
+                                <h2 className="text-lg font-bold text-slate-900 uppercase tracking-wider">{editingIndustry ? 'Edit' : 'Create'} Industry</h2>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Configure module stack</p>
                             </div>
-                            <button
-                                onClick={() => setShowCreateForm(false)}
-                                className="w-12 h-12 bg-slate-50 hover:bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400 hover:text-rose-500 transition-all"
-                            >
-                                <X size={24} strokeWidth={2.5} />
+                            <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600">
+                                <X size={20} />
                             </button>
                         </div>
 
-                        <div className="p-10 space-y-10">
-                            {/* Basic Configurations */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Node Identifier</label>
-                                    <input
-                                        type="text"
-                                        placeholder="Full Business Sector Name"
-                                        className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-slate-900 font-bold outline-none focus:bg-white focus:border-blue-500 transition-all"
-                                    />
+                        <div className="p-6 overflow-y-auto space-y-8">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 block">Name</label>
+                                        <input
+                                            type="text"
+                                            value={formData.name}
+                                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                            className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded text-xs font-bold uppercase outline-none focus:bg-white focus:border-blue-400 transition-all"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 block">Key</label>
+                                        <input
+                                            type="text"
+                                            value={formData.key}
+                                            onChange={(e) => setFormData({ ...formData, key: e.target.value })}
+                                            className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded text-xs font-mono font-bold outline-none focus:bg-white focus:border-blue-400 transition-all uppercase"
+                                            disabled={!!editingIndustry}
+                                        />
+                                    </div>
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Visual Indicator</label>
-                                    <div className="flex gap-4">
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 block">Icon</label>
                                         <input
                                             type="text"
                                             value={formData.icon}
-                                            className="w-20 px-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-2xl text-center outline-none"
+                                            onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
+                                            className="w-20 px-4 py-2 bg-slate-50 border border-slate-200 rounded text-xl text-center outline-none"
                                         />
-                                        <div className="flex-1 px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-between text-slate-400 font-bold text-sm">
-                                            Pick from registry
-                                            <Sparkles size={16} />
-                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 block">Description</label>
+                                        <input
+                                            type="text"
+                                            value={formData.description}
+                                            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                            className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded text-xs font-bold uppercase outline-none focus:bg-white focus:border-blue-400 transition-all"
+                                        />
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Module Selector */}
-                            <div className="space-y-8">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <h3 className="text-xl font-black text-slate-900 tracking-tight">Module Registry</h3>
-                                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Toggle core and advanced logic gates</p>
+                            <div className="space-y-6">
+                                <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                                    <h3 className="text-xs font-bold text-slate-900 uppercase tracking-widest">Modules</h3>
+                                    <div className="px-2 py-1 bg-blue-50 text-blue-600 rounded text-[10px] font-bold uppercase tracking-widest">
+                                        {formData.modules.length} Enabled
                                     </div>
                                 </div>
 
-                                <div className="space-y-10">
+                                <div className="space-y-8">
                                     {['core', 'conditional', 'advanced', 'features'].map((category) => (
-                                        <div key={category} className="space-y-6">
-                                            <div className="flex items-center gap-3">
-                                                <div className={`w-2 h-6 rounded-full bg-${getCategoryColor(category)}-500 shadow-lg shadow-${getCategoryColor(category)}-500/20`}></div>
-                                                <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest">
-                                                    {category === 'core' ? 'System Core' :
-                                                        category === 'conditional' ? 'Variable Logic' :
-                                                            category === 'advanced' ? 'High-Performance' : 'Interaction Features'}
-                                                </h4>
-                                            </div>
+                                        <div key={category} className="space-y-4">
+                                            <h4 className="text-[9px] font-bold uppercase tracking-widest text-slate-400 border-l-2 border-slate-200 pl-2">
+                                                {category}
+                                            </h4>
 
-                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                                 {availableModules
                                                     .filter(m => m.category === category)
                                                     .map((module) => {
-                                                        const isSelected = formData.modules.includes(module.key);
+                                                        const isSelected = formData.modules.includes(module.label);
                                                         return (
                                                             <button
                                                                 key={module.key}
-                                                                onClick={() => toggleModule(module.key)}
-                                                                className={`p-6 rounded-[1.75rem] border transition-all text-left ${isSelected
-                                                                        ? `bg-blue-50 border-blue-200 shadow-sm`
-                                                                        : 'bg-white border-slate-100 hover:border-slate-200 hover:bg-slate-50'
+                                                                onClick={() => toggleModule(module.label)}
+                                                                className={`p-4 rounded border text-left flex items-start gap-3 transition-all ${isSelected
+                                                                    ? 'bg-blue-50 border-blue-200'
+                                                                    : 'bg-white border-slate-100 hover:bg-slate-50'
                                                                     }`}
                                                             >
-                                                                <div className="flex items-center justify-between mb-2">
-                                                                    <p className={`font-black text-xs uppercase tracking-tight ${isSelected ? 'text-blue-600' : 'text-slate-900'}`}>
+                                                                <div className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center transition-all flex-shrink-0 ${isSelected
+                                                                    ? 'bg-blue-600 border-blue-600'
+                                                                    : 'border-slate-200 bg-white'
+                                                                    }`}>
+                                                                    {isSelected && <Check size={10} className="text-white" strokeWidth={4} />}
+                                                                </div>
+                                                                <div>
+                                                                    <p className={`font-bold text-[10px] uppercase tracking-wide ${isSelected ? 'text-blue-700' : 'text-slate-700'}`}>
                                                                         {module.label}
                                                                     </p>
-                                                                    <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${isSelected
-                                                                            ? 'bg-blue-600 border-blue-600 shadow-lg shadow-blue-500/30'
-                                                                            : 'border-slate-200'
-                                                                        }`}>
-                                                                        {isSelected && <Check size={14} className="text-white" strokeWidth={4} />}
-                                                                    </div>
+                                                                    <p className="text-[9px] font-bold text-slate-400 uppercase mt-1 leading-tight">
+                                                                        {module.description}
+                                                                    </p>
                                                                 </div>
-                                                                <p className="text-[10px] font-bold text-slate-400 group-hover:text-slate-500">
-                                                                    {module.description}
-                                                                </p>
                                                             </button>
                                                         );
                                                     })}
@@ -262,28 +383,19 @@ export const SuperAdminIndustries: React.FC = () => {
                         </div>
 
                         {/* Modal Footer */}
-                        <div className="sticky bottom-0 bg-white border-t border-slate-100 p-8 flex items-center justify-between z-20">
-                            <div className="flex items-center gap-2">
-                                <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 font-black text-sm">
-                                    {formData.modules.length}
-                                </div>
-                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Gates selected</span>
-                            </div>
-                            <div className="flex gap-4">
-                                <button
-                                    onClick={() => setShowCreateForm(false)}
-                                    className="px-8 py-4 bg-slate-50 text-slate-500 hover:bg-slate-100 rounded-2xl font-black uppercase text-xs tracking-widest transition-all"
-                                >
-                                    Abort
-                                </button>
-                                <button
-                                    onClick={handleSave}
-                                    className="px-10 py-4 bg-blue-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-blue-700 transition-all shadow-xl shadow-blue-500/30 flex items-center gap-2 active:scale-95"
-                                >
-                                    <Save size={18} />
-                                    Synchronize Preset
-                                </button>
-                            </div>
+                        <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-3">
+                            <button
+                                onClick={() => setShowModal(false)}
+                                className="px-4 py-2 text-slate-500 text-[10px] font-bold uppercase tracking-widest"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleSave}
+                                className="px-6 py-2 bg-slate-900 text-white rounded font-bold uppercase text-[10px] tracking-widest hover:bg-black"
+                            >
+                                {editingIndustry ? 'Update' : 'Create'}
+                            </button>
                         </div>
                     </div>
                 </div>

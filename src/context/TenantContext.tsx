@@ -6,6 +6,7 @@ interface TenantContextType {
     tenant: Tenant | null;
     loading: boolean;
     isWhiteLabeled: boolean;
+    isVerified: boolean;
 }
 
 const TenantContext = createContext<TenantContextType | undefined>(undefined);
@@ -32,9 +33,10 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     // Helper to check if we are on a custom domain or subdomain
     const isWhiteLabeled = !!tenant;
+    const isVerified = tenant?.config?.verification?.status === 'Verified';
 
     return (
-        <TenantContext.Provider value={{ tenant, loading, isWhiteLabeled }}>
+        <TenantContext.Provider value={{ tenant, loading, isWhiteLabeled, isVerified }}>
             {loading ? (
                 <div className="min-h-screen flex items-center justify-center bg-slate-900">
                     <div className="flex flex-col items-center gap-4">

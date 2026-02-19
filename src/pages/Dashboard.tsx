@@ -24,6 +24,7 @@ export const Dashboard: React.FC = () => {
   const [stockStats, setStockStats] = useState({ lowStock: 0, outOfStock: 0, totalValue: 0, capitalLocked: 0 });
 
   useEffect(() => {
+    document.title = 'Dashboard';
     const user = authService.getCurrentUser();
     if (!user) return;
 
@@ -51,29 +52,19 @@ export const Dashboard: React.FC = () => {
     };
   }, []);
 
-  const stats = useMemo(() => {
+  const statsList = useMemo(() => {
     const totalRevenue = invoices.reduce((sum, inv) => sum + (inv.paidAmount || 0), 0);
-
     const pendingAmount = invoices
       .filter(inv => inv.status !== InvoiceStatus.Paid && inv.status !== InvoiceStatus.Draft)
       .reduce((sum, inv) => sum + (inv.total - (inv.paidAmount || 0)), 0);
 
-    const overdueAmount = invoices
-      .filter(inv => {
-        const isDatePast = new Date(inv.dueDate).getTime() < Date.now();
-        return inv.status !== InvoiceStatus.Paid && inv.status !== InvoiceStatus.Draft && isDatePast;
-      })
-      .reduce((sum, inv) => sum + (inv.total - (inv.paidAmount || 0)), 0);
-
-    return {
-      totalCustomers: customers.length,
-      totalInvoices: invoices.length,
-      totalRevenue,
-      pendingAmount,
-      overdueAmount,
-      totalOrders: orders.length
-    };
-  }, [invoices, customers, orders]);
+    return [
+      { label: 'Settled Revenue', value: `₹${totalRevenue.toLocaleString()}`, icon: Banknote, color: 'emerald' },
+      { label: 'Pending Revenue', value: `₹${pendingAmount.toLocaleString()}`, icon: Clock, color: 'amber' },
+      { label: 'Inventory Value', value: `₹${stockStats.totalValue.toLocaleString()}`, icon: ShoppingBag, color: 'blue' },
+      { label: 'Active Customers', value: customers.length.toString(), icon: Users, color: 'slate' },
+    ];
+  }, [invoices, customers, stockStats]);
 
   const chartData = useMemo(() => {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -90,193 +81,149 @@ export const Dashboard: React.FC = () => {
     return data;
   }, [payments]);
 
-  const statusData = useMemo(() => [
-    { name: 'Paid', value: invoices.filter(i => i.status === InvoiceStatus.Paid).length, color: '#10B981' },
-    { name: 'Pending', value: invoices.filter(i => i.status === InvoiceStatus.Pending).length, color: '#FBBF24' },
-    { name: 'Overdue', value: invoices.filter(i => i.status === InvoiceStatus.Overdue).length, color: '#EF4444' }
-  ].filter(d => d.value > 0), [invoices]);
-
-  const methodData = useMemo(() => {
-    const methods: Record<string, number> = {};
-    payments.forEach(p => {
-      methods[p.method] = (methods[p.method] || 0) + p.amount;
-    });
-    return Object.entries(methods).map(([name, value]) => ({ name, value }));
-  }, [payments]);
-
-  const COLORS = ['#6366F1', '#10B981', '#F59E0B', '#EF4444'];
-
   return (
-    <div className="space-y-6 animate-fade-in pb-16 relative z-10">
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <DashboardStatCard
-          title="Potential Revenue"
-          value={`₹${stockStats.totalValue.toLocaleString()}`}
-          icon={ShoppingBag}
-          iconBg="bg-gradient-primary"
-          percentage="+55%"
-          trend="since yesterday"
-        />
-        <DashboardStatCard
-          title="Capital Locked"
-          value={`₹${stockStats.capitalLocked.toLocaleString()}`}
-          icon={Wallet}
-          iconBg="bg-gradient-danger"
-          percentage="+3%"
-          trend="since last week"
-        />
-        <DashboardStatCard
-          title="Settled Revenue"
-          value={`₹${stats.totalRevenue.toLocaleString()}`}
-          icon={IndianRupee}
-          iconBg="bg-gradient-success"
-          percentage="+12%"
-          trend="since last month"
-        />
-        <DashboardStatCard
-          title="Pending Amount"
-          value={`₹${stats.pendingAmount.toLocaleString()}`}
-          icon={Clock}
-          iconBg="bg-gradient-warning"
-          percentage="-2%"
-          trend="since last quarter"
-        />
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row items-center justify-between gap-6 bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 uppercase tracking-tight">Overview</h1>
+          <p className="text-slate-500 text-sm mt-1">
+            Real-time business performance and metrics.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 font-bold text-[10px] text-slate-400 uppercase tracking-widest">
+          <Clock size={14} />
+          Last updated: {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Revenue Chart */}
-        <div className="lg:col-span-2 bg-white p-6 rounded-2xl border-none shadow-premium flex flex-col min-h-[450px]">
-          <div className="flex items-center justify-between mb-8">
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {statsList.map((stat, i) => (
+          <div key={i} className="bg-white p-5 rounded-lg border border-slate-200 shadow-sm flex items-center gap-4">
+            <div className={`p-2 rounded bg-slate-50 text-slate-400`}>
+              <stat.icon size={20} />
+            </div>
             <div>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Sales overview</p>
-              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                <span className="text-success">(+5%) more</span> in 2024
-              </h3>
+              <p className="text-xl font-bold text-slate-900 leading-none">{stat.value}</p>
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1">{stat.label}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Revenue Chart */}
+        <div className="lg:col-span-8 bg-white p-6 rounded-lg border border-slate-200 shadow-sm space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-bold text-slate-900 tracking-tight underline decoration-blue-500/30 underline-offset-8">Financial Pulse</h3>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2 ml-1">Monthly Revenue Stream</p>
             </div>
           </div>
           <div className="h-[350px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData}>
-                <defs>
-                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#5e72e4" stopOpacity={0.8} />
-                    <stop offset="95%" stopColor="#5e72e4" stopOpacity={0.2} />
-                  </linearGradient>
-                </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#ADB5BD', fontSize: 12 }} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#ADB5BD', fontSize: 12 }} />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 600 }} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 600 }} />
                 <Tooltip
-                  cursor={{ fill: 'rgba(94, 114, 228, 0.05)', radius: 4 }}
-                  contentStyle={{ backgroundColor: '#FFFFFF', border: 'none', borderRadius: '12px', padding: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', fontSize: 12, fontWeight: 700 }}
+                  cursor={{ fill: '#f8fafc' }}
+                  contentStyle={{ backgroundColor: '#FFFFFF', border: '1px solid #e2e8f0', borderRadius: '4px', fontSize: '11px', fontWeight: 700 }}
                 />
-                <Bar dataKey="revenue" fill="#5e72e4" radius={[4, 4, 0, 0]} barSize={30} />
+                <Bar dataKey="revenue" fill="#3b82f6" radius={[2, 2, 0, 0]} barSize={32} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Promotion Card (Inspired by the right image in Averqon ) */}
-        <div className="bg-gradient-primary rounded-2xl p-6 shadow-premium relative overflow-hidden flex flex-col justify-end min-h-[450px]">
-          <div className="absolute top-0 left-0 right-0 bottom-0 opacity-20 pointer-events-none">
-            <LayoutDashboard size={400} className="text-white -rotate-12 transform translate-x-1/2 -translate-y-1/2" />
-          </div>
-          <div className="relative z-10">
-            <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center text-primary shadow-lg mb-6">
-              <TrendingUp size={20} />
+        {/* Info Card */}
+        <div className="lg:col-span-4 space-y-6">
+          <div className="bg-slate-900 p-8 rounded-lg text-white space-y-6 flex flex-col justify-between h-full min-h-[400px]">
+            <div className="space-y-4">
+              <div className="w-12 h-12 bg-white/10 rounded flex items-center justify-center">
+                <LayoutDashboard size={24} className="text-blue-400" />
+              </div>
+              <h3 className="text-2xl font-bold tracking-tight">
+                {isWhiteLabeled && tenant ? tenant.companyName : 'Averqon Platform'}
+              </h3>
+              <p className="text-slate-400 text-sm leading-relaxed">
+                Welcome to your command center. Monitor flows, manage clients, and control your business assets from a single interface.
+              </p>
             </div>
-            <h3 className="text-2xl font-bold text-white mb-2 leading-tight">
-              {isWhiteLabeled && tenant ? `Manage ${tenant.companyName}` : 'Get started with Averqon'}
-            </h3>
-            <p className="text-white/80 text-sm mb-6 max-w-[240px]">
-              {isWhiteLabeled && tenant
-                ? `Welcome back to your autonomous revenue control center for ${tenant.companyName}.`
-                : "There's nothing I really wanted to do in life that I wasn't able to get good at."}
-            </p>
+            <div className="pt-4 border-t border-white/10">
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Quick Shortcuts</p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => navigate('/invoices')}
+                  className="flex items-center gap-2 px-3 py-2 bg-white/5 hover:bg-white/10 rounded text-[10px] font-bold uppercase transition-colors"
+                >
+                  <FileText size={14} /> Invoices
+                </button>
+                <button
+                  onClick={() => navigate('/orders')}
+                  className="flex items-center gap-2 px-3 py-2 bg-white/5 hover:bg-white/10 rounded text-[10px] font-bold uppercase transition-colors"
+                >
+                  <ShoppingBag size={14} /> Orders
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Invoices Table Style */}
-        <div className="bg-white p-6 rounded-2xl shadow-premium">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-base font-bold text-slate-800">Projects</h3>
-            <button className="text-xs font-bold text-primary uppercase tracking-widest hover:opacity-80 transition-opacity">See all</button>
+      {/* Projects/Invoices Table */}
+      <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Recent Activity</h3>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Latest Invoice Transactions</p>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-slate-50 text-left">
-                  <th className="pb-4 text-[11px] font-bold text-slate-300 uppercase tracking-widest">Project</th>
-                  <th className="pb-4 text-[11px] font-bold text-slate-300 uppercase tracking-widest text-center">Budget</th>
-                  <th className="pb-4 text-[11px] font-bold text-slate-300 uppercase tracking-widest text-center">Status</th>
-                  <th className="pb-4 text-[11px] font-bold text-slate-300 uppercase tracking-widest text-center text-right">Completion</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {invoices.slice(0, 5).map(inv => (
-                  <tr key={inv.id} className="group hover:bg-slate-50/50 transition-colors">
-                    <td className="py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-primary group-hover:text-white transition-all">
-                          <FileText size={14} />
-                        </div>
-                        <span className="text-sm font-bold text-slate-700">{inv.customerName}</span>
-                      </div>
-                    </td>
-                    <td className="py-4 text-center text-sm font-medium text-slate-600">₹{inv.total.toLocaleString()}</td>
-                    <td className="py-4 text-center">
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-[0.1em] ${inv.status === InvoiceStatus.Paid ? 'text-success' : 'text-warning'
-                        }`}>
-                        {inv.status}
-                      </span>
-                    </td>
-                    <td className="py-4 text-right">
-                      <div className="flex items-center justify-end gap-3 min-w-[100px]">
-                        <span className="text-[11px] font-bold text-slate-600 whitespace-nowrap">60%</span>
-                        <div className="w-16 h-1 bg-slate-100 rounded-full overflow-hidden">
-                          <div className="h-full bg-primary w-[60%]" />
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <button
+            onClick={() => navigate('/invoices')}
+            className="px-4 py-2 border border-slate-200 rounded text-[10px] font-bold text-slate-700 uppercase tracking-widest hover:bg-slate-50 transition-colors"
+          >
+            View Registry
+          </button>
         </div>
-
-        {/* Sales by Country style card */}
-        <div className="bg-white p-6 rounded-2xl shadow-premium">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-base font-bold text-slate-800">Sales by Category</h3>
-            <button className="text-xs font-bold text-primary uppercase tracking-widest hover:opacity-80 transition-opacity">Details</button>
-          </div>
-          <div className="space-y-6">
-            {statusData.map(stat => (
-              <div key={stat.name} className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-slate-50 flex items-center justify-center text-slate-600 group-hover:bg-white transition-all shadow-sm">
-                    <LayoutDashboard size={18} />
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Status</p>
-                    <span className="font-bold text-slate-800">{stat.name}</span>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1">Value</p>
-                  <span className="font-bold text-slate-900 leading-none">{stat.value} Invoices</span>
-                </div>
-                <div className="text-right">
-                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1">Health</p>
-                  <span className="font-bold text-slate-900 leading-none">80%</span>
-                </div>
-              </div>
-            ))}
-          </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="border-b border-slate-100">
+                <th className="pb-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Customer</th>
+                <th className="pb-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Amount</th>
+                <th className="pb-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Status</th>
+                <th className="pb-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Date</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {invoices.slice(0, 5).map(inv => (
+                <tr key={inv.id} className="hover:bg-slate-50 transition-colors">
+                  <td className="py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded bg-slate-100 flex items-center justify-center font-bold text-slate-400 text-[10px] border border-slate-200 uppercase">
+                        {inv.customerName.charAt(0)}
+                      </div>
+                      <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">{inv.customerName}</span>
+                    </div>
+                  </td>
+                  <td className="py-4 text-[11px] font-bold text-slate-600">₹{inv.total.toLocaleString()}</td>
+                  <td className="py-4 text-center">
+                    <span className={`px-2 py-0.5 rounded border text-[9px] font-bold uppercase tracking-wider ${inv.status === InvoiceStatus.Paid ? 'text-emerald-600 bg-emerald-50 border-emerald-100' : 'text-amber-600 bg-amber-50 border-amber-100'
+                      }`}>
+                      {inv.status}
+                    </span>
+                  </td>
+                  <td className="py-4 text-right text-[10px] font-bold text-slate-400 uppercase">{new Date(inv.date).toLocaleDateString()}</td>
+                </tr>
+              ))}
+              {invoices.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="py-12 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">No recent transactions</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

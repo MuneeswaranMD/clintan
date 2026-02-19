@@ -1,45 +1,49 @@
+import { FeatureToggles, UserRole } from '../types';
 import {
     LayoutDashboard,
-    FileText,
-    Package,
-    CreditCard,
-    Repeat,
-    LayoutGrid,
-    ClipboardList,
-    Clock,
-    Users,
-    Building2,
     TrendingUp,
-    ShoppingBag,
-    PackageOpen,
-    Truck,
     Activity,
-    Zap,
-    UserCog,
+    Users,
+    ShoppingBag,
+    ClipboardList,
+    FileText,
+    Repeat,
+    CreditCard,
+    LayoutGrid,
+    Clock,
     Receipt,
-    Settings,
+    Package,
+    PackageOpen,
+    Building2,
+    Truck,
+    Factory,
     Briefcase,
     Calendar,
+    Zap,
+    UserCog,
+    Settings,
     Shield
 } from 'lucide-react';
-import { FeatureToggles } from '../types';
 
 export interface NavItem {
+    id: string;
     label: string;
     path: string;
     icon: any;
     requiredFeature?: keyof FeatureToggles;
     description?: string;
     category?: 'core' | 'sales' | 'inventory' | 'finance' | 'advanced' | 'settings' | 'industry';
+    allowedRoles?: UserRole[];
 }
 
 /**
  * Universal Navigation Menu
- * Adapts based on enabled features
+ * Adapts based on enabled modules
  */
 export const UNIVERSAL_NAV_ITEMS: NavItem[] = [
-    // 🏠 CORE MODULES (Always Visible)
+    // 🏠 CORE MODULES
     {
+        id: 'dashboard',
         label: 'Dashboard',
         path: '/',
         icon: LayoutDashboard,
@@ -48,22 +52,27 @@ export const UNIVERSAL_NAV_ITEMS: NavItem[] = [
         category: 'core'
     },
     {
+        id: 'analytics',
         label: 'Analytics',
         path: '/analytics',
         icon: TrendingUp,
         requiredFeature: 'enableAnalytics',
         description: 'Revenue & performance insights',
-        category: 'core'
+        category: 'core',
+        allowedRoles: ['SUPER_ADMIN', 'COMPANY_ADMIN', 'BRANCH_MANAGER']
     },
     {
+        id: 'advanced-analytics',
         label: 'Business Intelligence',
         path: '/advanced-analytics',
         icon: Activity,
         requiredFeature: 'enableAdvancedAnalytics',
         description: 'Advanced analytics & forecasting',
-        category: 'core'
+        category: 'core',
+        allowedRoles: ['SUPER_ADMIN', 'COMPANY_ADMIN']
     },
     {
+        id: 'customers',
         label: 'Customers',
         path: '/customers',
         icon: Users,
@@ -74,6 +83,7 @@ export const UNIVERSAL_NAV_ITEMS: NavItem[] = [
 
     // 📦 SALES & OPERATIONS
     {
+        id: 'orders',
         label: 'Orders',
         path: '/orders',
         icon: ShoppingBag,
@@ -82,6 +92,7 @@ export const UNIVERSAL_NAV_ITEMS: NavItem[] = [
         category: 'sales'
     },
     {
+        id: 'estimates',
         label: 'Estimates',
         path: '/estimates',
         icon: ClipboardList,
@@ -90,6 +101,7 @@ export const UNIVERSAL_NAV_ITEMS: NavItem[] = [
         category: 'sales'
     },
     {
+        id: 'invoices',
         label: 'Invoices',
         path: '/invoices',
         icon: FileText,
@@ -98,6 +110,7 @@ export const UNIVERSAL_NAV_ITEMS: NavItem[] = [
         category: 'sales'
     },
     {
+        id: 'recurring',
         label: 'Recurring',
         path: '/recurring',
         icon: Repeat,
@@ -108,6 +121,7 @@ export const UNIVERSAL_NAV_ITEMS: NavItem[] = [
 
     // 💰 FINANCE
     {
+        id: 'payments',
         label: 'Payments',
         path: '/payments',
         icon: CreditCard,
@@ -116,7 +130,8 @@ export const UNIVERSAL_NAV_ITEMS: NavItem[] = [
         category: 'finance'
     },
     {
-        label: 'Checkouts',
+        id: 'checkouts',
+        label: 'POS / Checkouts',
         path: '/checkouts',
         icon: LayoutGrid,
         requiredFeature: 'enablePaymentGateway',
@@ -124,6 +139,7 @@ export const UNIVERSAL_NAV_ITEMS: NavItem[] = [
         category: 'finance'
     },
     {
+        id: 'overdue',
         label: 'Overdue',
         path: '/overdue',
         icon: Clock,
@@ -132,6 +148,7 @@ export const UNIVERSAL_NAV_ITEMS: NavItem[] = [
         category: 'finance'
     },
     {
+        id: 'expenses',
         label: 'Expenses',
         path: '/expenses',
         icon: Receipt,
@@ -142,6 +159,7 @@ export const UNIVERSAL_NAV_ITEMS: NavItem[] = [
 
     // 📦 INVENTORY & SUPPLY CHAIN
     {
+        id: 'products',
         label: 'Products',
         path: '/products',
         icon: Package,
@@ -150,6 +168,7 @@ export const UNIVERSAL_NAV_ITEMS: NavItem[] = [
         category: 'inventory'
     },
     {
+        id: 'inventory',
         label: 'Inventory',
         path: '/inventory-logs',
         icon: PackageOpen,
@@ -158,7 +177,8 @@ export const UNIVERSAL_NAV_ITEMS: NavItem[] = [
         category: 'inventory'
     },
     {
-        label: 'Suppliers',
+        id: 'suppliers',
+        label: 'Vendors',
         path: '/suppliers',
         icon: Building2,
         requiredFeature: 'enableSuppliers',
@@ -166,6 +186,7 @@ export const UNIVERSAL_NAV_ITEMS: NavItem[] = [
         category: 'inventory'
     },
     {
+        id: 'purchase-orders',
         label: 'Purchase Orders',
         path: '/purchase-orders',
         icon: Truck,
@@ -174,6 +195,7 @@ export const UNIVERSAL_NAV_ITEMS: NavItem[] = [
         category: 'inventory'
     },
     {
+        id: 'dispatch',
         label: 'Dispatch',
         path: '/dispatch',
         icon: Truck,
@@ -181,9 +203,19 @@ export const UNIVERSAL_NAV_ITEMS: NavItem[] = [
         description: 'Logistics & delivery',
         category: 'inventory'
     },
+    {
+        id: 'production',
+        label: 'Production',
+        path: '/production',
+        icon: Factory,
+        requiredFeature: 'enableManufacturing',
+        description: 'Manufacturing process',
+        category: 'inventory'
+    },
 
     // 🏗️ INDUSTRY SPECIFIC
     {
+        id: 'projects',
         label: 'Projects',
         path: '/projects',
         icon: Briefcase,
@@ -192,6 +224,7 @@ export const UNIVERSAL_NAV_ITEMS: NavItem[] = [
         category: 'industry'
     },
     {
+        id: 'services',
         label: 'Services',
         path: '/services',
         icon: Calendar,
@@ -202,56 +235,110 @@ export const UNIVERSAL_NAV_ITEMS: NavItem[] = [
 
     // 🚀 ADVANCED MODULES
     {
+        id: 'automation',
         label: 'Automation',
         path: '/automation',
         icon: Zap,
         requiredFeature: 'enableAutomation',
         description: 'Workflows & automation',
-        category: 'advanced'
+        category: 'advanced',
+        allowedRoles: ['SUPER_ADMIN', 'COMPANY_ADMIN']
     },
     {
+        id: 'employees',
         label: 'Employees',
         path: '/employees',
         icon: UserCog,
         requiredFeature: 'enableEmployees',
         description: 'Team & role management',
-        category: 'advanced'
+        category: 'advanced',
+        allowedRoles: ['SUPER_ADMIN', 'COMPANY_ADMIN', 'BRANCH_MANAGER']
     },
 
     // ⚙️ SETTINGS
     {
+        id: 'company-profile',
         label: 'Company Profile',
         path: '/settings/company',
         icon: Building2,
         requiredFeature: 'enableSettings',
         description: 'Manage company information & branding',
-        category: 'settings'
+        category: 'settings',
+        allowedRoles: ['SUPER_ADMIN', 'COMPANY_ADMIN']
     },
     {
+        id: 'settings',
         label: 'Settings',
         path: '/settings',
         icon: Settings,
         requiredFeature: 'enableSettings',
         description: 'System configuration',
-        category: 'settings'
+        category: 'settings',
+        allowedRoles: ['SUPER_ADMIN', 'COMPANY_ADMIN']
     }
 ];
 
-/**
- * Get filtered navigation items based on enabled features
- */
-export const getFilteredNavItems = (features: FeatureToggles, isSuperAdmin: boolean = false): NavItem[] => {
-    const filtered = UNIVERSAL_NAV_ITEMS.filter(item => {
-        // If no feature requirement, always show
-        if (!item.requiredFeature) return true;
+// ... (Industry presets remain same, skipping to functions)
 
-        // Check if the required feature is enabled
-        return features[item.requiredFeature] === true;
+/**
+ * Industry Module Presets
+ */
+export const INDUSTRY_PRESETS: Record<string, string[]> = {
+    'Retail': [
+        'dashboard', 'analytics', 'customers',
+        'orders', 'invoices', 'payments', 'checkouts', 'overdue', 'expenses',
+        'products', 'inventory', 'suppliers', 'purchase-orders', 'dispatch',
+        'employees', 'company-profile', 'settings'
+    ],
+    'Service': [
+        'dashboard', 'analytics', 'customers',
+        'estimates', 'invoices', 'recurring', 'payments', 'overdue', 'expenses',
+        'services', 'projects',
+        'employees', 'company-profile', 'settings'
+    ],
+    'Manufacturing': [
+        'dashboard', 'analytics', 'advanced-analytics', 'customers',
+        'orders', 'invoices', 'payments', 'expenses',
+        'products', 'inventory', 'suppliers', 'purchase-orders', 'dispatch', 'production',
+        'employees', 'company-profile', 'settings'
+    ],
+    'Generic': [
+        'dashboard', 'customers',
+        'invoices', 'payments', 'expenses',
+        'products', 'inventory',
+        'settings', 'company-profile'
+    ]
+};
+
+/**
+ * Get filtered navigation items based on enabled modules and user role
+ */
+export const getFilteredNavItems = (
+    enabledModules: string[] | undefined,
+    userRole: UserRole | string,
+    isSuperAdmin: boolean = false
+): NavItem[] => {
+    // Safety check
+    const modules = enabledModules || [];
+
+    const filtered = UNIVERSAL_NAV_ITEMS.filter(item => {
+        // 1. Industry/Module Filter
+        if (!modules.includes(item.id)) return false;
+
+        // 2. Role Filter (if isSuperAdmin is true, bypass role checks usually, but let's be safe)
+        if (isSuperAdmin) return true;
+
+        if (item.allowedRoles && !item.allowedRoles.includes(userRole as UserRole)) {
+            return false;
+        }
+
+        return true;
     });
 
     // Add super admin items
     if (isSuperAdmin) {
         filtered.unshift({
+            id: 'control-center',
             label: 'Control Center',
             path: '/super/dashboard',
             icon: Shield,
@@ -260,6 +347,7 @@ export const getFilteredNavItems = (features: FeatureToggles, isSuperAdmin: bool
         });
 
         filtered.unshift({
+            id: 'companies',
             label: 'Companies',
             path: '/companies',
             icon: Building2,
@@ -268,6 +356,7 @@ export const getFilteredNavItems = (features: FeatureToggles, isSuperAdmin: bool
         });
 
         filtered.push({
+            id: 'saas-config',
             label: 'Platform Config',
             path: '/saas-config',
             icon: Activity,
@@ -282,8 +371,12 @@ export const getFilteredNavItems = (features: FeatureToggles, isSuperAdmin: bool
 /**
  * Get navigation items grouped by category
  */
-export const getGroupedNavItems = (features: FeatureToggles, isSuperAdmin: boolean = false): Record<string, NavItem[]> => {
-    const items = getFilteredNavItems(features, isSuperAdmin);
+export const getGroupedNavItems = (
+    enabledModules: string[] | undefined,
+    userRole: UserRole | string,
+    isSuperAdmin: boolean = false
+): Record<string, NavItem[]> => {
+    const items = getFilteredNavItems(enabledModules, userRole, isSuperAdmin);
 
     return items.reduce((acc, item) => {
         const category = item.category || 'core';
@@ -306,4 +399,11 @@ export const CATEGORY_LABELS: Record<string, string> = {
     industry: 'Industry Specific',
     advanced: 'Advanced Tools',
     settings: 'Settings'
+};
+
+/**
+ * Get default modules for an industry
+ */
+export const getDefaultModulesForIndustry = (industry: string): string[] => {
+    return INDUSTRY_PRESETS[industry] || INDUSTRY_PRESETS['Generic'];
 };

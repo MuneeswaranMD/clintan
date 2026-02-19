@@ -10,9 +10,47 @@ import { authService } from '../services/authService';
 import { Payment, Customer, Invoice } from '../types';
 import { ViewToggle } from '../components/ViewToggle';
 import { useDialog } from '../context/DialogContext';
+import { useTenant } from '../context/TenantContext';
+import { ShieldAlert } from 'lucide-react';
 
 export const Payments: React.FC = () => {
     const { confirm, alert } = useDialog();
+    const { isVerified } = useTenant();
+
+    if (!isVerified) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 p-12 bg-white rounded-[3rem] shadow-premium border-none animate-fade-in relative z-10">
+                <div className="w-24 h-24 bg-rose-50 text-rose-500 rounded-[2rem] flex items-center justify-center shadow-inner border border-rose-100">
+                    <ShieldAlert size={48} strokeWidth={2.5} />
+                </div>
+                <div className="text-center max-w-lg space-y-3">
+                    <h1 className="text-3xl font-black text-slate-900 tracking-tight uppercase">Financial Compliance Lock</h1>
+                    <p className="text-slate-500 font-bold text-sm leading-relaxed uppercase tracking-tight opacity-80">
+                        Processing financial inflows and online payment settlements is restricted until your business profile is verified for compliance.
+                    </p>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md pt-4">
+                    <button
+                        onClick={() => window.location.href = '/settings/company'}
+                        className="flex-1 px-8 py-4 bg-slate-900 text-white font-black rounded-2xl shadow-xl hover:scale-105 transition-all flex items-center justify-center gap-2 uppercase text-[11px] tracking-widest"
+                    >
+                        Verify Identity
+                    </button>
+                    <button
+                        onClick={() => window.history.back()}
+                        className="flex-1 px-8 py-4 bg-slate-100 text-slate-600 font-black rounded-2xl hover:bg-slate-200 transition-all uppercase text-[11px] tracking-widest"
+                    >
+                        Return Home
+                    </button>
+                </div>
+                <div className="pt-8 border-t border-slate-100 w-full flex items-center justify-center gap-6 opacity-40 grayscale">
+                    <CreditCard size={24} />
+                    <Wallet size={24} />
+                    <Banknote size={24} />
+                </div>
+            </div>
+        );
+    }
     const [payments, setPayments] = useState<Payment[]>([]);
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [invoices, setInvoices] = useState<Invoice[]>([]);

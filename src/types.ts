@@ -477,6 +477,7 @@ export interface BusinessConfig {
   dateFormat: string;
 
   // Feature Flags
+  enabledModules?: string[];
   features: FeatureToggles;
 
   // Custom Field Definitions
@@ -512,11 +513,19 @@ export interface BusinessConfig {
   bankDetails?: BankDetails;
   branches?: Branch[];
   documents?: {
-    name: string;
-    url: string;
-    type: string;
-    uploadedAt: string;
-  }[];
+    gstCertificate?: string;
+    panCard?: string;
+    businessLicense?: string;
+    cancelledCheque?: string;
+    idProof?: string;
+  };
+  verification?: {
+    status: 'Pending' | 'Under Review' | 'Verified' | 'Rejected';
+    rejectionReason?: string;
+    verifiedBy?: string;
+    verifiedAt?: string;
+    submittedAt?: string;
+  };
 
   preferences?: {
     invoicePrefix: string;
@@ -528,6 +537,18 @@ export interface BusinessConfig {
     enableWhatsApp: boolean;
     enableEmail: boolean;
   };
+  subscription?: {
+    planId: string;
+    planName: string;
+    limits: {
+      users: number;
+      branches: number;
+      invoicesPerMonth: number;
+      storageGB: number;
+      extraDomains: number;
+    };
+    expiresAt?: string;
+  };
 }
 
 export interface Tenant {
@@ -537,7 +558,7 @@ export interface Tenant {
   customDomain?: string;
   isDomainVerified: boolean;
   industry: BusinessConfig['industry'] | string;
-  plan: 'Basic' | 'Pro' | 'Enterprise';
+  plan: string;
   status: 'Active' | 'Pending' | 'Suspended';
   ownerEmail: string;
   createdAt: string;
@@ -546,6 +567,7 @@ export interface Tenant {
   userId?: string; // Auth UID of the company owner
   phone?: string;
   logoUrl?: string;
+  enabledModules?: string[];
   config?: BusinessConfig;
   dnsConfig?: {
     type: 'CNAME';
@@ -553,4 +575,22 @@ export interface Tenant {
     pointsTo: string;
     status: 'Verified' | 'Pending' | 'Failed';
   };
+}
+
+export interface SubscriptionPlan {
+  id: string;
+  name: string;
+  price: number;
+  billingCycle: 'MONTHLY' | 'YEARLY';
+  description: string;
+  features: FeatureToggles;
+  limits: {
+    users: number;
+    branches: number;
+    invoicesPerMonth: number;
+    storageGB: number;
+    extraDomains: number;
+  };
+  status: 'ACTIVE' | 'DRAFT' | 'ARCHIVED';
+  isPopular?: boolean;
 }

@@ -1,10 +1,12 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Product, CartItem, BusinessConfig } from '../types';
+import { getDefaultModulesForIndustry } from '../config/navigationConfig';
 
 // Default Config (Industry: Retail)
 const DEFAULT_CONFIG: BusinessConfig = {
     userId: 'default',
     industry: 'Retail',
+    enabledModules: getDefaultModulesForIndustry('Retail'),
     currency: '₹',
     dateFormat: 'DD/MM/YYYY',
     taxName: 'GST',
@@ -125,14 +127,25 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     console.log('🔍 Loaded Tenant Config:', tenantData.config);
 
                     // If tenant has a config, use it
+                    const industry = tenantData.industry || tenantData.config?.industry || 'Retail';
+                    const existingModules = tenantData.enabledModules || tenantData.config?.enabledModules;
+                    const calculatedModules = existingModules || getDefaultModulesForIndustry(industry);
+
                     if (tenantData.config) {
                         setBusinessConfig(prev => ({
                             ...prev,
-                            ...tenantData.config
+                            ...tenantData.config,
+                            enabledModules: calculatedModules
                         }));
-                        console.log('✅ Business Config Updated:', tenantData.config);
+                        console.log('✅ Business Config Updated:', { ...tenantData.config, enabledModules: calculatedModules });
                     } else {
                         console.warn('⚠️ No config found in tenant document');
+                        // Set basic config with calculated modules
+                        setBusinessConfig(prev => ({
+                            ...prev,
+                            industry: industry,
+                            enabledModules: calculatedModules
+                        }));
                     }
                 } else {
                     console.warn('⚠️ No tenant document found for user:', user.uid);
@@ -140,6 +153,9 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
                     try {
                         const subdomain = (user.displayName || 'company').toLowerCase().replace(/[^a-z0-9]/g, '') || 'company-' + Date.now();
+                        const defaultIndustry = 'Freelancer'; // Default to Freelancer as per example? Or Retail? Sticking to Retail to match existing default.
+                        const defaultModules = getDefaultModulesForIndustry(defaultIndustry);
+
                         const newTenant = {
                             userId: user.uid,
                             companyName: user.displayName || 'My Company',
@@ -147,18 +163,25 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
                             subdomain: subdomain,
                             createdAt: serverTimestamp(),
                             status: 'Active',
-                            plan: 'Pro',
-                            industry: 'Retail',
+                            plan: 'Pro Business',
+                            industry: defaultIndustry,
+                            enabledModules: defaultModules,
                             isDomainVerified: false,
                             usersCount: 1,
                             mrr: '0',
-                            config: { ...DEFAULT_CONFIG, userId: user.uid, companyName: user.displayName || 'My Company' }
+                            config: {
+                                ...DEFAULT_CONFIG,
+                                userId: user.uid,
+                                companyName: user.displayName || 'My Company',
+                                industry: defaultIndustry,
+                                enabledModules: defaultModules
+                            }
                         };
 
                         await addDoc(tenantsRef, newTenant);
                         console.log('✅ Default tenant created successfully');
 
-                        setBusinessConfig(DEFAULT_CONFIG);
+                        setBusinessConfig(newTenant.config);
                     } catch (createError) {
                         console.error('❌ Failed to create default tenant:', createError);
                     }

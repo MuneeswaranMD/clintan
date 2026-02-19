@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Building2, Mail, Lock, Search, AlertCircle, Phone, X as XIcon, Edit2, Trash2, Globe, MoreVertical, ShieldCheck, Activity, Download, Filter, Eye, RefreshCw, CheckCircle2, Copy } from 'lucide-react';
+import { Plus, Building2, Mail, Lock, Search, AlertCircle, Phone, X as XIcon, Edit2, Trash2, Globe, MoreVertical, ShieldCheck, Activity, Download, Filter, Eye, RefreshCw, CheckCircle2, Copy, Users, Zap, CreditCard, Loader2, Shield } from 'lucide-react';
 import { tenantService } from '../services/firebaseService';
 import { Tenant } from '../types';
 import { authService } from '../services/authService';
@@ -7,7 +7,10 @@ import { ViewToggle } from '../components/ViewToggle';
 import { getIndustryPreset } from '../config/industryPresets';
 import axios from 'axios';
 
+import { useDialog } from '../context/DialogContext';
+
 export const Companies: React.FC = () => {
+    const dialog = useDialog();
     const [companies, setCompanies] = useState<Tenant[]>([]);
     const [loading, setLoading] = useState(true);
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -15,12 +18,31 @@ export const Companies: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [formData, setFormData] = useState({
         name: '',
+        legalName: '',
         email: '',
         phone: '',
         password: '',
         logoUrl: '',
-        industry: 'Retail' as const
+        industry: 'Retail' as const,
+        businessType: '',
+        cin: '',
+        website: '',
+        subdomain: '',
+        customDomain: '',
+        plan: 'Pro' as 'Basic' | 'Pro' | 'Enterprise',
+        status: 'Active' as 'Active' | 'Pending' | 'Suspended',
+        currency: 'INR',
+        timezone: 'Asia/Kolkata',
+        gstin: '',
+        stateCode: '',
+        taxType: 'GST' as 'GST' | 'VAT' | 'Sales Tax',
+        taxMode: 'Exclusive' as 'Inclusive' | 'Exclusive',
+        bankName: '',
+        accountNumber: '',
+        ifscCode: '',
+        upiId: ''
     });
+    const [modalTab, setModalTab] = useState<'identity' | 'infrastructure' | 'accounting'>('identity');
     const [uploading, setUploading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
@@ -81,14 +103,33 @@ export const Companies: React.FC = () => {
 
     const handleEdit = (company: Tenant) => {
         setFormData({
-            name: company.companyName,
-            email: company.ownerEmail,
+            name: company.companyName || '',
+            legalName: company.config?.companyLegalName || '',
+            email: company.ownerEmail || '',
             phone: company.phone || '',
             password: '',
             logoUrl: company.logoUrl || '',
-            industry: (company.industry || 'Retail') as any
+            industry: (company.industry || 'Retail') as any,
+            businessType: company.config?.businessType || '',
+            cin: company.config?.cin || '',
+            website: company.config?.website || '',
+            subdomain: company.subdomain || '',
+            customDomain: company.customDomain || '',
+            plan: company.plan || 'Pro',
+            status: company.status || 'Active',
+            currency: company.config?.currency || 'INR',
+            timezone: company.config?.timezone || 'Asia/Kolkata',
+            gstin: company.config?.taxConfig?.gstin || '',
+            stateCode: company.config?.taxConfig?.stateCode || '',
+            taxType: company.config?.taxConfig?.taxType || 'GST',
+            taxMode: company.config?.taxConfig?.taxMode || 'Exclusive',
+            bankName: company.config?.bankDetails?.bankName || '',
+            accountNumber: company.config?.bankDetails?.accountNumber || '',
+            ifscCode: company.config?.bankDetails?.ifscCode || '',
+            upiId: company.config?.bankDetails?.upiId || ''
         });
         setEditingId(company.id);
+        setModalTab('identity');
         setShowModal(true);
         setOpenMenuId(null);
     };
@@ -101,13 +142,42 @@ export const Companies: React.FC = () => {
 
         try {
             if (editingId) {
-                const preset = getIndustryPreset(formData.industry);
+                // Get existing tenant to preserve other config data
+                const existingTenant = companies.find(c => c.id === editingId);
+                const currentConfig = existingTenant?.config || getIndustryPreset(formData.industry) as any;
+
                 await tenantService.updateTenant(editingId, {
                     companyName: formData.name,
                     phone: formData.phone,
                     logoUrl: formData.logoUrl,
                     industry: formData.industry,
-                    config: preset as any
+                    subdomain: formData.subdomain,
+                    customDomain: formData.customDomain,
+                    plan: formData.plan,
+                    status: formData.status,
+                    config: {
+                        ...currentConfig,
+                        companyLegalName: formData.legalName,
+                        businessType: formData.businessType,
+                        cin: formData.cin,
+                        website: formData.website,
+                        currency: formData.currency,
+                        timezone: formData.timezone,
+                        taxConfig: {
+                            ...currentConfig?.taxConfig,
+                            gstin: formData.gstin,
+                            stateCode: formData.stateCode,
+                            taxType: formData.taxType,
+                            taxMode: formData.taxMode
+                        },
+                        bankDetails: {
+                            ...currentConfig?.bankDetails,
+                            bankName: formData.bankName,
+                            accountNumber: formData.accountNumber,
+                            ifscCode: formData.ifscCode,
+                            upiId: formData.upiId
+                        }
+                    }
                 });
                 setSuccess('Company updated successfully!');
             } else {
@@ -123,7 +193,12 @@ export const Companies: React.FC = () => {
                 setSuccess('Company created successfully!');
             }
 
-            setFormData({ name: '', email: '', phone: '', password: '', logoUrl: '', industry: 'Retail' });
+            setFormData({
+                name: '', legalName: '', email: '', phone: '', password: '', logoUrl: '', industry: 'Retail',
+                businessType: '', cin: '', website: '', subdomain: '', customDomain: '', plan: 'Pro', status: 'Active',
+                currency: 'INR', timezone: 'Asia/Kolkata', gstin: '', stateCode: '', taxType: 'GST', taxMode: 'Exclusive',
+                bankName: '', accountNumber: '', ifscCode: '', upiId: ''
+            });
             setTimeout(() => {
                 setShowModal(false);
                 setEditingId(null);
@@ -137,15 +212,26 @@ export const Companies: React.FC = () => {
     };
 
     const openCreateModal = () => {
-        setFormData({ name: '', email: '', phone: '', password: '', logoUrl: '', industry: 'Retail' });
+        setFormData({
+            name: '', legalName: '', email: '', phone: '', password: '', logoUrl: '', industry: 'Retail',
+            businessType: '', cin: '', website: '', subdomain: '', customDomain: '', plan: 'Pro', status: 'Active',
+            currency: 'INR', timezone: 'Asia/Kolkata', gstin: '', stateCode: '', taxType: 'GST', taxMode: 'Exclusive',
+            bankName: '', accountNumber: '', ifscCode: '', upiId: ''
+        });
         setEditingId(null);
+        setModalTab('identity');
         setShowModal(true);
     };
 
     const handleDelete = async (companyId: string) => {
-        if (!window.confirm('Are you sure you want to delete this organization? This action cannot be undone.')) {
-            return;
-        }
+        const confirmed = await dialog.confirm('Are you sure you want to delete this organization? This action cannot be undone.', {
+            title: 'Terminate Instance',
+            confirmText: 'Terminate',
+            variant: 'danger'
+        });
+
+        if (!confirmed) return;
+
         try {
             await tenantService.deleteTenant(companyId);
             setSuccess('Organization deleted successfully!');
@@ -164,55 +250,57 @@ export const Companies: React.FC = () => {
     return (
         <div className="p-8 space-y-10 animate-fade-in pb-20">
             {/* Header Section */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-6 bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
                 <div>
-                    <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-4 uppercase">
-                        <Building2 className="text-blue-600" size={32} strokeWidth={3} />
+                    <h1 className="text-2xl font-bold text-slate-900 uppercase tracking-tight flex items-center gap-3">
+                        <Building2 className="text-blue-600" size={24} />
                         Instance Matrix
                     </h1>
-                    <p className="text-slate-500 font-bold text-sm mt-1">Global directory of provisioned company nodes and SaaS instances.</p>
+                    <p className="text-slate-500 text-sm mt-1">Global directory of provisioned company nodes and SaaS instances.</p>
                 </div>
-                <div className="flex items-center gap-4 w-full md:w-auto">
+                <div className="flex items-center gap-4">
                     <ViewToggle view={viewMode} onViewChange={setViewMode} />
                     <button
                         onClick={openCreateModal}
-                        className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-[11px] flex items-center gap-2 hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 active:scale-95"
+                        className="bg-slate-900 text-white px-6 py-2 rounded-lg font-bold uppercase tracking-widest text-[10px] flex items-center gap-2 hover:bg-black transition-all shadow-sm"
                     >
-                        <Plus size={20} strokeWidth={3} /> Register Entity
+                        <Plus size={16} /> Register Entity
                     </button>
                 </div>
             </div>
 
-            {/* Platform Metrics Placeholder (To match SuperAdmin aesthetic) */}
+            {/* Platform Metrics */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {[
-                    { label: 'Total Instances', val: companies.length, sub: 'Active Across All Verticals', icon: Globe, color: 'text-blue-600 bg-blue-50' },
-                    { label: 'System Health', val: '99.9%', sub: 'Node Connectivity Optimized', icon: Activity, color: 'text-emerald-600 bg-emerald-50' },
-                    { label: 'Active Sessions', val: '842', sub: 'Calculated across all nodes', icon: ShieldCheck, color: 'text-amber-600 bg-amber-50' },
+                    { label: 'Total Instances', val: companies.length, sub: 'Active Across All Verticals', icon: Globe },
+                    { label: 'System Health', val: '99.9%', sub: 'Node Connectivity Optimized', icon: Activity },
+                    { label: 'Active Sessions', val: '842', sub: 'Calculated across all nodes', icon: ShieldCheck },
                 ].map((stat, i) => (
-                    <div key={i} className="bg-white p-6 rounded-[1.5rem] shadow-premium flex items-center gap-5 group hover:translate-y-[-4px] transition-all border border-slate-50">
-                        <div className={`w-14 h-14 rounded-2xl ${stat.color} flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                            <stat.icon size={26} strokeWidth={2.5} />
+                    <div key={i} className="bg-white p-5 rounded-lg border border-slate-200 shadow-sm flex items-center gap-4 group hover:translate-y-[-2px] transition-all">
+                        <div className="w-12 h-12 rounded bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-all">
+                            <stat.icon size={22} />
                         </div>
                         <div>
-                            <p className="text-3xl font-black text-slate-900 leading-none tracking-tight">{stat.val}</p>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1.5">{stat.label}</p>
-                            <p className="text-[10px] text-slate-400 font-bold mt-0.5 opacity-60 italic">{stat.sub}</p>
+                            <p className="text-xl font-bold text-slate-900 leading-none">{stat.val}</p>
+                            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1.5">{stat.label}</p>
+                            <p className="text-[10px] text-slate-400 font-medium mt-0.5 opacity-60 italic">{stat.sub}</p>
                         </div>
                     </div>
                 ))}
             </div>
 
             {/* Search Bar */}
-            <div className="relative group">
-                <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={22} strokeWidth={3} />
-                <input
-                    type="text"
-                    placeholder="UNIVERSAL SEARCH BY NAME, EMAIL OR INSTANCE ID..."
-                    className="w-full pl-16 pr-6 py-5 bg-white border border-slate-100 rounded-[1.5rem] text-slate-900 outline-none focus:ring-4 focus:ring-blue-50 shadow-sm transition-all font-bold text-sm placeholder:text-slate-300 placeholder:uppercase placeholder:tracking-[0.2em] placeholder:text-[10px]"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                />
+            <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm flex items-center gap-4">
+                <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                    <input
+                        type="text"
+                        placeholder="SEARCH BY COMPANY NAME, EMAIL OR ID..."
+                        className="w-full bg-slate-50 border border-slate-100 rounded pl-10 pr-4 py-2 text-[10px] font-bold uppercase text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-blue-400 outline-none transition-all"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
             </div>
 
             {loading ? (
@@ -233,34 +321,34 @@ export const Companies: React.FC = () => {
                 </div>
             ) : viewMode === 'grid' ? (
                 /* Grid View */
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredCompanies.map((company) => (
-                        <div key={company.id} className="bg-white rounded-[2rem] border border-slate-50 hover:border-blue-200 hover:shadow-2xl transition-all group relative overflow-hidden flex flex-col p-8 cursor-default">
-                            <div className="flex justify-between items-start mb-8 relative z-10">
-                                <div className="w-16 h-16 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-blue-600 overflow-hidden shadow-sm group-hover:scale-105 transition-all">
+                        <div key={company.id} className="bg-white rounded-lg border border-slate-200 shadow-sm hover:translate-y-[-2px] cursor-default transition-all group flex flex-col p-6">
+                            <div className="flex justify-between items-start mb-6">
+                                <div className="w-12 h-12 rounded bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 overflow-hidden group-hover:text-blue-600 transition-colors">
                                     {company.logoUrl ? (
                                         <img src={company.logoUrl} alt={company.companyName} className="w-full h-full object-cover" />
                                     ) : (
-                                        <Building2 size={28} strokeWidth={2.5} />
+                                        <Building2 size={24} />
                                     )}
                                 </div>
                                 <div className="relative">
                                     <button
                                         onClick={() => setOpenMenuId(openMenuId === company.id ? null : company.id)}
-                                        className="w-10 h-10 bg-slate-50 hover:bg-blue-600 hover:text-white rounded-xl flex items-center justify-center text-slate-400 transition-all active:scale-90"
+                                        className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 transition-all"
                                     >
-                                        <MoreVertical size={18} />
+                                        <MoreVertical size={16} />
                                     </button>
 
                                     {openMenuId === company.id && (
                                         <>
-                                            <div className="fixed inset-0 z-10" onClick={() => setOpenMenuId(null)}></div>
-                                            <div className="absolute right-0 top-12 z-20 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden min-w-[200px] animate-scale-in">
-                                                <button onClick={() => handleEdit(company)} className="w-full px-5 py-4 text-left hover:bg-blue-50 transition-colors flex items-center gap-3 text-slate-700 font-bold text-[11px] uppercase tracking-widest">
-                                                    <Edit2 size={16} strokeWidth={3} /> Edit Node
+                                            <div className="fixed inset-0 z-40" onClick={() => setOpenMenuId(null)}></div>
+                                            <div className="absolute right-0 top-full mt-1 z-50 bg-white rounded-lg shadow-xl border border-slate-200 overflow-hidden min-w-[160px]">
+                                                <button onClick={() => handleEdit(company)} className="w-full px-4 py-2.5 text-left hover:bg-slate-50 transition-colors flex items-center gap-2 text-slate-700 font-bold text-[10px] uppercase tracking-widest">
+                                                    <Edit2 size={14} /> Edit Node
                                                 </button>
-                                                <button onClick={() => handleDelete(company.id)} className="w-full px-5 py-4 text-left hover:bg-rose-50 transition-colors flex items-center gap-3 text-rose-600 font-bold text-[11px] uppercase tracking-widest border-t border-slate-50">
-                                                    <Trash2 size={16} strokeWidth={3} /> Terminate
+                                                <button onClick={() => handleDelete(company.id)} className="w-full px-4 py-2.5 text-left hover:bg-rose-50 transition-colors flex items-center gap-2 text-rose-600 font-bold text-[10px] uppercase tracking-widest border-t border-slate-100">
+                                                    <Trash2 size={14} /> Terminate
                                                 </button>
                                             </div>
                                         </>
@@ -268,94 +356,96 @@ export const Companies: React.FC = () => {
                                 </div>
                             </div>
 
-                            <div className="space-y-6 relative z-10 flex-1">
+                            <div className="space-y-4 flex-1">
                                 <div>
-                                    <h3 className="text-xl font-black text-slate-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight line-clamp-1">{company.companyName}</h3>
-                                    <div className="flex items-center gap-2 mt-1.5">
-                                        <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-600 text-[8px] font-black uppercase tracking-widest">{company.industry}</span>
-                                        <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest italic">{(company.id).substring(0, 8)}</span>
+                                    <h3 className="text-sm font-bold text-slate-900 uppercase tracking-tight line-clamp-1">{company.companyName}</h3>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold uppercase border bg-slate-50 text-slate-500 border-slate-100`}>
+                                            {company.industry}
+                                        </span>
+                                        <span className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">ID: {company.id.substring(0, 8)}</span>
                                     </div>
                                 </div>
 
-                                <div className="space-y-3">
-                                    <div className="flex items-center gap-3 text-slate-500 text-[11px] font-bold">
-                                        <Mail size={14} className="text-blue-400" />
+                                <div className="space-y-2">
+                                    <div className="flex items-center gap-2 text-slate-500 text-[10px] font-bold uppercase tracking-tight">
+                                        <Mail size={12} className="text-slate-300" />
                                         <span className="truncate">{company.ownerEmail}</span>
                                     </div>
-                                    <div className="flex items-center gap-3 text-slate-500 text-[11px] font-bold">
-                                        <Phone size={14} className="text-blue-400" />
-                                        <span>{company.phone || 'NO CONTACT SET'}</span>
+                                    <div className="flex items-center gap-2 text-slate-500 text-[10px] font-bold uppercase tracking-tight">
+                                        <Phone size={12} className="text-slate-300" />
+                                        <span>{company.phone || 'N/A'}</span>
                                     </div>
-                                    <div className="flex items-center gap-3 text-slate-500 text-[11px] font-bold">
-                                        <Globe size={14} className="text-blue-400" />
+                                    <div className="flex items-center gap-2 text-slate-500 text-[10px] font-bold lowercase tracking-tight">
+                                        <Globe size={12} className="text-slate-300" />
                                         <span>{company.subdomain}.averqon.com</span>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="mt-8 pt-6 border-t border-slate-50 flex items-center justify-between relative z-10">
-                                <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-[9px] font-black bg-emerald-50 text-emerald-600 uppercase tracking-widest border border-emerald-100">
-                                    <CheckCircle2 size={12} strokeWidth={3} /> {company.status}
+                            <div className="mt-6 pt-4 border-t border-slate-50 flex items-center justify-between">
+                                <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[8px] font-bold uppercase border ${company.status === 'Active' ? 'text-emerald-600 bg-emerald-50 border-emerald-100' : 'text-amber-600 bg-amber-50 border-amber-100'}`}>
+                                    {company.status}
                                 </span>
-                                <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest italic">
-                                    {company.createdAt ? new Date(company.createdAt).toLocaleDateString(undefined, { month: 'short', year: 'numeric' }) : 'N/A'}
+                                <span className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">
+                                    {company.createdAt ? new Date(company.createdAt).toLocaleDateString() : 'N/A'}
                                 </span>
                             </div>
                         </div>
                     ))}
                 </div>
             ) : (
-                /* List View - Reusing registry style */
-                <div className="bg-white rounded-[2rem] shadow-premium overflow-hidden border border-slate-50">
+                /* List View */
+                <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-slate-200">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left">
                             <thead>
-                                <tr className="bg-slate-50/50">
-                                    <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Instance Node</th>
-                                    <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Ownership Matrix</th>
-                                    <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
-                                    <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
+                                <tr className="bg-slate-50 border-b border-slate-200">
+                                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Instance Node</th>
+                                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Ownership Matrix</th>
+                                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Status</th>
+                                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-50">
+                            <tbody className="divide-y divide-slate-100">
                                 {filteredCompanies.map((company) => (
-                                    <tr key={company.id} className="hover:bg-slate-50/30 transition-all group">
-                                        <td className="px-10 py-6">
-                                            <div className="flex items-center gap-6">
-                                                <div className="w-14 h-14 rounded-2xl bg-white border border-slate-100 flex items-center justify-center text-blue-600 overflow-hidden shadow-sm group-hover:scale-110 transition-transform">
+                                    <tr key={company.id} className="hover:bg-slate-50/50 transition-all group">
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-10 h-10 rounded bg-white border border-slate-100 flex items-center justify-center text-slate-400 overflow-hidden group-hover:text-blue-600 transition-colors">
                                                     {company.logoUrl ? (
                                                         <img src={company.logoUrl} alt={company.companyName} className="w-full h-full object-cover" />
                                                     ) : (
-                                                        <Building2 size={24} strokeWidth={2.5} />
+                                                        <Building2 size={20} />
                                                     )}
                                                 </div>
                                                 <div>
-                                                    <span className="font-black text-slate-800 text-base uppercase tracking-tight block mb-1">{company.companyName}</span>
-                                                    <div className="flex items-center gap-2 text-[10px] text-slate-400 font-bold uppercase tracking-widest italic">
-                                                        <Globe size={12} className="text-blue-400" />
+                                                    <span className="font-bold text-slate-800 text-sm uppercase tracking-tight block">{company.companyName}</span>
+                                                    <div className="flex items-center gap-2 text-[10px] text-slate-400 font-bold lowercase tracking-tight">
+                                                        <Globe size={10} className="text-slate-300" />
                                                         {company.subdomain}.averqon.com
                                                     </div>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-10 py-6">
-                                            <div className="space-y-1.5">
-                                                <p className="text-slate-700 font-black text-xs tracking-tight uppercase">{company.ownerEmail}</p>
-                                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest italic">{company.phone || 'no phone'}</p>
+                                        <td className="px-6 py-4">
+                                            <div className="space-y-0.5">
+                                                <p className="text-slate-700 font-bold text-xs uppercase">{company.ownerEmail}</p>
+                                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">{company.phone || 'no phone'}</p>
                                             </div>
                                         </td>
-                                        <td className="px-10 py-6">
-                                            <span className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest ${company.status === 'Active' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-rose-50 text-rose-600 border border-rose-100'}`}>
+                                        <td className="px-6 py-4">
+                                            <span className={`px-2 py-0.5 rounded text-[8px] font-bold uppercase border ${company.status === 'Active' ? 'text-emerald-600 bg-emerald-50 border-emerald-100' : 'text-amber-600 bg-amber-50 border-amber-100'}`}>
                                                 {company.status}
                                             </span>
                                         </td>
-                                        <td className="px-10 py-6 text-right">
+                                        <td className="px-6 py-4 text-right">
                                             <div className="flex items-center justify-end gap-2">
-                                                <button onClick={() => handleEdit(company)} className="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center active:scale-90">
-                                                    <Edit2 size={16} strokeWidth={3} />
+                                                <button onClick={() => handleDelete(company.id)} className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-all">
+                                                    <Trash2 size={14} />
                                                 </button>
-                                                <button onClick={() => handleDelete(company.id)} className="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 hover:bg-rose-600 hover:text-white transition-all flex items-center justify-center active:scale-90">
-                                                    <Trash2 size={16} strokeWidth={3} />
+                                                <button onClick={() => handleEdit(company)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-all">
+                                                    <Edit2 size={14} />
                                                 </button>
                                             </div>
                                         </td>
@@ -369,7 +459,7 @@ export const Companies: React.FC = () => {
 
             {/* Premium Full-Screen Modal */}
             {showModal && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/40 animate-fade-in">
                     <div className="bg-white w-full max-w-5xl rounded-2xl shadow-2xl relative overflow-hidden border border-slate-200 flex flex-col max-h-[90vh]">
                         <div className="p-6 border-b border-slate-100 flex items-center justify-between shrink-0">
                             <div>
@@ -384,6 +474,27 @@ export const Companies: React.FC = () => {
                             </button>
                         </div>
 
+                        {/* Tab Navigation */}
+                        <div className="px-8 border-b border-slate-100 flex items-center gap-8 shrink-0 bg-slate-50/30">
+                            {[
+                                { id: 'identity', label: 'Identity & Access', icon: Users },
+                                { id: 'infrastructure', label: 'Infrastructure', icon: Zap },
+                                { id: 'accounting', label: 'Accounting & Finance', icon: CreditCard }
+                            ].map(tab => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setModalTab(tab.id as any)}
+                                    className={`py-4 text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 border-b-2 transition-all ${modalTab === tab.id
+                                        ? 'border-blue-600 text-blue-600'
+                                        : 'border-transparent text-slate-400 hover:text-slate-600'
+                                        }`}
+                                >
+                                    <tab.icon size={14} />
+                                    {tab.label}
+                                </button>
+                            ))}
+                        </div>
+
                         <div className="overflow-y-auto p-8 custom-scrollbar">
                             <form onSubmit={handleSubmit} className="space-y-8">
                                 {error && (
@@ -393,118 +504,297 @@ export const Companies: React.FC = () => {
                                     </div>
                                 )}
 
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                    {/* Column 1: Identity */}
-                                    <div className="space-y-6">
-                                        <div className="space-y-4">
-                                            <h3 className="text-sm font-semibold text-slate-900 border-b border-slate-100 pb-2">
-                                                01 Identity Profile
-                                            </h3>
+                                {modalTab === 'identity' && (
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 animate-fade-in">
+                                        <div className="space-y-6">
+                                            <div className="space-y-4">
+                                                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                                    <div className="w-5 h-5 rounded bg-blue-50 text-blue-600 flex items-center justify-center text-[10px]">01</div>
+                                                    Identity Profile
+                                                </h3>
 
-                                            <div className="flex items-start gap-6">
-                                                <div className="relative group shrink-0">
-                                                    <div className="w-24 h-24 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center overflow-hidden transition-all">
-                                                        {formData.logoUrl ? (
-                                                            <img src={formData.logoUrl} alt="Logo" className="w-full h-full object-cover" />
-                                                        ) : (
-                                                            <Building2 className="text-slate-300" size={32} />
-                                                        )}
-                                                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center transition-all cursor-pointer text-white">
-                                                            <Plus size={20} />
-                                                            <span className="text-xs mt-1">Upload</span>
+                                                <div className="flex items-start gap-6">
+                                                    <div className="relative group shrink-0">
+                                                        <div className="w-24 h-24 rounded-2xl bg-slate-50 border-2 border-dashed border-slate-200 flex items-center justify-center overflow-hidden transition-all group-hover:border-blue-400 relative">
+                                                            {formData.logoUrl ? (
+                                                                <img src={formData.logoUrl} alt="Logo" className="w-full h-full object-cover" />
+                                                            ) : (
+                                                                <Building2 className="text-slate-300" size={32} />
+                                                            )}
+                                                            <div className="absolute inset-0 bg-blue-600/90 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center transition-all cursor-pointer text-white">
+                                                                <Plus size={20} strokeWidth={3} />
+                                                                <span className="text-[9px] font-black uppercase tracking-tighter mt-1">Upload Logo</span>
+                                                            </div>
+                                                            <input type="file" accept="image/*" onChange={handleFileChange} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
+                                                            {uploading && (
+                                                                <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+                                                                    <Loader2 size={24} className="text-blue-600 animate-spin" />
+                                                                </div>
+                                                            )}
                                                         </div>
-                                                        <input type="file" accept="image/*" onChange={handleFileChange} className="absolute inset-0 opacity-0 cursor-pointer" />
+                                                    </div>
+                                                    <div className="flex-1 space-y-4">
+                                                        <div className="space-y-2">
+                                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Store / Display Name</label>
+                                                            <input type="text" required className="w-full bg-slate-50 border border-slate-100 p-3 rounded-xl text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-sm shadow-inner" placeholder="e.g. Acme Retail" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Registered Legal Name</label>
+                                                            <input type="text" className="w-full bg-slate-50 border border-slate-100 p-3 rounded-xl text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-sm shadow-inner" placeholder="e.g. Acme solutions Pvt Ltd" value={formData.legalName} onChange={(e) => setFormData({ ...formData, legalName: e.target.value })} />
+                                                        </div>
                                                     </div>
                                                 </div>
-                                                <div className="flex-1 space-y-4">
-                                                    <div className="space-y-1">
-                                                        <label className="text-sm font-medium text-slate-700">Entity Name</label>
-                                                        <input type="text" required className="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-lg text-slate-900 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all text-sm" placeholder="e.g. Acme Corp" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
+
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div className="space-y-2">
+                                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Business Type</label>
+                                                        <select className="w-full bg-slate-50 border border-slate-100 p-3 rounded-xl text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-sm shadow-inner" value={formData.businessType} onChange={(e) => setFormData({ ...formData, businessType: e.target.value })}>
+                                                            <option value="">Select Type</option>
+                                                            <option value="Proprietorship">Proprietorship</option>
+                                                            <option value="Partnership">Partnership</option>
+                                                            <option value="Pvt Ltd">Private Limited</option>
+                                                            <option value="LLP">LLP</option>
+                                                            <option value="NGO">NGO/Trust</option>
+                                                        </select>
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">CIN / Reg No</label>
+                                                        <input type="text" className="w-full bg-slate-50 border border-slate-100 p-3 rounded-xl text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-sm shadow-inner" placeholder="U00000XX0000XXX000000" value={formData.cin} onChange={(e) => setFormData({ ...formData, cin: e.target.value })} />
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <div className="space-y-4">
-                                            <h3 className="text-sm font-semibold text-slate-900 border-b border-slate-100 pb-2">
-                                                02 Authentication
-                                            </h3>
-                                            <div className="grid grid-cols-1 gap-4">
-                                                <div className="space-y-1">
-                                                    <label className="text-sm font-medium text-slate-700">Owner Email</label>
-                                                    <div className="relative">
-                                                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                                                        <input type="email" required disabled={!!editingId} className="w-full bg-slate-50 border border-slate-200 p-2.5 pl-10 rounded-lg text-slate-900 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all text-sm disabled:opacity-60" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
+                                        <div className="space-y-6">
+                                            <div className="space-y-4">
+                                                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                                    <div className="w-5 h-5 rounded bg-blue-50 text-blue-600 flex items-center justify-center text-[10px]">02</div>
+                                                    Contact & Access
+                                                </h3>
+                                                <div className="grid grid-cols-1 gap-4">
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div className="space-y-2">
+                                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Primary Contact</label>
+                                                            <div className="relative">
+                                                                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+                                                                <input type="tel" className="w-full bg-slate-50 border border-slate-100 p-3 pl-10 rounded-xl text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-sm shadow-inner" placeholder="+91 XXXX XXX XXX" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
+                                                            </div>
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Website</label>
+                                                            <div className="relative">
+                                                                <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+                                                                <input type="text" className="w-full bg-slate-50 border border-slate-100 p-3 pl-10 rounded-xl text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-sm shadow-inner" placeholder="www.acme.com" value={formData.website} onChange={(e) => setFormData({ ...formData, website: e.target.value })} />
+                                                            </div>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                                {!editingId && (
-                                                    <div className="space-y-1">
-                                                        <label className="text-sm font-medium text-slate-700">Password</label>
+                                                    <div className="space-y-2">
+                                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Ownership Email</label>
                                                         <div className="relative">
-                                                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                                                            <input type="password" required className="w-full bg-slate-50 border border-slate-200 p-2.5 pl-10 rounded-lg text-slate-900 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all text-sm" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} />
+                                                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+                                                            <input type="email" required disabled={!!editingId} className="w-full bg-slate-50 border border-slate-100 p-3 pl-10 rounded-xl text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-sm shadow-inner disabled:opacity-50 uppercase tracking-tight" placeholder="owner@company.com" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
                                                         </div>
                                                     </div>
-                                                )}
+                                                    {!editingId && (
+                                                        <div className="space-y-2">
+                                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Initialization Secret</label>
+                                                            <div className="relative">
+                                                                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+                                                                <input type="password" required className="w-full bg-slate-50 border border-slate-100 p-3 pl-10 rounded-xl text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-sm shadow-inner" placeholder="••••••••" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} />
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
+                                )}
 
-                                    {/* Column 2: Configuration */}
-                                    <div className="space-y-6">
-                                        <div className="space-y-4">
-                                            <h3 className="text-sm font-semibold text-slate-900 border-b border-slate-100 pb-2">
-                                                03 Industry Logic
-                                            </h3>
-                                            <div className="space-y-1">
-                                                <label className="text-sm font-medium text-slate-700">Business Vertical</label>
-                                                <select
-                                                    className="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-lg text-slate-900 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all text-sm cursor-pointer"
-                                                    value={formData.industry}
-                                                    onChange={(e) => setFormData({ ...formData, industry: e.target.value as any })}
-                                                >
-                                                    <option value="Freelancer">Service Business</option>
-                                                    <option value="Retail">Retail & Inventory</option>
-                                                    <option value="Manufacturing">Production Line</option>
-                                                    <option value="Tours">Tourism Matrix</option>
-                                                    <option value="Wholesale">Enterprise B2B</option>
-                                                    <option value="Construction">Heavy Infrastructure</option>
-                                                    <option value="Clinic">Medical Node</option>
-                                                </select>
+                                {modalTab === 'infrastructure' && (
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 animate-fade-in">
+                                        <div className="space-y-6">
+                                            <div className="space-y-4">
+                                                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                                    <div className="w-5 h-5 rounded bg-blue-50 text-blue-600 flex items-center justify-center text-[10px]">03</div>
+                                                    Industry & DNA
+                                                </h3>
+                                                <div className="grid grid-cols-1 gap-4">
+                                                    <div className="space-y-2">
+                                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Business Vertical</label>
+                                                        <select
+                                                            className="w-full bg-slate-50 border border-slate-100 p-3 rounded-xl text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-sm shadow-inner cursor-pointer"
+                                                            value={formData.industry}
+                                                            onChange={(e) => setFormData({ ...formData, industry: e.target.value as any })}
+                                                        >
+                                                            <option value="Freelancer">Service Business</option>
+                                                            <option value="Retail">Retail & E-commerce</option>
+                                                            <option value="Manufacturing">Manufacturing & Production</option>
+                                                            <option value="Tours">Travel & Tours</option>
+                                                            <option value="Service">General Services</option>
+                                                            <option value="Wholesale">Wholesale Trading</option>
+                                                            <option value="Construction">Construction & Engineering</option>
+                                                            <option value="Clinic">Medical & Clinic</option>
+                                                            <option value="Generic">Generic Enterprise</option>
+                                                        </select>
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div className="space-y-2">
+                                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Base Currency</label>
+                                                            <select className="w-full bg-slate-50 border border-slate-100 p-3 rounded-xl text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-sm shadow-inner" value={formData.currency} onChange={(e) => setFormData({ ...formData, currency: e.target.value })}>
+                                                                <option value="INR">INR (₹)</option>
+                                                                <option value="USD">USD ($)</option>
+                                                                <option value="EUR">EUR (€)</option>
+                                                                <option value="GBP">GBP (£)</option>
+                                                            </select>
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Regional Timezone</label>
+                                                            <select className="w-full bg-slate-50 border border-slate-100 p-3 rounded-xl text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-sm shadow-inner" value={formData.timezone} onChange={(e) => setFormData({ ...formData, timezone: e.target.value })}>
+                                                                <option value="Asia/Kolkata">IST (UTC+5:30)</option>
+                                                                <option value="UTC">UTC (Greenwich)</option>
+                                                                <option value="America/New_York">EST (New York)</option>
+                                                                <option value="Europe/London">GMT (London)</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-6">
+                                                <div className="space-y-4">
+                                                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                                        <div className="w-5 h-5 rounded bg-blue-50 text-blue-600 flex items-center justify-center text-[10px]">05</div>
+                                                        Deployment Strategy
+                                                    </h3>
+                                                    <div className="grid grid-cols-1 gap-4">
+                                                        <div className="space-y-2">
+                                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Subscription Tier</label>
+                                                            <div className="grid grid-cols-3 gap-2">
+                                                                {['Basic', 'Pro', 'Enterprise'].map(plan => (
+                                                                    <button
+                                                                        key={plan}
+                                                                        type="button"
+                                                                        onClick={() => setFormData({ ...formData, plan: plan as any })}
+                                                                        className={`p-3 rounded-xl border-2 text-[10px] font-black uppercase tracking-widest transition-all ${formData.plan === plan
+                                                                            ? 'border-blue-500 bg-blue-50 text-blue-600'
+                                                                            : 'border-slate-100 text-slate-400 hover:border-slate-200'
+                                                                            }`}
+                                                                    >
+                                                                        {plan}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Instance Status</label>
+                                                            <div className="grid grid-cols-3 gap-2">
+                                                                {['Active', 'Pending', 'Suspended'].map(status => (
+                                                                    <button
+                                                                        key={status}
+                                                                        type="button"
+                                                                        onClick={() => setFormData({ ...formData, status: status as any })}
+                                                                        className={`p-3 rounded-xl border-2 text-[10px] font-black uppercase tracking-widest transition-all ${formData.status === status
+                                                                            ? status === 'Active' ? 'border-emerald-500 bg-emerald-50 text-emerald-600' :
+                                                                                status === 'Pending' ? 'border-amber-500 bg-amber-50 text-amber-600' :
+                                                                                    'border-rose-500 bg-rose-50 text-rose-600'
+                                                                            : 'border-slate-100 text-slate-400 hover:border-slate-200'
+                                                                            }`}
+                                                                    >
+                                                                        {status}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
+                                    </div>
+                                )}
 
-                                        <div className="space-y-4">
-                                            <h3 className="text-sm font-semibold text-slate-900 border-b border-slate-100 pb-2">
-                                                04 Contact Info
-                                            </h3>
-                                            <div className="space-y-1">
-                                                <label className="text-sm font-medium text-slate-700">Phone Number</label>
-                                                <div className="relative">
-                                                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                                                    <input type="tel" className="w-full bg-slate-50 border border-slate-200 p-2.5 pl-10 rounded-lg text-slate-900 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all text-sm" placeholder="+1-XXX-XXX-XXXX" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
+                                {modalTab === 'accounting' && (
+                                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 animate-fade-in">
+                                        <div className="space-y-6">
+                                            <div className="space-y-4">
+                                                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                                    <div className="w-5 h-5 rounded bg-blue-50 text-blue-600 flex items-center justify-center text-[10px]">06</div>
+                                                    Tax & Compliance
+                                                </h3>
+                                                <div className="space-y-4">
+                                                    <div className="space-y-2">
+                                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Taxation Type</label>
+                                                        <select className="w-full bg-slate-50 border border-slate-100 p-3 rounded-xl text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-sm shadow-inner" value={formData.taxType} onChange={(e) => setFormData({ ...formData, taxType: e.target.value as any })}>
+                                                            <option value="GST">GST (India)</option>
+                                                            <option value="VAT">VAT (Global)</option>
+                                                            <option value="Sales Tax">Sales Tax (US)</option>
+                                                        </select>
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">GSTIN / Tax ID</label>
+                                                        <div className="relative">
+                                                            <Shield className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+                                                            <input type="text" className="w-full bg-slate-50 border border-slate-100 p-3 pl-10 rounded-xl text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-sm shadow-inner uppercase tracking-wider" placeholder="27XXXXX0000X1Z5" value={formData.gstin} onChange={(e) => setFormData({ ...formData, gstin: e.target.value })} />
+                                                        </div>
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div className="space-y-2">
+                                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Tax Mode</label>
+                                                            <select className="w-full bg-slate-50 border border-slate-100 p-3 rounded-xl text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-sm shadow-inner" value={formData.taxMode} onChange={(e) => setFormData({ ...formData, taxMode: e.target.value as any })}>
+                                                                <option value="Exclusive">Exclusive</option>
+                                                                <option value="Inclusive">Inclusive</option>
+                                                            </select>
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">State Code</label>
+                                                            <input type="text" className="w-full bg-slate-50 border border-slate-100 p-3 rounded-xl text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-sm shadow-inner uppercase" placeholder="27" value={formData.stateCode} onChange={(e) => setFormData({ ...formData, stateCode: e.target.value })} />
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <div className="p-4 bg-blue-50 rounded-xl text-blue-800 border border-blue-100">
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <ShieldCheck size={18} className="text-blue-600" />
-                                                <p className="font-semibold text-sm">System Provisioning Active</p>
+                                        <div className="lg:col-span-2 space-y-6">
+                                            <div className="space-y-4">
+                                                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                                    <div className="w-5 h-5 rounded bg-blue-50 text-blue-600 flex items-center justify-center text-[10px]">07</div>
+                                                    Settlement Logic (Banking)
+                                                </h3>
+                                                <div className="grid grid-cols-2 gap-6">
+                                                    <div className="space-y-4">
+                                                        <div className="space-y-2">
+                                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Bank Name</label>
+                                                            <div className="relative">
+                                                                <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+                                                                <input type="text" className="w-full bg-slate-50 border border-slate-100 p-3 pl-10 rounded-xl text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-sm shadow-inner" placeholder="HDFC Bank" value={formData.bankName} onChange={(e) => setFormData({ ...formData, bankName: e.target.value })} />
+                                                            </div>
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Account Number</label>
+                                                            <input type="text" className="w-full bg-slate-50 border border-slate-100 p-3 rounded-xl text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-sm shadow-inner" placeholder="50100XXXXXXX" value={formData.accountNumber} onChange={(e) => setFormData({ ...formData, accountNumber: e.target.value })} />
+                                                        </div>
+                                                    </div>
+                                                    <div className="space-y-4">
+                                                        <div className="space-y-2">
+                                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">IFSC / Routing Code</label>
+                                                            <input type="text" className="w-full bg-slate-50 border border-slate-100 p-3 rounded-xl text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-sm shadow-inner uppercase" placeholder="HDFC0001234" value={formData.ifscCode} onChange={(e) => setFormData({ ...formData, ifscCode: e.target.value })} />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">UPI ID for Settlements</label>
+                                                            <input type="text" className="w-full bg-slate-50 border border-slate-100 p-3 rounded-xl text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-sm shadow-inner" placeholder="acme@upi" value={formData.upiId} onChange={(e) => setFormData({ ...formData, upiId: e.target.value })} />
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <p className="text-xs text-blue-600/80 leading-relaxed">
-                                                By committing these changes, you will initialize a dedicated node. All modules related to the selected vertical will be automatically provisioned.
-                                            </p>
                                         </div>
                                     </div>
-                                </div>
+                                )}
 
                                 <div className="flex justify-end gap-3 pt-6 border-t border-slate-100">
-                                    <button type="button" onClick={() => setShowModal(false)} className="px-6 py-2.5 bg-white text-slate-700 font-medium text-sm hover:bg-slate-50 transition-all rounded-lg border border-slate-200">
+                                    <button type="button" onClick={() => setShowModal(false)} className="px-6 py-2.5 bg-white text-slate-700 font-medium text-sm hover:bg-slate-50 transition-all rounded-lg border border-slate-200 uppercase tracking-widest text-[10px] font-bold">
                                         Cancel
                                     </button>
-                                    <button type="submit" disabled={creating} className="px-6 py-2.5 bg-blue-600 text-white font-medium text-sm hover:bg-blue-700 transition-all rounded-lg shadow-sm disabled:opacity-50">
-                                        {creating ? 'Processing...' : editingId ? 'Update Instance' : 'Create Instance'}
+                                    <button type="submit" disabled={creating} className="px-8 py-2.5 bg-blue-600 text-white font-black text-[10px] uppercase tracking-widest hover:bg-blue-700 transition-all rounded-lg shadow-lg shadow-blue-100 disabled:opacity-50">
+                                        {creating ? 'Processing...' : editingId ? 'Commit Changes' : 'Provision Instance'}
                                     </button>
                                 </div>
                             </form>

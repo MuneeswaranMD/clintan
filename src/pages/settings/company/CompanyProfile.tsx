@@ -13,7 +13,8 @@ import {
     AlertCircle,
     Save,
     ArrowRight,
-    Loader2
+    Loader2,
+    Shield
 } from 'lucide-react';
 import { useTenant } from '../../../context/TenantContext';
 import { tenantService } from '../../../services/firebaseService';
@@ -176,7 +177,16 @@ export const CompanyProfile: React.FC = () => {
                                 <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-[10px] font-bold uppercase tracking-wide border border-blue-100">
                                     {tenant.plan || 'Pro'} Plan
                                 </span>
-                                <span className="flex items-center gap-1.5 text-slate-400 text-xs font-bold">
+                                {tenant.config?.verification?.status && (
+                                    <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide border flex items-center gap-1.5 ${tenant.config.verification.status === 'Verified' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                                        tenant.config.verification.status === 'Rejected' ? 'bg-rose-50 text-rose-600 border-rose-100' :
+                                            'bg-amber-50 text-amber-600 border-amber-100'
+                                        }`}>
+                                        <Shield size={12} />
+                                        {tenant.config.verification.status}
+                                    </span>
+                                )}
+                                <span className="flex items-center gap-1.5 text-slate-400 text-xs font-bold ml-2">
                                     <div className={`w-2 h-2 rounded-full ${tenant.status === 'Active' ? 'bg-emerald-500' : 'bg-red-500'}`}></div>
                                     {tenant.status || 'Active'}
                                 </span>

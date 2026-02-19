@@ -9,6 +9,8 @@ import { Order, OrderStatus } from '../types';
 import { orderService } from '../services/firebaseService';
 import { authService } from '../services/authService';
 import { ViewToggle } from '../components/ViewToggle';
+import { useTenant } from '../context/TenantContext';
+import { ShieldAlert } from 'lucide-react';
 
 // Define the Dispatch Interface locally if not yet in types
 export interface DispatchEntry {
@@ -42,8 +44,44 @@ const ORDER_STATUS_COLORS = {
 
 export const Dispatch: React.FC = () => {
     const { confirm, alert } = useDialog();
+    const { isVerified } = useTenant();
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
+
+    if (!isVerified) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 p-12 bg-white rounded-[3rem] shadow-premium border-none animate-fade-in relative z-10">
+                <div className="w-24 h-24 bg-rose-50 text-rose-500 rounded-[2rem] flex items-center justify-center shadow-inner border border-rose-100">
+                    <ShieldAlert size={48} strokeWidth={2.5} />
+                </div>
+                <div className="text-center max-w-lg space-y-3">
+                    <h1 className="text-3xl font-black text-slate-900 tracking-tight uppercase">Logistics Restricted</h1>
+                    <p className="text-slate-500 font-bold text-sm leading-relaxed uppercase tracking-tight opacity-80">
+                        Dispatch and supply chain operations are locked until identity compliance is verified by the platform administration.
+                    </p>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md pt-4">
+                    <button
+                        onClick={() => window.location.href = '/settings/company'}
+                        className="flex-1 px-8 py-4 bg-slate-900 text-white font-black rounded-2xl shadow-xl hover:scale-105 transition-all flex items-center justify-center gap-2 uppercase text-[11px] tracking-widest"
+                    >
+                        Complete Verification
+                    </button>
+                    <button
+                        onClick={() => window.history.back()}
+                        className="flex-1 px-8 py-4 bg-slate-100 text-slate-600 font-black rounded-2xl hover:bg-slate-200 transition-all uppercase text-[11px] tracking-widest"
+                    >
+                        Return Home
+                    </button>
+                </div>
+                <div className="pt-8 border-t border-slate-100 w-full flex items-center justify-center gap-6 opacity-40 grayscale">
+                    <Truck size={24} />
+                    <Package size={24} />
+                    <Box size={24} />
+                </div>
+            </div>
+        );
+    }
     const [view, setView] = useState<'list' | 'details'>('list');
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
