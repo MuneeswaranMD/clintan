@@ -162,7 +162,7 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children, user, on
                 <div className="h-20 flex items-center justify-center px-4 mb-4">
                     {!isSidebarCollapsed ? (
                         <div className="flex items-center gap-3 animate-fade-in py-6 w-full px-2">
-                            <div className="min-w-[40px] w-10 h-10 bg-gradient-primary rounded-xl flex items-center justify-center text-white font-black text-lg shadow-lg active:scale-95 transition-transform flex-shrink-0">
+                            <div className="min-w-[40px] w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-lg active:scale-95 transition-transform flex-shrink-0">
                                 {logoUrl ? (
                                     <img src={logoUrl} alt="Logo" className="w-full h-full object-contain rounded-lg p-0.5" />
                                 ) : (
