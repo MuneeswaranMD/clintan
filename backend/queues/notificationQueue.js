@@ -25,6 +25,10 @@ const notificationQueue = new Queue('notifications', {
 });
 
 // Queue event listeners
+notificationQueue.on('error', (err) => {
+  console.error('❌ Redis Connection Error:', err.message);
+});
+
 notificationQueue.on('completed', (job, result) => {
   console.log(`✅ Job ${job.id} completed successfully`);
 });

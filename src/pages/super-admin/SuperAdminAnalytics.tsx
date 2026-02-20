@@ -103,8 +103,8 @@ export const SuperAdminAnalytics: React.FC = () => {
                         </button>
                     </div>
 
-                    <div className="h-[350px] w-full">
-                        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                    <div className="h-[350px] w-full min-h-[350px]">
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={350} debounce={50}>
                             <AreaChart data={data}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                                 <XAxis dataKey="name" stroke="#94a3b8" fontSize={10} fontWeight={700} axisLine={false} tickLine={false} tickMargin={10} />
@@ -151,7 +151,7 @@ export const SuperAdminAnalytics: React.FC = () => {
             <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6 space-y-6">
                 <div className="flex items-center justify-between">
                     <div>
-                        <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Node Density</h3>
+                        <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider" id="node-density-title">Node Density</h3>
                         <p className="text-[10px] font-bold text-slate-400 uppercase mt-1">Tenant distribution by regional node centers</p>
                     </div>
                     <div className="flex bg-slate-100 p-1 rounded-lg">
@@ -160,8 +160,8 @@ export const SuperAdminAnalytics: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="h-[250px] w-full">
-                    <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                <div className="h-[250px] w-full min-h-[250px]">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={250} debounce={50}>
                         <BarChart data={data}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                             <XAxis dataKey="name" hide />

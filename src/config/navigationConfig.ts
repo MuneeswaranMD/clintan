@@ -314,6 +314,7 @@ export const INDUSTRY_PRESETS: Record<string, string[]> = {
  * Get filtered navigation items based on enabled modules and user role
  */
 export const getFilteredNavItems = (
+    features: FeatureToggles | undefined,
     enabledModules: string[] | undefined,
     userRole: UserRole | string,
     isSuperAdmin: boolean = false
@@ -322,10 +323,16 @@ export const getFilteredNavItems = (
     const modules = enabledModules || [];
 
     const filtered = UNIVERSAL_NAV_ITEMS.filter(item => {
-        // 1. Industry/Module Filter
-        if (!modules.includes(item.id)) return false;
+        // 1. One Rule: Granular ID Filter
+        // If enabledModules is provided, the item MUST be in it.
+        if (enabledModules && !enabledModules.includes(item.id)) return false;
 
-        // 2. Role Filter (if isSuperAdmin is true, bypass role checks usually, but let's be safe)
+        // 2. Feature Toggle Filter
+        if (item.requiredFeature && features && !features[item.requiredFeature]) {
+            return false;
+        }
+
+        // 3. Role Filter
         if (isSuperAdmin) return true;
 
         if (item.allowedRoles && !item.allowedRoles.includes(userRole as UserRole)) {
@@ -372,11 +379,12 @@ export const getFilteredNavItems = (
  * Get navigation items grouped by category
  */
 export const getGroupedNavItems = (
+    features: FeatureToggles | undefined,
     enabledModules: string[] | undefined,
     userRole: UserRole | string,
     isSuperAdmin: boolean = false
 ): Record<string, NavItem[]> => {
-    const items = getFilteredNavItems(enabledModules, userRole, isSuperAdmin);
+    const items = getFilteredNavItems(features, enabledModules, userRole, isSuperAdmin);
 
     return items.reduce((acc, item) => {
         const category = item.category || 'core';
@@ -406,4 +414,13 @@ export const CATEGORY_LABELS: Record<string, string> = {
  */
 export const getDefaultModulesForIndustry = (industry: string): string[] => {
     return INDUSTRY_PRESETS[industry] || INDUSTRY_PRESETS['Generic'];
+};
+
+/**
+ * Get enabled module IDs from features
+ */
+export const getEnabledModuleIdsFromFeatures = (features: FeatureToggles): string[] => {
+    return UNIVERSAL_NAV_ITEMS
+        .filter(item => item.requiredFeature && (features as any)[item.requiredFeature])
+        .map(item => item.id);
 };

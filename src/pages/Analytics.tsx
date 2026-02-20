@@ -199,8 +199,8 @@ export const Analytics: React.FC = () => {
                                     <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mt-1">Revenue Stream (Last 6 Cycles)</p>
                                 </div>
                             </div>
-                            <div className="h-[350px]">
-                                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                            <div className="h-[350px] min-h-[350px]">
+                                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={350} debounce={50}>
                                     <AreaChart data={salesTrend}>
                                         <defs>
                                             <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">

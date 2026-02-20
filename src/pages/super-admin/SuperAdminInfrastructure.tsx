@@ -131,8 +131,8 @@ export const SuperAdminInfrastructure: React.FC = () => {
 
                             <div className="p-6 bg-white border border-slate-200 rounded-lg shadow-sm">
                                 <h3 className="text-xs font-bold text-slate-900 uppercase tracking-widest mb-8">Performance Spectrum</h3>
-                                <div className="h-[300px] w-full">
-                                    <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                                <div className="h-[300px] w-full min-h-[300px]">
+                                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={300} debounce={50}>
                                         <AreaChart data={performanceData}>
                                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                                             <XAxis

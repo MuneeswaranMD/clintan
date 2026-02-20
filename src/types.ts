@@ -481,7 +481,7 @@ export interface BusinessConfig {
   dateFormat: string;
 
   // Feature Flags
-  enabledModules?: string[];
+  enabledModules?: string[]; // Derived from Tenant root for UI navigation
   features: FeatureToggles;
 
   // Custom Field Definitions

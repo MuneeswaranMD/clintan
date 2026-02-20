@@ -83,8 +83,8 @@ export const SuperAdminRevenue: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="h-[300px] w-full">
-                        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                    <div className="h-[300px] w-full min-h-[300px]">
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={300} debounce={50}>
                             <AreaChart data={chartData}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                                 <XAxis dataKey="name" stroke="#94a3b8" fontSize={10} fontWeight={700} axisLine={false} tickLine={false} tickMargin={10} />

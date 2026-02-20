@@ -345,24 +345,32 @@ export const getAvailableIndustries = (): Array<{ key: string; name: string; des
 export const getEnabledModules = (features: FeatureToggles): string[] => {
     const modules: string[] = [];
 
-    if (features.enableDashboard) modules.push('Dashboard');
-    if (features.enableOrders) modules.push('Orders');
-    if (features.enableEstimates) modules.push('Estimates');
-    if (features.enableInvoices) modules.push('Invoices');
-    if (features.enablePayments) modules.push('Payments');
-    if (features.enableInventory) modules.push('Inventory');
-    if (features.enableSuppliers) modules.push('Suppliers');
-    if (features.enablePurchaseManagement) modules.push('Purchase Orders');
-    if (features.enableCustomers) modules.push('Customers');
-    if (features.enableAnalytics) modules.push('Analytics');
-    if (features.enableAdvancedAnalytics) modules.push('Business Intelligence');
-    if (features.enableAutomation) modules.push('Automation');
-    if (features.enableDispatch) modules.push('Dispatch');
-    if (features.enableExpenses) modules.push('Expenses');
-    if (features.enableEmployees) modules.push('Employees');
-    if (features.enableManufacturing) modules.push('Manufacturing');
-    if (features.enableRecurringBilling) modules.push('Recurring Billing');
-    if (features.enablePaymentGateway) modules.push('Checkouts');
+    if (features.enableDashboard) modules.push('dashboard');
+    if (features.enableOrders) modules.push('orders');
+    if (features.enableEstimates) modules.push('estimates');
+    if (features.enableInvoices) modules.push('invoices');
+    if (features.enablePayments) modules.push('payments');
+    if (features.enableInventory) {
+        modules.push('products');
+        modules.push('inventory');
+    }
+    if (features.enableSuppliers) modules.push('suppliers');
+    if (features.enablePurchaseManagement) modules.push('purchase-orders');
+    if (features.enableCustomers) modules.push('customers');
+    if (features.enableAnalytics) modules.push('analytics');
+    if (features.enableAdvancedAnalytics) modules.push('advanced-analytics');
+    if (features.enableAutomation) modules.push('automation');
+    if (features.enableDispatch) modules.push('dispatch');
+    if (features.enableExpenses) modules.push('expenses');
+    if (features.enableEmployees) modules.push('employees');
+    if (features.enableManufacturing) modules.push('production');
+    if (features.enableRecurringBilling) modules.push('recurring');
+    if (features.enablePaymentGateway) modules.push('checkouts');
+    if (features.enableLoyaltyPoints) modules.push('loyalty');
+    if (features.enableMultiBranch) modules.push('branches');
+    if (features.enableWhatsAppIntegration) modules.push('whatsapp');
+    if (features.enableProjectManagement) modules.push('projects');
+    if (features.enableServiceManagement) modules.push('services');
 
     return modules;
 };

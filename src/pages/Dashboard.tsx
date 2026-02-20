@@ -121,8 +121,8 @@ export const Dashboard: React.FC = () => {
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2 ml-1">Monthly Revenue Stream</p>
             </div>
           </div>
-          <div className="h-[350px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="h-[350px] w-full min-h-[350px]">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={350} debounce={50}>
               <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 600 }} dy={10} />

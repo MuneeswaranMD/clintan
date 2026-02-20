@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { getAvailableIndustries, getIndustryPreset, getEnabledModules } from '../../config/industryPresets';
 import { useDialog } from '../../context/DialogContext';
+import { industryService } from '../../services/firebaseService';
 
 interface ModuleOption {
     key: string;
@@ -32,6 +33,7 @@ interface ModuleOption {
 export const SuperAdminIndustries: React.FC = () => {
     const { alert, confirm } = useDialog();
     const [industries, setIndustries] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [showModal, setShowModal] = useState(false);
     const [editingIndustry, setEditingIndustry] = useState<any | null>(null);
@@ -45,48 +47,74 @@ export const SuperAdminIndustries: React.FC = () => {
 
     useEffect(() => {
         document.title = 'Super Admin | Industries';
-        // Initialize from presets
-        const available = getAvailableIndustries().map(ind => {
+        const unsubscribe = industryService.subscribeToIndustries((data) => {
+            setIndustries(data);
+            setLoading(false);
+        });
+        return () => unsubscribe();
+    }, []);
+
+    const handleSyncWithPresets = async () => {
+        if (industries.length > 0) {
+            const confirmed = await confirm('Industries already exist. This will add missing presets. Continue?');
+            if (!confirmed) return;
+        }
+
+        const presets = getAvailableIndustries().map(ind => {
             const preset = getIndustryPreset(ind.key);
             return {
                 ...ind,
                 modules: getEnabledModules(preset.features as any)
             };
         });
-        setIndustries(available);
-    }, []);
+
+        for (const preset of presets) {
+            const existing = industries.find(i => i.key === preset.key);
+            if (existing) {
+                // Update existing if modules differ or format is old
+                await industryService.updateIndustry(existing.id, {
+                    ...preset,
+                    modules: preset.modules // Forces update to technical keys
+                });
+            } else {
+                await industryService.createIndustry(preset);
+            }
+        }
+        await alert('All industry presets synchronized and updated with technical keys!');
+    };
 
     const availableModules: ModuleOption[] = [
-        { key: 'enableDashboard', label: 'Dashboard', description: 'Business overview & analytics', category: 'core' },
-        { key: 'enableOrders', label: 'Orders', description: 'Order management system', category: 'core' },
-        { key: 'enableInvoices', label: 'Invoices', description: 'Invoice generation & tracking', category: 'core' },
-        { key: 'enablePayments', label: 'Payments', description: 'Payment processing & tracking', category: 'core' },
-        { key: 'enableCustomers', label: 'Customers', description: 'Customer relationship management', category: 'core' },
-        { key: 'enableAnalytics', label: 'Analytics', description: 'Business analytics & reports', category: 'core' },
-        { key: 'enableExpenses', label: 'Expenses', description: 'Expense tracking & management', category: 'core' },
-        { key: 'enableSettings', label: 'Settings', description: 'System configuration', category: 'core' },
-        { key: 'enableEstimates', label: 'Estimates', description: 'Quotations & proposals', category: 'conditional' },
-        { key: 'enableInventory', label: 'Inventory', description: 'Stock management & tracking', category: 'conditional' },
-        { key: 'enableSuppliers', label: 'Suppliers', description: 'Vendor management', category: 'conditional' },
-        { key: 'enablePurchaseManagement', label: 'Purchase Orders', description: 'Procurement & purchasing', category: 'conditional' },
-        { key: 'enableDispatch', label: 'Dispatch', description: 'Logistics & delivery', category: 'conditional' },
-        { key: 'enableAutomation', label: 'Automation', description: 'Workflows & automation', category: 'advanced' },
-        { key: 'enableEmployees', label: 'Employees', description: 'Team & role management', category: 'advanced' },
-        { key: 'enableManufacturing', label: 'Manufacturing', description: 'BOM & production tracking', category: 'advanced' },
-        { key: 'enableRecurringBilling', label: 'Recurring Billing', description: 'Subscription management', category: 'advanced' },
-        { key: 'enableAdvancedAnalytics', label: 'Business Intelligence', description: 'Advanced analytics & forecasting', category: 'advanced' },
-        { key: 'enableLoyaltyPoints', label: 'Loyalty Points', description: 'Customer loyalty program', category: 'features' },
-        { key: 'enableMultiBranch', label: 'Multi-Branch', description: 'Multiple location support', category: 'features' },
-        { key: 'enableWhatsAppIntegration', label: 'WhatsApp', description: 'WhatsApp integration', category: 'features' },
-        { key: 'enablePaymentGateway', label: 'Payment Gateway', description: 'Online payment links', category: 'features' }
+        { key: 'dashboard', label: 'Dashboard', description: 'Business overview & analytics', category: 'core' },
+        { key: 'orders', label: 'Orders', description: 'Order management system', category: 'core' },
+        { key: 'invoices', label: 'Invoices', description: 'Invoice generation & tracking', category: 'core' },
+        { key: 'payments', label: 'Payments', description: 'Payment processing & tracking', category: 'core' },
+        { key: 'customers', label: 'Customers', description: 'Customer relationship management', category: 'core' },
+        { key: 'analytics', label: 'Analytics', description: 'Business analytics & reports', category: 'core' },
+        { key: 'expenses', label: 'Expenses', description: 'Expense tracking & management', category: 'core' },
+        { key: 'settings', label: 'Settings', description: 'System configuration', category: 'core' },
+        { key: 'estimates', label: 'Estimates', description: 'Quotations & proposals', category: 'conditional' },
+        { key: 'products', label: 'Products', description: 'Stock management & tracking', category: 'conditional' },
+        { key: 'inventory', label: 'Inventory Display', description: 'Internal inventory view', category: 'conditional' },
+        { key: 'suppliers', label: 'Suppliers', description: 'Vendor management', category: 'conditional' },
+        { key: 'purchase-orders', label: 'Purchase Orders', description: 'Procurement & purchasing', category: 'conditional' },
+        { key: 'dispatch', label: 'Dispatch', description: 'Logistics & delivery', category: 'conditional' },
+        { key: 'automation', label: 'Automation', description: 'Workflows & automation', category: 'advanced' },
+        { key: 'employees', label: 'Employees', description: 'Team & role management', category: 'advanced' },
+        { key: 'production', label: 'Manufacturing', description: 'BOM & production tracking', category: 'advanced' },
+        { key: 'recurring', label: 'Recurring Billing', description: 'Subscription management', category: 'advanced' },
+        { key: 'advanced-analytics', label: 'Business Intelligence', description: 'Advanced analytics & forecasting', category: 'advanced' },
+        { key: 'loyalty', label: 'Loyalty Points', description: 'Customer loyalty program', category: 'features' },
+        { key: 'branches', label: 'Multi-Branch', description: 'Multiple location support', category: 'features' },
+        { key: 'whatsapp', label: 'WhatsApp', description: 'WhatsApp integration', category: 'features' },
+        { key: 'checkouts', label: 'Payment Gateway', description: 'Online payment links', category: 'features' }
     ];
 
-    const toggleModule = (moduleLabel: string) => {
+    const toggleModule = (moduleKey: string) => {
         setFormData(prev => ({
             ...prev,
-            modules: prev.modules.includes(moduleLabel)
-                ? prev.modules.filter(m => m !== moduleLabel)
-                : [...prev.modules, moduleLabel]
+            modules: prev.modules.includes(moduleKey)
+                ? prev.modules.filter(m => m !== moduleKey)
+                : [...prev.modules, moduleKey]
         }));
     };
 
@@ -114,14 +142,14 @@ export const SuperAdminIndustries: React.FC = () => {
         setShowModal(true);
     };
 
-    const handleDelete = async (key: string) => {
+    const handleDelete = async (industry: any) => {
         const confirmed = await confirm('Are you sure you want to delete this industry?', {
             title: 'Delete Industry',
             confirmLabel: 'Delete',
             variant: 'danger'
         });
         if (confirmed) {
-            setIndustries(industries.filter(i => i.key !== key));
+            await industryService.deleteIndustry(industry.id);
             await alert('Industry deleted successfully!');
         }
     };
@@ -132,18 +160,22 @@ export const SuperAdminIndustries: React.FC = () => {
             return;
         }
 
-        if (editingIndustry) {
-            setIndustries(industries.map(i => i.key === editingIndustry.key ? { ...formData } : i));
-            await alert('Industry updated successfully!');
-        } else {
-            if (industries.some(i => i.key === formData.key)) {
-                await alert('An industry with this key already exists.', { variant: 'danger' });
-                return;
+        try {
+            if (editingIndustry) {
+                await industryService.updateIndustry(editingIndustry.id, formData);
+                await alert('Industry updated successfully!');
+            } else {
+                if (industries.some(i => i.key === formData.key)) {
+                    await alert('An industry with this key already exists.', { variant: 'danger' });
+                    return;
+                }
+                await industryService.createIndustry(formData);
+                await alert('Industry created successfully!');
             }
-            setIndustries([...industries, { ...formData }]);
-            await alert('Industry created successfully!');
+            setShowModal(false);
+        } catch (error: any) {
+            await alert('Failed to save: ' + error.message, { variant: 'danger' });
         }
-        setShowModal(false);
     };
 
     const getCategoryColor = (category: string) => {
@@ -172,13 +204,22 @@ export const SuperAdminIndustries: React.FC = () => {
                     </h1>
                     <p className="text-slate-500 text-sm mt-1">Configure module presets for different business types.</p>
                 </div>
-                <button
-                    onClick={handleOpenCreate}
-                    className="w-full md:w-auto px-4 py-2 bg-slate-900 text-white rounded-lg font-bold text-[10px] uppercase tracking-widest hover:bg-black shadow-sm flex items-center justify-center gap-2"
-                >
-                    <Plus size={18} />
-                    New Industry
-                </button>
+                <div className="flex gap-2 w-full md:w-auto">
+                    <button
+                        onClick={handleSyncWithPresets}
+                        className="flex-1 md:flex-none px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg font-bold text-[10px] uppercase tracking-widest hover:bg-slate-50 shadow-sm flex items-center justify-center gap-2"
+                    >
+                        <Zap size={18} className="text-amber-500" />
+                        Sync Presets
+                    </button>
+                    <button
+                        onClick={handleOpenCreate}
+                        className="flex-1 md:flex-none px-4 py-2 bg-slate-900 text-white rounded-lg font-bold text-[10px] uppercase tracking-widest hover:bg-black shadow-sm flex items-center justify-center gap-2"
+                    >
+                        <Plus size={18} />
+                        New Industry
+                    </button>
+                </div>
             </div>
 
             {/* Controls */}
@@ -203,67 +244,77 @@ export const SuperAdminIndustries: React.FC = () => {
             </div>
 
             {/* Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {filteredIndustries.map((industry) => (
-                    <div
-                        key={industry.key}
-                        className="group bg-white rounded-lg border border-slate-200 p-6 shadow-sm hover:border-blue-400 transition-all flex flex-col h-full"
-                    >
-                        <div className="flex items-start justify-between mb-4">
-                            <div className="w-12 h-12 rounded bg-slate-50 border border-slate-100 flex items-center justify-center text-2xl">
-                                {industry.icon || '🏢'}
+            {loading ? (
+                <div className="py-20 text-center">
+                    <div className="w-12 h-12 border-4 border-slate-100 border-t-blue-600 rounded-full animate-spin mx-auto mb-4" />
+                    <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest animate-pulse">Loading Industries...</p>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {filteredIndustries.map((industry) => (
+                        <div
+                            key={industry.key}
+                            className="group bg-white rounded-lg border border-slate-200 p-6 shadow-sm hover:border-blue-400 transition-all flex flex-col h-full"
+                        >
+                            <div className="flex items-start justify-between mb-4">
+                                <div className="w-12 h-12 rounded bg-slate-50 border border-slate-100 flex items-center justify-center text-2xl">
+                                    {industry.icon || '🏢'}
+                                </div>
+                                <div className="flex gap-1">
+                                    <button
+                                        onClick={() => handleOpenEdit(industry)}
+                                        className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded"
+                                    >
+                                        <Edit3 size={16} />
+                                    </button>
+                                    <button
+                                        onClick={() => handleDelete(industry)}
+                                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded"
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
                             </div>
-                            <div className="flex gap-1">
+
+                            <div className="flex-1">
+                                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider group-hover:text-blue-600 transition-colors">
+                                    {industry.name}
+                                </h3>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase leading-relaxed mt-2 line-clamp-2">
+                                    {industry.description}
+                                </p>
+                            </div>
+
+                            <div className="mt-6 pt-4 border-t border-slate-100 space-y-4">
+                                <div className="flex flex-wrap gap-1">
+                                    {industry.modules?.slice(0, 3).map((modKey: string, idx: number) => {
+                                        const label = availableModules.find(m => m.key === modKey)?.label || modKey;
+                                        return (
+                                            <span key={idx} className="px-1.5 py-0.5 bg-slate-50 text-[8px] font-bold text-slate-500 rounded border border-slate-100 uppercase">
+                                                {label}
+                                            </span>
+                                        );
+                                    })}
+                                    {(industry.modules?.length || 0) > 3 && (
+                                        <span className="px-1.5 py-0.5 bg-blue-50 text-[8px] font-bold text-blue-500 rounded border border-blue-100 uppercase">
+                                            +{(industry.modules?.length || 0) - 3} more
+                                        </span>
+                                    )}
+                                </div>
                                 <button
                                     onClick={() => handleOpenEdit(industry)}
-                                    className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded"
+                                    className="w-full py-2 flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-widest text-blue-600 hover:bg-blue-50 rounded transition-all"
                                 >
-                                    <Edit3 size={16} />
-                                </button>
-                                <button
-                                    onClick={() => handleDelete(industry.key)}
-                                    className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded"
-                                >
-                                    <Trash2 size={16} />
+                                    Setup <ChevronRight size={14} />
                                 </button>
                             </div>
                         </div>
-
-                        <div className="flex-1">
-                            <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider group-hover:text-blue-600 transition-colors">
-                                {industry.name}
-                            </h3>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase leading-relaxed mt-2 line-clamp-2">
-                                {industry.description}
-                            </p>
-                        </div>
-
-                        <div className="mt-6 pt-4 border-t border-slate-100 space-y-4">
-                            <div className="flex flex-wrap gap-1">
-                                {industry.modules?.slice(0, 3).map((mod: string, idx: number) => (
-                                    <span key={idx} className="px-1.5 py-0.5 bg-slate-50 text-[8px] font-bold text-slate-500 rounded border border-slate-100 uppercase">
-                                        {mod}
-                                    </span>
-                                ))}
-                                {(industry.modules?.length || 0) > 3 && (
-                                    <span className="px-1.5 py-0.5 bg-blue-50 text-[8px] font-bold text-blue-500 rounded border border-blue-100 uppercase">
-                                        +{(industry.modules?.length || 0) - 3} more
-                                    </span>
-                                )}
-                            </div>
-                            <button
-                                onClick={() => handleOpenEdit(industry)}
-                                className="w-full py-2 flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-widest text-blue-600 hover:bg-blue-50 rounded transition-all"
-                            >
-                                Setup <ChevronRight size={14} />
-                            </button>
-                        </div>
-                    </div>
-                ))}
-            </div>
+                    ))}
+                </div>
+            )}
 
             {/* Empty State */}
-            {filteredIndustries.length === 0 && (
+            {!loading && filteredIndustries.length === 0 && (
                 <div className="py-20 text-center bg-white rounded-lg border border-slate-200">
                     <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">No industries found.</p>
                 </div>
@@ -348,11 +399,11 @@ export const SuperAdminIndustries: React.FC = () => {
                                                 {availableModules
                                                     .filter(m => m.category === category)
                                                     .map((module) => {
-                                                        const isSelected = formData.modules.includes(module.label);
+                                                        const isSelected = formData.modules.includes(module.key);
                                                         return (
                                                             <button
                                                                 key={module.key}
-                                                                onClick={() => toggleModule(module.label)}
+                                                                onClick={() => toggleModule(module.key)}
                                                                 className={`p-4 rounded border text-left flex items-start gap-3 transition-all ${isSelected
                                                                     ? 'bg-blue-50 border-blue-200'
                                                                     : 'bg-white border-slate-100 hover:bg-slate-50'

@@ -40,6 +40,7 @@ export const SuperAdminTenants: React.FC = () => {
     const [isDomainModalOpen, setIsDomainModalOpen] = useState(false);
     const [verifying, setVerifying] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [viewMode, setViewMode] = useState<'system' | 'profile'>('system');
 
     useEffect(() => {
         document.title = 'Super Admin | Tenants';
@@ -159,6 +160,12 @@ export const SuperAdminTenants: React.FC = () => {
         t.customDomain?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    const metrics = [
+        { label: 'Total Instances', val: tenants.length.toLocaleString(), icon: Globe, color: 'text-blue-600 bg-blue-50' },
+        { label: 'Health Status', val: tenants.filter(t => t.status === 'Active').length + ' Active', icon: Shield, color: 'text-emerald-600 bg-emerald-50' },
+        { label: 'Total Userbase', val: tenants.reduce((acc, t) => acc + (t.usersCount || 0), 0).toLocaleString(), icon: Users, color: 'text-purple-600 bg-purple-50' },
+    ];
+
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -179,18 +186,14 @@ export const SuperAdminTenants: React.FC = () => {
 
             {/* Metrics */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {[
-                    { label: 'Total Instances', val: '1,240', icon: Globe },
-                    { label: 'Security Status', val: 'Shielded', icon: Shield },
-                    { label: 'System Uptime', val: '99.9%', icon: Activity },
-                ].map((stat, i) => (
+                {metrics.map((stat, i) => (
                     <div key={i} className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm flex items-center gap-4">
-                        <div className="p-3 rounded bg-slate-50 text-slate-600">
-                            <stat.icon size={22} />
+                        <div className={`p-3 rounded-xl ${stat.color}`}>
+                            <stat.icon size={22} strokeWidth={2.5} />
                         </div>
                         <div>
-                            <p className="text-2xl font-bold text-slate-900 leading-none">{stat.val}</p>
-                            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-1.5">{stat.label}</p>
+                            <p className="text-2xl font-black text-slate-900 leading-none">{stat.val}</p>
+                            <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mt-2">{stat.label}</p>
                         </div>
                     </div>
                 ))}
@@ -198,16 +201,31 @@ export const SuperAdminTenants: React.FC = () => {
 
             {/* Main Registry */}
             <div className="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden">
-                <div className="p-4 border-b border-slate-200 flex flex-col md:flex-row md:items-center gap-4 bg-slate-50">
-                    <div className="flex-1 relative">
+                <div className="p-4 border-b border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50">
+                    <div className="flex-1 relative max-w-md">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                         <input
                             type="text"
-                            placeholder="Search instances..."
-                            className="w-full pl-10 pr-4 py-1.5 bg-white border border-slate-200 rounded text-sm font-semibold outline-none focus:ring-1 focus:ring-blue-100"
+                            placeholder="Search instances by name, domain..."
+                            className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold uppercase outline-none focus:border-blue-400 transition-all shadow-sm"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
+                    </div>
+
+                    <div className="flex items-center bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
+                        <button
+                            onClick={() => setViewMode('system')}
+                            className={`px-4 py-1.5 rounded-md text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'system' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
+                        >
+                            Infrastructure
+                        </button>
+                        <button
+                            onClick={() => setViewMode('profile')}
+                            className={`px-4 py-1.5 rounded-md text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'profile' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
+                        >
+                            Company Profiles
+                        </button>
                     </div>
                 </div>
 
@@ -220,59 +238,122 @@ export const SuperAdminTenants: React.FC = () => {
                         <table className="w-full text-left">
                             <thead>
                                 <tr className="bg-slate-50 border-b border-slate-200">
-                                    <th className="px-6 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Organization</th>
-                                    <th className="px-6 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Domains</th>
-                                    <th className="px-6 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Plan</th>
-                                    <th className="px-6 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Status</th>
-                                    <th className="px-6 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
+                                    <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Organization</th>
+                                    {viewMode === 'system' ? (
+                                        <>
+                                            <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Domains</th>
+                                            <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Platform Tier</th>
+                                            <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Industry</th>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Legal Identity</th>
+                                            <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Tax ID / GSTIN</th>
+                                            <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Verification</th>
+                                        </>
+                                    )}
+                                    <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Status</th>
+                                    <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                                 {filteredTenants.map((t) => (
-                                    <tr key={t.id} className="hover:bg-slate-50 transition-colors">
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 bg-slate-100 rounded flex items-center justify-center font-bold text-slate-400 text-xs">
-                                                    {t.companyName.charAt(0)}
+                                    <tr key={t.id} className="hover:bg-slate-50/50 transition-colors group">
+                                        <td className="px-6 py-5">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center font-black text-slate-400 text-sm shadow-inner group-hover:bg-blue-600 group-hover:text-white transition-all">
+                                                    {t.logoUrl ? <img src={t.logoUrl} className="w-full h-full object-contain p-1" /> : t.companyName.charAt(0)}
                                                 </div>
                                                 <div>
-                                                    <p className="font-bold text-slate-800 text-sm">{t.companyName}</p>
-                                                    <p className="text-[10px] font-semibold text-slate-500">{t.ownerEmail}</p>
+                                                    <p className="font-bold text-slate-900 text-sm tracking-tight">{t.companyName}</p>
+                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{t.ownerEmail}</p>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4">
-                                            <div className="space-y-1">
-                                                <p className="text-xs font-semibold text-slate-600">{t.subdomain}.averqon.com</p>
-                                                {t.customDomain && (
-                                                    <div className="flex items-center gap-1.5">
-                                                        <div className={`w-1.5 h-1.5 rounded-full ${t.isDomainVerified ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                                                        <span className={`text-[10px] font-bold ${t.isDomainVerified ? 'text-emerald-600' : 'text-amber-600'}`}>{t.customDomain}</span>
+
+                                        {viewMode === 'system' ? (
+                                            <>
+                                                <td className="px-6 py-5">
+                                                    <div className="space-y-1.5">
+                                                        <div className="flex items-center gap-2">
+                                                            <Globe size={12} className="text-slate-300" />
+                                                            <span className="text-xs font-bold text-slate-600">{t.subdomain}.averqon.com</span>
+                                                        </div>
+                                                        {t.customDomain && (
+                                                            <div className="flex items-center gap-2">
+                                                                <div className={`w-1.5 h-1.5 rounded-full ${t.isDomainVerified ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]'}`} />
+                                                                <span className={`text-[10px] font-black tracking-widest uppercase ${t.isDomainVerified ? 'text-emerald-600' : 'text-amber-600'}`}>{t.customDomain}</span>
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                )}
+                                                </td>
+                                                <td className="px-6 py-5">
+                                                    <div className="flex flex-col">
+                                                        <span className="px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest bg-blue-50 text-blue-600 border border-blue-100 w-fit">
+                                                            {t.plan}
+                                                        </span>
+                                                        <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter mt-1">{t.usersCount || 1} Total Active Users</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-5">
+                                                    <span className="px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest bg-purple-50 text-purple-600 border border-purple-100 w-fit">
+                                                        {t.industry || 'General'}
+                                                    </span>
+                                                </td>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <td className="px-6 py-5">
+                                                    <div className="space-y-1">
+                                                        <p className="text-sm font-bold text-slate-700">{t.config?.companyLegalName || '---'}</p>
+                                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t.config?.businessType || '---'}</p>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-5">
+                                                    <div className="space-y-1">
+                                                        <p className="text-xs font-black text-slate-700 tracking-widest">{t.config?.taxConfig?.gstin || 'NOT PROVIDED'}</p>
+                                                        <p className="text-[10px] font-bold text-slate-400 uppercase">{t.phone || 'NO PHONE'}</p>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-5">
+                                                    <span className={`px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest border ${t.config?.verification?.status === 'Verified' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                                                        t.config?.verification?.status === 'Rejected' ? 'bg-rose-50 text-rose-600 border-rose-100' :
+                                                            'bg-amber-50 text-amber-600 border-amber-100'
+                                                        }`}>
+                                                        {t.config?.verification?.status || 'Pending'}
+                                                    </span>
+                                                </td>
+                                            </>
+                                        )}
+
+                                        <td className="px-6 py-5 text-center">
+                                            <div className="flex flex-col items-center gap-1.5">
+                                                <div className={`w-2 h-2 rounded-full ${t.status === 'Active' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-300'}`} />
+                                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{t.status}</span>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4">
-                                            <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600 border border-slate-200">
-                                                {t.plan}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-1.5">
-                                                <div className={`w-1.5 h-1.5 rounded-full ${t.status === 'Active' ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-                                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{t.status}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <div className="flex items-center justify-end gap-1">
-                                                <button onClick={() => navigate(`/super/tenants/${t.id}`)} className="p-2 text-slate-400 hover:text-blue-600">
-                                                    <Eye size={14} />
+                                        <td className="px-6 py-5 text-right">
+                                            <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                                                <button
+                                                    onClick={() => navigate(`/super/tenants/${t.id}`)}
+                                                    className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                                                    title="View Detailed Profile"
+                                                >
+                                                    <Eye size={16} />
                                                 </button>
-                                                <button onClick={() => handleOpenDomainSettings(t)} className="p-2 text-slate-400 hover:text-blue-600">
-                                                    <Globe size={14} />
+                                                <button
+                                                    onClick={() => handleOpenDomainSettings(t)}
+                                                    className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                                                    title="Domain Infrastructure"
+                                                >
+                                                    <Globe size={16} />
                                                 </button>
-                                                <button onClick={() => handleDelete(t.id)} className="p-2 text-slate-400 hover:text-red-600">
-                                                    <Trash2 size={14} />
+                                                <button
+                                                    onClick={() => handleDelete(t.id)}
+                                                    className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                                    title="Terminate Access"
+                                                >
+                                                    <Trash2 size={16} />
                                                 </button>
                                             </div>
                                         </td>

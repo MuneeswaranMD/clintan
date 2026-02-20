@@ -117,7 +117,12 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children, user, on
     const isSuperAdmin = user && (user.role === 'SUPER_ADMIN' || SUPER_ADMIN_EMAILS.includes(user.email));
 
     // Get grouped items based on configuration
-    const groupedData = getGroupedNavItems(businessConfig.enabledModules, user?.role || 'VIEWER', isSuperAdmin);
+    const groupedData = getGroupedNavItems(
+        businessConfig.features,
+        businessConfig.enabledModules,
+        user?.role || 'VIEWER',
+        isSuperAdmin
+    );
 
     // Default categories order
     const categoryOrder = ['core', 'sales', 'finance', 'inventory', 'industry', 'advanced', 'settings'];

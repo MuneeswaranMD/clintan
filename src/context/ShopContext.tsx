@@ -1,12 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Product, CartItem, BusinessConfig } from '../types';
-import { getDefaultModulesForIndustry } from '../config/navigationConfig';
+import { getDefaultModulesForIndustry, getEnabledModuleIdsFromFeatures } from '../config/navigationConfig';
 
 // Default Config (Industry: Retail)
 const DEFAULT_CONFIG: BusinessConfig = {
     userId: 'default',
     industry: 'Retail',
-    enabledModules: getDefaultModulesForIndustry('Retail'),
     currency: '₹',
     dateFormat: 'DD/MM/YYYY',
     taxName: 'GST',
@@ -101,97 +100,112 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [mode, setMode] = useState<'order' | 'estimate'>('order');
     const [businessConfig, setBusinessConfig] = useState<BusinessConfig>(DEFAULT_CONFIG);
 
-    // Fetch company configuration from Firestore
+    // Fetch company configuration from Firestore with real-time sync
     useEffect(() => {
-        const fetchCompanyConfig = async () => {
+        let unsubscribeSnapshot: (() => void) | null = null;
+        let unsubscribeAuth: (() => void) | null = null;
+
+        const initializeSync = async () => {
             try {
-                const { getAuth } = await import('firebase/auth');
-                const { collection, query, where, getDocs, getFirestore, addDoc, serverTimestamp } = await import('firebase/firestore');
+                const { getAuth, onAuthStateChanged } = await import('firebase/auth');
+                const { collection, query, where, onSnapshot, getFirestore, addDoc, serverTimestamp } = await import('firebase/firestore');
 
                 const auth = getAuth();
-                const user = auth.currentUser;
-
-                if (!user) return;
-
                 const db = getFirestore();
 
-                // Query tenants collection by userId field (formerly companies)
-                const tenantsRef = collection(db, 'tenants');
-                const q = query(tenantsRef, where('userId', '==', user.uid));
-                const querySnapshot = await getDocs(q);
-
-                if (!querySnapshot.empty) {
-                    const tenantDoc = querySnapshot.docs[0];
-                    const tenantData = tenantDoc.data();
-
-                    console.log('🔍 Loaded Tenant Config:', tenantData.config);
-
-                    // If tenant has a config, use it
-                    const industry = tenantData.industry || tenantData.config?.industry || 'Retail';
-                    const existingModules = tenantData.enabledModules || tenantData.config?.enabledModules;
-                    const calculatedModules = existingModules || getDefaultModulesForIndustry(industry);
-
-                    if (tenantData.config) {
-                        setBusinessConfig(prev => ({
-                            ...prev,
-                            ...tenantData.config,
-                            enabledModules: calculatedModules
-                        }));
-                        console.log('✅ Business Config Updated:', { ...tenantData.config, enabledModules: calculatedModules });
-                    } else {
-                        console.warn('⚠️ No config found in tenant document');
-                        // Set basic config with calculated modules
-                        setBusinessConfig(prev => ({
-                            ...prev,
-                            industry: industry,
-                            enabledModules: calculatedModules
-                        }));
+                unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+                    if (!user) {
+                        if (unsubscribeSnapshot) {
+                            unsubscribeSnapshot();
+                            unsubscribeSnapshot = null;
+                        }
+                        return;
                     }
-                } else {
-                    console.warn('⚠️ No tenant document found for user:', user.uid);
-                    console.log('🛠️ Creating default tenant document...');
 
-                    try {
-                        const subdomain = (user.displayName || 'company').toLowerCase().replace(/[^a-z0-9]/g, '') || 'company-' + Date.now();
-                        const defaultIndustry = 'Freelancer'; // Default to Freelancer as per example? Or Retail? Sticking to Retail to match existing default.
-                        const defaultModules = getDefaultModulesForIndustry(defaultIndustry);
+                    const tenantsRef = collection(db, 'tenants');
+                    const q = query(tenantsRef, where('userId', '==', user.uid));
 
-                        const newTenant = {
-                            userId: user.uid,
-                            companyName: user.displayName || 'My Company',
-                            ownerEmail: user.email,
-                            subdomain: subdomain,
-                            createdAt: serverTimestamp(),
-                            status: 'Active',
-                            plan: 'Pro Business',
-                            industry: defaultIndustry,
-                            enabledModules: defaultModules,
-                            isDomainVerified: false,
-                            usersCount: 1,
-                            mrr: '0',
-                            config: {
-                                ...DEFAULT_CONFIG,
-                                userId: user.uid,
-                                companyName: user.displayName || 'My Company',
-                                industry: defaultIndustry,
-                                enabledModules: defaultModules
+                    unsubscribeSnapshot = onSnapshot(q, async (querySnapshot) => {
+                        if (!querySnapshot.empty) {
+                            const tenantDoc = querySnapshot.docs[0];
+                            const tenantData = tenantDoc.data();
+
+                            console.log(`🔄 Sync: Tenant data received for ${tenantData.companyName || 'Unknown'}`);
+
+                            if (tenantData.config) {
+                                const features = tenantData.config.features || DEFAULT_CONFIG.features;
+
+                                // One Rule: Menu is assigned by Tenant (Root), not Company (Config)
+                                const enabledModules = tenantData.enabledModules ||
+                                    getEnabledModuleIdsFromFeatures(features);
+
+                                setBusinessConfig(prev => ({
+                                    ...prev,
+                                    ...tenantData.config,
+                                    enabledModules: enabledModules
+                                }));
+                                console.log('✅ Sync: Business Config Updated (Tenant-Level Menu)', { industry: tenantData.config.industry, modules: enabledModules });
+                            } else {
+                                const industry = tenantData.industry || 'Retail';
+                                const enabledModules = tenantData.enabledModules || getDefaultModulesForIndustry(industry);
+
+                                setBusinessConfig(prev => ({
+                                    ...prev,
+                                    industry: (tenantData.industry as any) || 'Retail',
+                                    enabledModules: enabledModules
+                                }));
+                                console.log('⚠️ Sync: No detailed config, using root-level or industry defaults', { industry, modules: enabledModules });
                             }
-                        };
+                        } else {
+                            console.warn('⚠️ No tenant document found. Attempting to create default...');
 
-                        await addDoc(tenantsRef, newTenant);
-                        console.log('✅ Default tenant created successfully');
+                            try {
+                                const subdomain = (user.displayName || 'company').toLowerCase().replace(/[^a-z0-9]/g, '') || 'company-' + Date.now();
+                                const defaultIndustry = 'Retail';
+                                const defaultModules = getDefaultModulesForIndustry(defaultIndustry);
 
-                        setBusinessConfig(newTenant.config);
-                    } catch (createError) {
-                        console.error('❌ Failed to create default tenant:', createError);
-                    }
-                }
+                                const newTenant = {
+                                    userId: user.uid,
+                                    companyName: user.displayName || 'My Company',
+                                    ownerEmail: user.email,
+                                    subdomain: subdomain,
+                                    createdAt: serverTimestamp(),
+                                    status: 'Active',
+                                    plan: 'Pro Business',
+                                    industry: defaultIndustry,
+                                    enabledModules: defaultModules,
+                                    isDomainVerified: false,
+                                    usersCount: 1,
+                                    mrr: '0',
+                                    config: {
+                                        ...DEFAULT_CONFIG,
+                                        userId: user.uid,
+                                        companyName: user.displayName || 'My Company',
+                                        industry: defaultIndustry
+                                    }
+                                };
+
+                                await addDoc(tenantsRef, newTenant);
+                                console.log('✅ Success: Default tenant created successfully');
+                            } catch (createError) {
+                                console.error('❌ Error: Failed to create default tenant:', createError);
+                            }
+                        }
+                    }, (error) => {
+                        console.error('❌ Firestore sync error:', error);
+                    });
+                });
             } catch (error) {
-                console.error('❌ Failed to fetch tenant config:', error);
+                console.error('❌ Sync Init Error:', error);
             }
         };
 
-        fetchCompanyConfig();
+        initializeSync();
+
+        return () => {
+            if (unsubscribeSnapshot) unsubscribeSnapshot();
+            if (unsubscribeAuth) unsubscribeAuth();
+        };
     }, []);
 
     useEffect(() => {

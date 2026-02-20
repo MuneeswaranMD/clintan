@@ -162,5 +162,10 @@ service cloud.firestore {
         isSuperAdmin()
       );
     }
+    // ========== INDUSTRIES ==========
+    match /industries/{industryId} {
+      allow read: if true; 
+      allow write: if isSuperAdmin();
+    }
   }
 }

@@ -30,12 +30,48 @@ import {
     HardDrive,
     Server,
     Network,
-    Code
+    Code,
+    Edit3,
+    LayoutGrid,
+    Check,
+    Loader2,
+    Save
 } from 'lucide-react';
 import * as IconLibrary from 'lucide-react';
 import { Tenant, SubscriptionPlan } from '../../types';
-import { tenantService, planService } from '../../services/firebaseService';
+import { tenantService, planService, industryService } from '../../services/firebaseService';
 import { useDialog } from '../../context/DialogContext';
+import { UNIVERSAL_NAV_ITEMS } from '../../config/navigationConfig';
+
+const MODULE_TO_FEATURE_MAP: Record<string, string> = {
+    'dashboard': 'enableDashboard',
+    'orders': 'enableOrders',
+    'estimates': 'enableEstimates',
+    'invoices': 'enableInvoices',
+    'payments': 'enablePayments',
+    'overdue': 'enablePayments',
+    'expenses': 'enableExpenses',
+    'customers': 'enableCustomers',
+    'analytics': 'enableAnalytics',
+    'advanced-analytics': 'enableAdvancedAnalytics',
+    'products': 'enableInventory',
+    'inventory': 'enableInventory',
+    'suppliers': 'enableSuppliers',
+    'purchase-orders': 'enablePurchaseManagement',
+    'dispatch': 'enableDispatch',
+    'automation': 'enableAutomation',
+    'employees': 'enableEmployees',
+    'production': 'enableManufacturing',
+    'recurring': 'enableRecurringBilling',
+    'loyalty': 'enableLoyaltyPoints',
+    'branches': 'enableMultiBranch',
+    'whatsapp': 'enableWhatsAppIntegration',
+    'checkouts': 'enablePaymentGateway',
+    'projects': 'enableProjectManagement',
+    'services': 'enableServiceManagement',
+    'settings': 'enableSettings',
+    'company-profile': 'enableSettings'
+};
 
 export const SuperAdminTenantDetail: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -43,14 +79,19 @@ export const SuperAdminTenantDetail: React.FC = () => {
     const { alert, confirm } = useDialog();
     const [tenant, setTenant] = useState<Tenant | null>(null);
     const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
+    const [industries, setIndustries] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [showPlanModal, setShowPlanModal] = useState(false);
-    const [activeTab, setActiveTab] = useState<'overview' | 'growth' | 'infrastructure' | 'automation' | 'monitoring' | 'compliance'>('overview');
+    const [showIndustryModal, setShowIndustryModal] = useState(false);
+    const [activeTab, setActiveTab] = useState<'overview' | 'growth' | 'infrastructure' | 'automation' | 'monitoring' | 'compliance' | 'menu'>('overview');
+    const [pendingModules, setPendingModules] = useState<string[]>([]);
+    const [savingMenu, setSavingMenu] = useState(false);
 
     useEffect(() => {
         if (id) {
             fetchTenantDetails(id);
             fetchPlans();
+            fetchIndustries();
         }
     }, [id]);
 
@@ -63,12 +104,22 @@ export const SuperAdminTenantDetail: React.FC = () => {
         }
     };
 
+    const fetchIndustries = async () => {
+        try {
+            const data = await industryService.getIndustries();
+            setIndustries(data);
+        } catch (error) {
+            console.error('Failed to fetch industries:', error);
+        }
+    };
+
     const fetchTenantDetails = async (tenantId: string) => {
         setLoading(true);
         try {
             const data = await tenantService.getTenantById(tenantId);
             if (data) {
                 setTenant(data);
+                setPendingModules(data.enabledModules || []);
                 document.title = `Super Admin | ${data.companyName}`;
             } else {
                 await alert('Tenant not found', { variant: 'danger' });
@@ -82,6 +133,49 @@ export const SuperAdminTenantDetail: React.FC = () => {
         }
     };
 
+    const handleModuleToggle = (moduleId: string) => {
+        setPendingModules(prev =>
+            prev.includes(moduleId)
+                ? prev.filter(id => id !== moduleId)
+                : [...prev, moduleId]
+        );
+    };
+
+    const handleSaveMenu = async () => {
+        if (!tenant) return;
+        setSavingMenu(true);
+        try {
+            const updatedFeatures = { ...(tenant.config?.features || {}) };
+
+            // Sync feature flags with enabled modules
+            // 1. Identify modules being ENALBED
+            pendingModules.forEach(modId => {
+                const featureKey = MODULE_TO_FEATURE_MAP[modId];
+                if (featureKey) (updatedFeatures as any)[featureKey] = true;
+            });
+
+            // 2. Identify modules being DISABLED (that are in our mapping)
+            Object.keys(MODULE_TO_FEATURE_MAP).forEach(modId => {
+                if (!pendingModules.includes(modId)) {
+                    const featureKey = MODULE_TO_FEATURE_MAP[modId];
+                    if (featureKey) (updatedFeatures as any)[featureKey] = false;
+                }
+            });
+
+            await tenantService.updateTenant(tenant.id, {
+                enabledModules: pendingModules,
+                'config.features': updatedFeatures
+            } as any);
+
+            setTenant({ ...tenant, enabledModules: pendingModules, config: { ...tenant.config, features: updatedFeatures } as any });
+            await alert('Menu configuration published successfully! Changes are now live on the tenant dashboard.');
+        } catch (error: any) {
+            await alert('Failed to publish: ' + error.message, { variant: 'danger' });
+        } finally {
+            setSavingMenu(false);
+        }
+    };
+
     const handleQuickVerify = async () => {
         if (!tenant) return;
         try {
@@ -90,6 +184,42 @@ export const SuperAdminTenantDetail: React.FC = () => {
             fetchTenantDetails(tenant.id);
         } catch (error: any) {
             await alert('Failed to verify: ' + error.message, { variant: 'danger' });
+        }
+    };
+
+    const handleIndustryUpdate = async (industry: any) => {
+        if (!tenant) return;
+
+        const confirmed = await confirm(`Change ${tenant.companyName}'s industry to ${industry.name}? This will update their default module stack.`);
+        if (confirmed) {
+            try {
+                const featureMapping = MODULE_TO_FEATURE_MAP;
+
+                const updatedFeatures = { ...(tenant.config?.features || {}) };
+
+                // 1. Reset all features tracked by the industry mapping
+                Object.values(featureMapping).forEach(key => {
+                    (updatedFeatures as any)[key] = false;
+                });
+
+                // 2. Enable ONLY the modules present in the selected industry
+                industry.modules.forEach((modId: string) => {
+                    const featureKey = featureMapping[modId];
+                    if (featureKey) (updatedFeatures as any)[featureKey] = true;
+                });
+
+                await tenantService.updateTenant(tenant.id, {
+                    industry: industry.key,
+                    enabledModules: industry.modules, // One Rule: Store IDs
+                    'config.features': updatedFeatures
+                } as any);
+
+                await alert(`Industry updated to ${industry.name}`);
+                fetchTenantDetails(tenant.id);
+                setShowIndustryModal(false);
+            } catch (error: any) {
+                await alert('Update failed: ' + error.message, { variant: 'danger' });
+            }
         }
     };
 
@@ -201,6 +331,7 @@ export const SuperAdminTenantDetail: React.FC = () => {
             <div className="flex items-center gap-1 bg-white p-1 rounded-lg border border-slate-200 w-fit overflow-x-auto">
                 {[
                     { id: 'overview', label: 'Overview', icon: Activity },
+                    { id: 'menu', label: 'Menu Config', icon: LayoutGrid },
                     { id: 'growth', label: 'Growth', icon: TrendingUp },
                     { id: 'infrastructure', label: 'Infra', icon: Globe },
                     { id: 'automation', label: 'Automation', icon: Zap },
@@ -237,7 +368,12 @@ export const SuperAdminTenantDetail: React.FC = () => {
                                 <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Company Information</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <InfoGroup label="Company Name" value={tenant.companyName} icon={Building2} />
-                                    <InfoGroup label="Industry" value={tenant.industry} icon={Box} />
+                                    <InfoGroup
+                                        label="Industry"
+                                        value={tenant.industry}
+                                        icon={Box}
+                                        onEdit={() => setShowIndustryModal(true)}
+                                    />
                                     <InfoGroup label="Owner Email" value={tenant.ownerEmail} icon={Mail} />
                                     <InfoGroup label="Joined On" value={new Date(tenant.createdAt).toLocaleDateString()} icon={Calendar} />
                                     <div className="col-span-2">
@@ -246,6 +382,75 @@ export const SuperAdminTenantDetail: React.FC = () => {
                                 </div>
                             </div>
                         </>
+                    )}
+
+                    {activeTab === 'menu' && (
+                        <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm space-y-6 animate-fade-in">
+                            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                                <div>
+                                    <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Tenant Menu Configuration</h3>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Granular Control: Modules enabled here directly affect the sidebar.</p>
+                                </div>
+                                <div className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-blue-100">
+                                    {pendingModules.length} Modules Selected
+                                </div>
+                            </div>
+
+                            {JSON.stringify(pendingModules) !== JSON.stringify(tenant.enabledModules || []) && (
+                                <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between animate-bounce-in">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded bg-amber-200 flex items-center justify-center text-amber-700">
+                                            <Zap size={16} />
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-black uppercase text-amber-900">Unpublished Changes</p>
+                                            <p className="text-[9px] font-bold text-amber-700">You've modified the menu structure. Click publish to reflect changes on the tenant dashboard.</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        disabled={savingMenu}
+                                        onClick={handleSaveMenu}
+                                        className="bg-amber-600 text-white px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-amber-700 transition-all shadow-lg active:scale-95 disabled:opacity-50 flex items-center gap-2"
+                                    >
+                                        {savingMenu ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+                                        Publish Changes
+                                    </button>
+                                </div>
+                            )}
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {UNIVERSAL_NAV_ITEMS.map((item) => {
+                                    const isEnabled = pendingModules.includes(item.id);
+                                    const Icon = item.icon;
+                                    return (
+                                        <button
+                                            key={item.id}
+                                            onClick={() => handleModuleToggle(item.id)}
+                                            className={`flex items-start gap-4 p-4 rounded-xl border-2 transition-all text-left group ${isEnabled
+                                                ? 'border-blue-600 bg-blue-50/50'
+                                                : 'border-slate-50 bg-slate-50/30 hover:border-slate-200'
+                                                }`}
+                                        >
+                                            <div className={`p-2.5 rounded-lg transition-colors ${isEnabled ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-white text-slate-400 border border-slate-100'}`}>
+                                                <Icon size={18} />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center justify-between">
+                                                    <span className={`text-[12px] font-bold uppercase tracking-tight ${isEnabled ? 'text-blue-900' : 'text-slate-600'}`}>{item.label}</span>
+                                                    {isEnabled && <div className="w-4 h-4 rounded-full bg-blue-600 flex items-center justify-center shadow-sm">
+                                                        <Check size={10} className="text-white" strokeWidth={4} />
+                                                    </div>}
+                                                </div>
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 line-clamp-1">{item.description}</p>
+                                                <span className="inline-block mt-2 px-1.5 py-0.5 bg-white/50 text-[8px] font-black text-slate-400 rounded uppercase border border-slate-100">
+                                                    ID: {item.id}
+                                                </span>
+                                            </div>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
                     )}
 
                     {activeTab === 'compliance' && (
@@ -373,6 +578,7 @@ export const SuperAdminTenantDetail: React.FC = () => {
                     <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm space-y-2">
                         <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Admin Actions</h3>
                         <ActionButton label="Change Plan" icon={Settings} color="text-blue-600 bg-blue-50" onClick={() => setShowPlanModal(true)} />
+                        <ActionButton label="Change Industry" icon={Box} color="text-purple-600 bg-purple-50" onClick={() => setShowIndustryModal(true)} />
                         <ActionButton label="Reset Password" icon={Mail} color="text-amber-600 bg-amber-50" />
                         <ActionButton label="Terminate Tenant" icon={XCircle} color="text-rose-600 bg-rose-50" />
                     </div>
@@ -417,6 +623,48 @@ export const SuperAdminTenantDetail: React.FC = () => {
                     </div>
                 </div>
             )}
+            {/* Industry Modal */}
+            {showIndustryModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40">
+                    <div className="bg-white w-full max-w-lg rounded-lg shadow-xl overflow-hidden border border-slate-200">
+                        <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+                            <h2 className="text-lg font-bold text-slate-900 uppercase">Change Industry</h2>
+                            <button onClick={() => setShowIndustryModal(false)} className="text-slate-400 hover:text-slate-600">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+                            {industries.length === 0 ? (
+                                <p className="text-center text-slate-400 p-4">No industries available. Use the Industry page to create or sync them.</p>
+                            ) : (
+                                industries.map((ind) => (
+                                    <button
+                                        key={ind.id}
+                                        onClick={() => handleIndustryUpdate(ind)}
+                                        className={`w-full p-4 rounded-lg border-2 text-left transition-all ${tenant.industry === ind.key ? 'border-purple-600 bg-purple-50' : 'border-slate-100 hover:border-slate-200'}`}
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <div className="text-2xl">{ind.icon || '🏢'}</div>
+                                            <div>
+                                                <p className="font-bold text-slate-900 text-sm uppercase">{ind.name}</p>
+                                                <p className="text-[10px] text-slate-500 mt-1 uppercase font-bold tracking-widest">{ind.modules?.length || 0} Modules Integrated</p>
+                                            </div>
+                                        </div>
+                                    </button>
+                                ))
+                            )}
+                        </div>
+                        <div className="p-4 bg-slate-50 border-t border-slate-100">
+                            <button
+                                onClick={() => setShowIndustryModal(false)}
+                                className="w-full py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold uppercase text-slate-600"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
@@ -433,11 +681,18 @@ const MetricCard = ({ title, value, sub, icon: Icon, color }: any) => (
     </div>
 );
 
-const InfoGroup = ({ label, value, icon: Icon }: any) => (
+const InfoGroup = ({ label, value, icon: Icon, onEdit }: any) => (
     <div className="space-y-1">
-        <div className="flex items-center gap-2 text-slate-400">
-            <Icon size={12} />
-            <span className="text-[9px] font-bold uppercase tracking-widest">{label}</span>
+        <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-slate-400">
+                <Icon size={12} />
+                <span className="text-[9px] font-bold uppercase tracking-widest">{label}</span>
+            </div>
+            {onEdit && (
+                <button onClick={onEdit} className="p-1 text-blue-600 hover:bg-blue-50 rounded">
+                    <Edit3 size={12} />
+                </button>
+            )}
         </div>
         <p className="text-sm font-semibold text-slate-800">{value || 'Not set'}</p>
     </div>

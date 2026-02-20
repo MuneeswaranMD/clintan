@@ -752,3 +752,34 @@ export const planService = {
         await deleteDoc(doc(db, 'plans', id));
     }
 };
+
+// ========== INDUSTRY OPERATIONS ==========
+export const industryService = {
+    subscribeToIndustries: (callback: (industries: any[]) => void) => {
+        const q = query(collection(db, 'industries'), orderBy('name', 'asc'));
+        return onSnapshot(q, (snapshot) => {
+            const industries: any[] = [];
+            snapshot.forEach(d => industries.push({ id: d.id, ...d.data() }));
+            callback(industries);
+        });
+    },
+    getIndustries: async (): Promise<any[]> => {
+        const q = query(collection(db, 'industries'), orderBy('name', 'asc'));
+        const snapshot = await getDocs(q);
+        const industries: any[] = [];
+        snapshot.forEach(d => industries.push({ id: d.id, ...d.data() }));
+        return industries;
+    },
+    createIndustry: async (industry: any) => {
+        return addDoc(collection(db, 'industries'), {
+            ...industry,
+            createdAt: new Date().toISOString()
+        });
+    },
+    updateIndustry: async (id: string, updates: Partial<any>) => {
+        await updateDoc(doc(db, 'industries', id), updates);
+    },
+    deleteIndustry: async (id: string) => {
+        await deleteDoc(doc(db, 'industries', id));
+    }
+};

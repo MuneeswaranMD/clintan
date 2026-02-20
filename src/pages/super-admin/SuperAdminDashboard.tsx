@@ -101,8 +101,8 @@ export const SuperAdminDashboard: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="h-[350px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
+                    <div className="h-[350px] w-full min-h-[350px]">
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={350} debounce={50}>
                             <AreaChart data={data}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                                 <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} axisLine={false} tickLine={false} tickMargin={10} />
@@ -155,8 +155,8 @@ export const SuperAdminDashboard: React.FC = () => {
             {/* Bottom Section */}
             <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm space-y-6">
                 <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Platform Growth</h3>
-                <div className="h-[200px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
+                <div className="h-[200px] w-full min-h-[200px]">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={200} debounce={50}>
                         <BarChart data={data}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                             <XAxis dataKey="name" hide />
