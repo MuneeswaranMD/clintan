@@ -769,6 +769,9 @@ export const Orders: React.FC = () => {
                                     <div className="space-y-1">
                                         <div className="flex items-center gap-2">
                                             <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">{order.orderId}</span>
+                                            {order.externalOrderId && (
+                                                <span className="bg-blue-100 text-blue-800 text-[8px] px-1.5 py-0.5 rounded font-bold">EXT: {order.externalOrderId}</span>
+                                            )}
                                             <span className={`w-2 h-2 rounded-full ${getStatusBg(order.orderStatus as any)} shadow-sm`} />
                                         </div>
                                         <h3 className="font-black text-slate-800 text-lg leading-none uppercase tracking-tight group-hover:text-primary transition-colors">{order.customerName}</h3>

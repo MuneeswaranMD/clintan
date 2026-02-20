@@ -94,6 +94,8 @@ app.use('/api/orders', require('./routes/orderRoutes'));
 app.use('/api/estimates', require('./routes/estimateRoutes'));
 app.use('/api/menu', require('./routes/menuRoutes'));
 app.use('/api/super', require('./routes/superAdminRoutes'));
+app.use('/api/external', require('./routes/externalRoutes'));
+app.use('/api/keys', require('./routes/apiKeyRoutes'));
 
 // WhatsApp Webhook
 app.get('/api/whatsapp-webhook', whatsappWebhookController.verifyWebhook);

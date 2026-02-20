@@ -253,6 +253,8 @@ export interface Order {
   createdAt?: string;
   stockDeducted?: boolean; // Track if stock has been deducted for this order
   templateId?: string; // Selected PDF template ID
+  syncStatus?: 'PENDING' | 'SYNCED' | 'FAILED';
+  externalOrderId?: string;
 }
 
 export enum InvoiceStatus {
@@ -407,6 +409,8 @@ export interface Settings {
   emailFrom?: string;
   defaultTemplateId?: string;
   userId: string;
+  webhookUrl?: string; // For incoming order sync
+  apiKey?: string; // API Key for authentication
 }
 export interface CartItem {
   product: Product;

@@ -108,3 +108,22 @@ eventEmitter.on('ORDER_DISPATCHED', async (order) => {
         );
     }
 });
+// 6. Order Imported (from Website)
+eventEmitter.on('ORDER_IMPORTED', async (order) => {
+    console.log(`Event: ORDER_IMPORTED for ${order.orderId}`);
+
+    // Send WhatsApp Confirmation
+    if (order.customerPhone) {
+        await whatsappService.sendTextMessage(
+            order.customerPhone, 
+            `Your order (${order.orderId}) has been received from the website. We will review it shortly.`
+        );
+    }
+
+    // Auto-create Estimate (Optional/If enabled in settings)
+    // For now, we can just log or trigger a simplified estimate flow if needed
+    // const estimateService = require('../services/estimateService');
+    // await estimateService.createAutoEstimate(order);
+});
+
+module.exports = eventEmitter;

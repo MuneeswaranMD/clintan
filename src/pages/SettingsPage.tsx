@@ -239,6 +239,56 @@ export const SettingsPage: React.FC = () => {
                     </div>
                 </div>
 
+                {/* Website Order Integration */}
+                <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+                    <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
+                        <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600">
+                            <CreditCard size={20} />
+                        </div>
+                        <h3 className="text-lg font-bold text-slate-800">External Order Source</h3>
+                    </div>
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Your API Key</label>
+                            <div className="flex gap-2">
+                                <input readOnly value={settings.apiKey || 'No Key Generated'} className="flex-1 bg-slate-50 border border-transparent p-3 rounded-xl text-slate-600 font-mono text-xs" />
+                                <button type="button" onClick={() => navigator.clipboard.writeText(settings.apiKey || '')} className="px-4 bg-slate-100 hover:bg-slate-200 rounded-xl font-bold text-xs uppercase tracking-widest">Copy</button>
+                            </div>
+                        </div>
+
+                        <div className="space-y-2 bg-slate-50 p-4 rounded-xl">
+                            <p className="text-xs text-slate-500 mb-2">
+                                Use this API Key to sync orders from your external website to this dashboard.
+                            </p>
+                            <div className="bg-slate-900 text-slate-300 p-3 rounded-lg text-[10px] font-mono overflow-auto whitespace-pre-wrap break-all">
+                                Endpoint: https://averqonbill.onrender.com/api/external/order{"\n"}
+                                Headers: {"{"} "x-api-key": "{settings.apiKey || 'YOUR_KEY'}" {"}"}
+                            </div>
+
+                            {!settings.apiKey && (
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        try {
+                                            setSaving(true);
+                                            const key = await settingsService.generateApiKey();
+                                            setSettings({ ...settings, apiKey: key });
+                                            setMessage({ type: 'success', text: 'API Key Generated Successfully' });
+                                        } catch (err: any) {
+                                            setMessage({ type: 'error', text: err.message });
+                                        } finally {
+                                            setSaving(false);
+                                        }
+                                    }}
+                                    className="mt-4 bg-indigo-600 text-white px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-md active:scale-95"
+                                >
+                                    Generate New Key
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
                 {/* PDF Template Setup */}
                 <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm space-y-6 md:col-span-2">
                     <div className="flex items-center gap-3 border-b border-slate-100 pb-4">

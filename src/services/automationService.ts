@@ -9,7 +9,11 @@ export const automationService = {
 
     checkStatus: async () => {
         try {
-            const url = `${automationService.getBackendUrl()}/health`;
+            let backendUrl = automationService.getBackendUrl();
+            if (backendUrl.endsWith('/')) {
+                backendUrl = backendUrl.slice(0, -1);
+            }
+            const url = `${backendUrl}/health`;
             console.log('Checking backend status at:', url);
 
             // Add a timeout to avoid hung requests

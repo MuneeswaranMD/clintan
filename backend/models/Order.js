@@ -45,10 +45,26 @@ const orderSchema = new mongoose.Schema({
         status: String,
         description: String,
         timestamp: { type: Date, default: Date.now }
-    }]
+    }],
+
+    // External Sync Fields
+    externalOrderId: { type: String }, // ID from external system (e.g. Website)
+    syncStatus: { 
+        type: String, 
+        enum: ['PENDING', 'SYNCED', 'FAILED'], 
+        default: 'PENDING' 
+    },
+    syncLog: [{
+        status: String,
+        reason: String,
+        timestamp: { type: Date, default: Date.now }
+    }],
+    customerRef: { type: mongoose.Schema.Types.ObjectId, ref: 'Customer' }, // Link to Customer model
+    idempotencyKey: { type: String } // For preventing duplicate requests
 }, { timestamps: true });
 
 orderSchema.index({ tenantId: 1 });
 orderSchema.index({ tenantId: 1, orderId: 1 }, { unique: true });
+orderSchema.index({ tenantId: 1, externalOrderId: 1 }, { unique: true, partialFilterExpression: { externalOrderId: { $exists: true } } }); // Partial index for orders that have externalOrderId
 
 module.exports = mongoose.model('Order', orderSchema);

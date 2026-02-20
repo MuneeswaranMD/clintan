@@ -142,6 +142,14 @@ export const authService = {
             };
         }
         return null;
+    },
+
+    getToken: async (): Promise<string | null> => {
+        const user = auth.currentUser;
+        if (user) {
+            return await user.getIdToken();
+        }
+        return null;
     }
 };
 
