@@ -22,7 +22,8 @@ import {
     Zap,
     UserCog,
     Settings,
-    Shield
+    Shield,
+    Palette
 } from 'lucide-react';
 
 export interface NavItem {
@@ -258,11 +259,21 @@ export const UNIVERSAL_NAV_ITEMS: NavItem[] = [
     // ⚙️ SETTINGS
     {
         id: 'company-profile',
-        label: 'Company Profile',
+        label: 'Branding & Company',
         path: '/settings/company',
         icon: Building2,
         requiredFeature: 'enableSettings',
-        description: 'Manage company information & branding',
+        description: 'Update your company logo, primary colors, and identity',
+        category: 'settings',
+        allowedRoles: ['SUPER_ADMIN', 'COMPANY_ADMIN']
+    },
+    {
+        id: 'branding',
+        label: 'Branding',
+        path: '/settings/company?tab=branding',
+        icon: Palette,
+        requiredFeature: 'enableSettings',
+        description: 'Customize colors and logos',
         category: 'settings',
         allowedRoles: ['SUPER_ADMIN', 'COMPANY_ADMIN']
     },
@@ -288,25 +299,25 @@ export const INDUSTRY_PRESETS: Record<string, string[]> = {
         'dashboard', 'analytics', 'customers',
         'orders', 'invoices', 'payments', 'checkouts', 'overdue', 'expenses',
         'products', 'inventory', 'suppliers', 'purchase-orders', 'dispatch',
-        'employees', 'company-profile', 'settings'
+        'employees', 'company-profile', 'branding', 'settings'
     ],
     'Service': [
         'dashboard', 'analytics', 'customers',
         'estimates', 'invoices', 'recurring', 'payments', 'overdue', 'expenses',
         'services', 'projects',
-        'employees', 'company-profile', 'settings'
+        'employees', 'company-profile', 'branding', 'settings'
     ],
     'Manufacturing': [
         'dashboard', 'analytics', 'advanced-analytics', 'customers',
         'orders', 'invoices', 'payments', 'expenses',
         'products', 'inventory', 'suppliers', 'purchase-orders', 'dispatch', 'production',
-        'employees', 'company-profile', 'settings'
+        'employees', 'company-profile', 'branding', 'settings'
     ],
     'Generic': [
         'dashboard', 'customers',
         'invoices', 'payments', 'expenses',
         'products', 'inventory',
-        'settings', 'company-profile'
+        'company-profile', 'branding', 'settings'
     ]
 };
 

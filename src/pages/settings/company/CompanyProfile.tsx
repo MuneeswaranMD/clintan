@@ -32,12 +32,15 @@ import { DocumentsTab } from './DocumentsTab';
 import { UsersRolesTab } from './UsersRolesTab';
 import { SubscriptionTab } from './SubscriptionTab';
 
+import { useNavigate, useSearchParams } from 'react-router-dom';
+
 type TabId = 'info' | 'branding' | 'tax' | 'bank' | 'preferences' | 'branches' | 'documents' | 'users' | 'subscription';
 
 export const CompanyProfile: React.FC = () => {
     const { tenant: contextTenant } = useTenant();
+    const [searchParams] = useSearchParams();
     const [tenant, setTenant] = useState<Tenant | null>(null);
-    const [activeTab, setActiveTab] = useState<TabId>('info');
+    const [activeTab, setActiveTab] = useState<TabId>((searchParams.get('tab') as TabId) || 'info');
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -197,11 +200,11 @@ export const CompanyProfile: React.FC = () => {
                     <div className="w-full md:w-64 space-y-3">
                         <div className="flex justify-between items-end">
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Profile Completion</span>
-                            <span className="text-sm font-bold text-blue-600">{completion}%</span>
+                            <span className="text-sm font-bold text-[var(--color-primary)]">{completion}%</span>
                         </div>
                         <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden border border-slate-200">
                             <div
-                                className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 transition-all duration-1000 ease-out"
+                                className="h-full bg-[var(--color-primary)] transition-all duration-1000 ease-out"
                                 style={{ width: `${completion}%` }}
                             ></div>
                         </div>
@@ -223,7 +226,7 @@ export const CompanyProfile: React.FC = () => {
                                 className={`
                   w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold text-sm transition-all
                   ${active
-                                        ? 'bg-slate-900 text-white shadow-xl shadow-slate-200 scale-105 z-10'
+                                        ? 'bg-[var(--color-primary)] text-white shadow-xl shadow-[var(--color-primary)]/20 scale-105 z-10'
                                         : 'bg-white text-slate-500 border border-slate-100 hover:border-slate-200 hover:bg-slate-50'}
                 `}
                             >

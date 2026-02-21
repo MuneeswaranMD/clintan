@@ -15,7 +15,7 @@ export const SuperAdminLayout: React.FC<SuperAdminLayoutProps> = ({ onLogout, us
     const location = useLocation();
 
     // Platform Owner Emails
-    const SUPER_ADMIN_EMAILS = ['muneeswaran@averqon.in', 'clintan@averqon.in'];
+    const SUPER_ADMIN_EMAILS = ['muneeswaran@averqon.in', 'whatnew.live@gmail.com'];
     const isSuperAdmin = user && (user.role === 'SUPER_ADMIN' || SUPER_ADMIN_EMAILS.includes(user.email));
 
     const menuItems = [
@@ -68,7 +68,7 @@ export const SuperAdminLayout: React.FC<SuperAdminLayoutProps> = ({ onLogout, us
                             </div>
                             <div className="flex items-baseline gap-1.5 min-w-0">
                                 <div className="font-extrabold text-[15px] text-slate-800 tracking-tight truncate leading-none">Averqon Admin</div>
-                                <div className="text-[9px] text-slate-400 font-bold uppercase tracking-widest opacity-60 flex-shrink-0">Pro</div>
+                                <div className="text-[9px] text-slate-400 font-bold uppercase tracking-widest opacity-60 flex-shrink-0">Enterprise</div>
                             </div>
                         </div>
                     ) : (
@@ -184,11 +184,11 @@ export const SuperAdminLayout: React.FC<SuperAdminLayoutProps> = ({ onLogout, us
                                 className="h-10 px-3 flex items-center gap-3 rounded-xl hover:bg-white/10 transition-all active:scale-95 text-white"
                             >
                                 <div className="hidden md:flex flex-col items-end leading-none">
-                                    <p className="text-sm font-bold">{user?.name || 'Admin User'}</p>
+                                    <p className="text-sm font-bold">Averqon</p>
                                     <p className="text-[10px] font-bold text-white/70 uppercase tracking-widest">Platform Owner</p>
                                 </div>
                                 <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-md">
-                                    <User size={16} />
+                                    <Command size={14} />
                                 </div>
                                 <ChevronDown size={14} className="opacity-60" />
                             </button>

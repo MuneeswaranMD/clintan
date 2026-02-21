@@ -40,6 +40,7 @@ import {
 import * as IconLibrary from 'lucide-react';
 import { Tenant, SubscriptionPlan } from '../../types';
 import { tenantService, planService, industryService } from '../../services/firebaseService';
+import { subscriptionService } from '../../services/subscriptionService';
 import { useDialog } from '../../context/DialogContext';
 import { UNIVERSAL_NAV_ITEMS } from '../../config/navigationConfig';
 
@@ -228,6 +229,9 @@ export const SuperAdminTenantDetail: React.FC = () => {
 
         if (await confirm(`Upgrade/Downgrade ${tenant.companyName} to ${plan.name}? This will instantly update their module access.`)) {
             try {
+                const expiresAt = new Date();
+                expiresAt.setMonth(expiresAt.getMonth() + 1);
+
                 await tenantService.updateTenant(tenant.id, {
                     plan: plan.name,
                     config: {
@@ -236,7 +240,8 @@ export const SuperAdminTenantDetail: React.FC = () => {
                         subscription: {
                             planId: plan.id,
                             planName: plan.name,
-                            limits: plan.limits
+                            limits: plan.limits,
+                            expiresAt: expiresAt.toISOString()
                         }
                     } as any
                 });
@@ -245,6 +250,20 @@ export const SuperAdminTenantDetail: React.FC = () => {
                 setShowPlanModal(false);
             } catch (error: any) {
                 await alert('Plan transition failed: ' + error.message, { variant: 'danger' });
+            }
+        }
+    };
+
+    const handleExtendSubscription = async () => {
+        if (!tenant) return;
+        const confirmed = await confirm(`Extend ${tenant.companyName}'s subscription by 30 days?`);
+        if (confirmed) {
+            try {
+                await subscriptionService.extendSubscription(tenant.id, 30);
+                await alert('Subscription extended successfully!');
+                fetchTenantDetails(tenant.id);
+            } catch (err: any) {
+                await alert('Failed to extend: ' + err.message, { variant: 'danger' });
             }
         }
     };
@@ -495,27 +514,35 @@ export const SuperAdminTenantDetail: React.FC = () => {
                                     color="bg-blue-600 text-white"
                                 />
                                 <DetailCard
-                                    title="Usage"
-                                    value="74%"
-                                    sub="Capacity health"
-                                    icon={TrendingUp}
-                                    color="bg-emerald-600 text-white"
+                                    title="Expiry Date"
+                                    value={tenant.config?.subscription?.expiresAt ? new Date(tenant.config.subscription.expiresAt).toLocaleDateString() : 'N/A'}
+                                    sub={new Date(tenant.config?.subscription?.expiresAt || '') < new Date() ? 'EXPIRED' : 'ACTIVE'}
+                                    icon={Calendar}
+                                    color={new Date(tenant.config?.subscription?.expiresAt || '') < new Date() ? 'bg-rose-600 text-white' : 'bg-emerald-600 text-white'}
                                 />
                             </div>
                             <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm space-y-4">
-                                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Feature Access</h3>
+                                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Subscription Management</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                     <FeatureItem label="Multi-Branch" enabled={tenant.config?.features?.enableMultiBranch} />
                                     <FeatureItem label="WhatsApp" enabled={tenant.config?.features?.enableWhatsAppIntegration} />
                                     <FeatureItem label="Analytics" enabled={tenant.config?.features?.enableAdvancedAnalytics} />
                                     <FeatureItem label="B2B Shop" enabled={true} />
                                 </div>
-                                <button
-                                    onClick={() => setShowPlanModal(true)}
-                                    className="w-full py-2 bg-slate-900 text-white rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-black transition-all"
-                                >
-                                    Modify Plan
-                                </button>
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={() => setShowPlanModal(true)}
+                                        className="flex-1 py-3 bg-slate-900 text-white rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-black transition-all"
+                                    >
+                                        Modify Plan
+                                    </button>
+                                    <button
+                                        onClick={handleExtendSubscription}
+                                        className="flex-1 py-3 bg-blue-50 text-blue-600 border border-blue-200 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-blue-100 transition-all flex items-center justify-center gap-2"
+                                    >
+                                        <Clock size={14} /> Extend 30 Days
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     )}

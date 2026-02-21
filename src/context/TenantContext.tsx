@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { tenantService } from '../services/firebaseService';
+import { authService } from '../services/authService';
 import { Tenant } from '../types';
 
 interface TenantContextType {
@@ -16,23 +17,78 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        // 1. Initial detection by hostname
         const detectTenant = async () => {
             try {
                 const hostname = window.location.hostname;
                 const detectedTenant = await tenantService.getTenantByHostname(hostname);
-                setTenant(detectedTenant);
+                if (detectedTenant) {
+                    setTenant(detectedTenant);
+                    setLoading(false);
+                    return; // Domain-based tenant takes precedence
+                }
             } catch (error) {
-                console.error('Failed to detect tenant:', error);
-            } finally {
-                setLoading(false);
+                console.error('Failed to detect tenant by hostname:', error);
             }
         };
 
         detectTenant();
+
+        // 2. Auth-based tenant subscription
+        let tenantUnsubscribe: (() => void) | undefined;
+
+        const authUnsubscribe = authService.onAuthStateChange((user) => {
+            if (tenantUnsubscribe) {
+                tenantUnsubscribe();
+                tenantUnsubscribe = undefined;
+            }
+
+            if (user) {
+                tenantUnsubscribe = tenantService.subscribeToTenantByUserId(user.id, (data) => {
+                    if (data) {
+                        setTenant(data);
+                    }
+                    setLoading(false);
+                });
+            } else {
+                // Keep domain-based tenant if present, otherwise clear
+                // But usually if logged out, we might want to clear it unless on a custom domain
+                const hostname = window.location.hostname;
+                if (!hostname.includes('localhost') && !hostname.includes('averqon')) {
+                    // Stay on domain-based tenant
+                } else {
+                    setTenant(null);
+                }
+                setLoading(false);
+            }
+        });
+
+        return () => {
+            authUnsubscribe();
+            if (tenantUnsubscribe) tenantUnsubscribe();
+        };
     }, []);
 
+    // Apply branding colors dynamically
+    useEffect(() => {
+        if (tenant?.config?.branding) {
+            const { primaryColor, secondaryColor } = tenant.config.branding;
+            const root = document.documentElement;
+
+            if (primaryColor) {
+                root.style.setProperty('--color-primary', primaryColor);
+            }
+
+            if (secondaryColor) {
+                root.style.setProperty('--color-secondary', secondaryColor);
+                // Also update the secondary text or highlight color for legacy components
+                root.style.setProperty('--color-text-secondary', secondaryColor);
+            }
+        }
+    }, [tenant]);
+
     // Helper to check if we are on a custom domain or subdomain
-    const isWhiteLabeled = !!tenant;
+    const isWhiteLabeled = !!tenant && window.location.hostname !== 'localhost' && !window.location.hostname.includes('averqon');
     const isVerified = tenant?.config?.verification?.status === 'Verified';
 
     return (

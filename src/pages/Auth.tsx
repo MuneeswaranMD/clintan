@@ -18,7 +18,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [isSuperAdminMode, setIsSuperAdminMode] = useState(false);
 
-  const SUPER_ADMIN_EMAILS = ['muneeswaran@averqon.in', 'clintan@averqon.in'];
+  const SUPER_ADMIN_EMAILS = ['muneeswaran@averqon.in', 'whatnew.live@gmail.com'];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

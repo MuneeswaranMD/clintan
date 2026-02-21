@@ -505,6 +505,7 @@ export interface BusinessConfig {
 
   // New Profile Fields
   companyLegalName?: string;
+  companyAddress?: string;
   businessType?: string;
   cin?: string;
   registrationDate?: string;

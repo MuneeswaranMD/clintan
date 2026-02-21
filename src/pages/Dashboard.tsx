@@ -117,7 +117,7 @@ export const Dashboard: React.FC = () => {
         <div className="lg:col-span-8 bg-white p-6 rounded-lg border border-slate-200 shadow-sm space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-bold text-slate-900 tracking-tight underline decoration-blue-500/30 underline-offset-8">Financial Pulse</h3>
+              <h3 className="text-lg font-bold text-slate-900 tracking-tight underline border-b-2" style={{ borderColor: 'var(--color-primary)', textDecoration: 'none', paddingBottom: '4px', display: 'inline-block' }}>Financial Pulse</h3>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2 ml-1">Monthly Revenue Stream</p>
             </div>
           </div>
@@ -131,7 +131,7 @@ export const Dashboard: React.FC = () => {
                   cursor={{ fill: '#f8fafc' }}
                   contentStyle={{ backgroundColor: '#FFFFFF', border: '1px solid #e2e8f0', borderRadius: '4px', fontSize: '11px', fontWeight: 700 }}
                 />
-                <Bar dataKey="revenue" fill="#3b82f6" radius={[2, 2, 0, 0]} barSize={32} />
+                <Bar dataKey="revenue" fill="var(--color-primary)" radius={[2, 2, 0, 0]} barSize={32} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -142,7 +142,7 @@ export const Dashboard: React.FC = () => {
           <div className="bg-slate-900 p-8 rounded-lg text-white space-y-6 flex flex-col justify-between h-full min-h-[400px]">
             <div className="space-y-4">
               <div className="w-12 h-12 bg-white/10 rounded flex items-center justify-center">
-                <LayoutDashboard size={24} className="text-blue-400" />
+                <LayoutDashboard size={24} style={{ color: 'var(--color-primary)' }} />
               </div>
               <h3 className="text-2xl font-bold tracking-tight">
                 {isWhiteLabeled && tenant ? tenant.companyName : 'Averqon Platform'}

@@ -13,7 +13,7 @@ import {
 import { auth } from './firebase';
 import { User } from '../types';
 
-const SUPER_ADMIN_EMAILS = ['muneeswaran@averqon.in', 'clintan@averqon.in', 'whatnew.live@gmail.com'];
+const SUPER_ADMIN_EMAILS = ['muneeswaran@averqon.in', 'whatnew.live@gmail.com', 'whatnew.live@gmail.com'];
 
 const getRoleByEmail = (email: string | null): User['role'] => {
     if (email && SUPER_ADMIN_EMAILS.includes(email.toLowerCase())) {

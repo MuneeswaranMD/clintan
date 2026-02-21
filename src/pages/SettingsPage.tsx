@@ -8,7 +8,9 @@ import {
     Mail,
     CheckCircle2,
     AlertCircle,
-    Zap
+    Zap,
+    Palette,
+    Building2
 } from 'lucide-react';
 import { authService } from '../services/authService';
 import { settingsService } from '../services/settingsService';
@@ -116,6 +118,50 @@ export const SettingsPage: React.FC = () => {
                     <p className="text-sm font-bold uppercase tracking-widest">{message.text}</p>
                 </div>
             )}
+
+            {/* Branding & Appearance */}
+            <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm space-y-6 md:col-span-2">
+                <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
+                    <div className="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-600">
+                        <Palette size={20} />
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-800">Branding & Identity</h3>
+                </div>
+                <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                    <p className="text-sm text-slate-500 max-w-xl">
+                        Define your brand identity across the platform. Update your company logo, primary colors, and customize how your business appears on all customer-facing documents.
+                    </p>
+                    <button
+                        type="button"
+                        onClick={() => navigate('/settings/company?tab=branding')}
+                        className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200 whitespace-nowrap"
+                    >
+                        Manage Branding
+                    </button>
+                </div>
+            </div>
+
+            {/* Company Profile Link */}
+            <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm space-y-6 md:col-span-2">
+                <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
+                    <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600">
+                        <Building2 size={20} />
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-800">Legal & Company Profile</h3>
+                </div>
+                <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                    <p className="text-sm text-slate-500 max-w-xl">
+                        Manage your company's legal name, registered address, tax information (GST/VAT), bank details for payments, and document uploads.
+                    </p>
+                    <button
+                        type="button"
+                        onClick={() => navigate('/settings/company?tab=info')}
+                        className="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200 whitespace-nowrap"
+                    >
+                        Update Profile
+                    </button>
+                </div>
+            </div>
 
             <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Menu Customization */}

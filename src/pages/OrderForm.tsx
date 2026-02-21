@@ -10,10 +10,11 @@ import {
     AlertCircle
 } from 'lucide-react';
 import { orderFormService } from '../services/orderFormService';
-import { orderService } from '../services/firebaseService'; // Import orderService
+import { orderService, paymentService } from '../services/firebaseService'; // Import orderService
 import { OrderStatus, OrderFormConfig, OrderItem, BusinessConfig } from '../types';
 import { GlobalProductGrid } from '../components/shop/GlobalProductGrid';
 import { GlobalCartDrawer } from '../components/shop/GlobalCartDrawer';
+import { SimulatedPaymentGateway } from '../components/shop/SimulatedPaymentGateway';
 import { FloatingCartButton } from '../components/shop/FloatingCartButton';
 import { useShop } from '../context/ShopContext';
 
@@ -41,6 +42,8 @@ export const OrderForm: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [submitted, setSubmitted] = useState(false);
     const [lastOrder, setLastOrder] = useState<any>(null);
+    const [isPaymentGatewayOpen, setIsPaymentGatewayOpen] = useState(false);
+    const [pendingCustomerDetails, setPendingCustomerDetails] = useState<any>(null);
 
     // Derived
     const currency = businessConfig.currency || config?.currency || '₹';
@@ -76,8 +79,30 @@ export const OrderForm: React.FC = () => {
         loadConfig();
     }, [userId]);
 
-    // Submit Handler
+    // Initial Trigger from Cart
     const handleSubmitOrder = async (customerDetails: any) => {
+        if (!userId) return;
+
+        if (mode === 'order') {
+            // Show payment gateway for regular orders
+            setPendingCustomerDetails(customerDetails);
+            setIsPaymentGatewayOpen(true);
+            setIsCartOpen(false);
+        } else {
+            // Estimates proceed directly as pending
+            await processOrderSubmission(customerDetails, 'Pending', OrderStatus.Pending);
+        }
+    };
+
+    const handlePaymentSuccess = async (paymentDetails: any) => {
+        setIsPaymentGatewayOpen(false);
+        if (pendingCustomerDetails) {
+            await processOrderSubmission(pendingCustomerDetails, 'Paid', OrderStatus.Confirmed, paymentDetails);
+        }
+    };
+
+    // Final Core Submission Logic
+    const processOrderSubmission = async (customerDetails: any, payStatus: any, ordStatus: OrderStatus, paymentDetails?: any) => {
         if (!userId) return;
 
         try {
@@ -85,7 +110,7 @@ export const OrderForm: React.FC = () => {
 
             // Map cart items to OrderItem structure
             const orderItems: OrderItem[] = cart.map(item => ({
-                id: item.product.id, // Using product ID as item ID
+                id: item.product.id,
                 itemId: item.product.id,
                 name: item.product.name,
                 type: 'PRODUCT',
@@ -94,7 +119,7 @@ export const OrderForm: React.FC = () => {
                 taxPercentage: item.product.pricing?.taxPercentage || 0,
                 discount: 0,
                 subtotal: (item.product.pricing?.sellingPrice || 0) * item.quantity,
-                total: (item.product.pricing?.sellingPrice || 0) * item.quantity // Add tax calc if needed
+                total: (item.product.pricing?.sellingPrice || 0) * item.quantity
             }));
 
             const newOrder = {
@@ -106,25 +131,41 @@ export const OrderForm: React.FC = () => {
                 items: orderItems,
                 pricingSummary: {
                     subTotal: cartTotal,
-                    taxTotal: 0, // Calculate tax if needed
+                    taxTotal: 0,
                     discountTotal: 0,
                     grandTotal: cartTotal
                 },
                 totalAmount: cartTotal,
-                paymentStatus: 'Pending',
-                orderStatus: mode === 'estimate' ? OrderStatus.Pending : OrderStatus.Pending, // Estimates act as pending orders for now
+                paymentStatus: payStatus,
+                orderStatus: ordStatus,
                 orderDate: new Date().toISOString(),
-                paymentMethod: 'Online/COD',
+                paymentMethod: paymentDetails?.method || 'Online/COD',
                 notes: customerDetails.notes,
                 source: 'WEBSITE',
                 channel: channel,
                 userId: userId
             };
 
-            console.log("Submitting Order:", newOrder);
+            // 1. Create order in Firestore
+            const orderDoc = await orderService.createOrder(userId, newOrder as any);
 
-            // Create order in Firestore
-            await orderService.createOrder(userId, newOrder as any);
+            // 2. If it was a successful payment, also create a payment record
+            if (payStatus === 'Paid' && paymentDetails) {
+                try {
+                    await paymentService.createPayment(userId, {
+                        paymentId: paymentDetails.transactionId,
+                        orderId: orderDoc.id,
+                        orderNumber: orderId,
+                        customerName: customerDetails.name,
+                        amount: cartTotal,
+                        method: paymentDetails.method,
+                        status: 'Success',
+                        date: new Date().toISOString(),
+                    } as any);
+                } catch (payErr) {
+                    console.error("Failed to sync payment record:", payErr);
+                }
+            }
 
             setLastOrder({
                 ...customerDetails,
@@ -137,7 +178,6 @@ export const OrderForm: React.FC = () => {
             setIsCartOpen(false);
         } catch (err) {
             console.error("Order submission failed:", err);
-            // Optionally show an error toast here
         }
     };
 
@@ -363,6 +403,16 @@ export const OrderForm: React.FC = () => {
             <GlobalCartDrawer
                 currency={currency}
                 onCheckout={handleSubmitOrder}
+            />
+
+            <SimulatedPaymentGateway
+                isOpen={isPaymentGatewayOpen}
+                onClose={() => setIsPaymentGatewayOpen(false)}
+                onSuccess={handlePaymentSuccess}
+                amount={cartTotal}
+                currency={currency}
+                companyName={config?.companyName || (config as any).formName || 'Averqon Bills'}
+                customerName={pendingCustomerDetails?.name}
             />
 
         </div>

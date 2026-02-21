@@ -20,21 +20,13 @@ import {
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { tenantService } from '../../services/firebaseService';
+import { superAdminService } from '../../services/superAdminService';
 import { Tenant } from '../../types';
-
-const data = [
-    { name: 'Jan', value: 4000, active: 2400 },
-    { name: 'Feb', value: 3000, active: 1398 },
-    { name: 'Mar', value: 2000, active: 9800 },
-    { name: 'Apr', value: 2780, active: 3908 },
-    { name: 'May', value: 1890, active: 4800 },
-    { name: 'Jun', value: 2390, active: 3800 },
-    { name: 'Jul', value: 3490, active: 4300 },
-];
 
 export const SuperAdminDashboard: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [tenants, setTenants] = useState<Tenant[]>([]);
+    const [statsData, setStatsData] = useState<any>(null);
 
     useEffect(() => {
         document.title = 'Super Admin | Dashboard';
@@ -44,8 +36,12 @@ export const SuperAdminDashboard: React.FC = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const data = await tenantService.getAllTenants();
-            setTenants(data);
+            const [tenantsData, dashboardStats] = await Promise.all([
+                tenantService.getAllTenants(),
+                superAdminService.getDashboardStats()
+            ]);
+            setTenants(tenantsData);
+            setStatsData(dashboardStats);
         } catch (error) {
             console.error("Failed to fetch dashboard data", error);
         } finally {
@@ -53,14 +49,31 @@ export const SuperAdminDashboard: React.FC = () => {
         }
     };
 
-    const activeTenantsCount = tenants.filter(t => t.status === 'Active').length;
-    const totalUsers = tenants.reduce((acc, t) => acc + (t.usersCount || 0), 0);
-
     const stats = [
-        { label: 'Total Revenue', value: '₹0.00', trend: '0%', icon: TrendingUp },
-        { label: 'Active Tenants', value: activeTenantsCount.toLocaleString(), trend: '+0%', icon: Building2 },
-        { label: 'System Load', value: '12%', trend: '-0.4%', icon: Activity },
-        { label: 'Total Userbase', value: totalUsers.toLocaleString(), trend: '+0%', icon: Users },
+        {
+            label: 'Total Revenue',
+            value: statsData ? `₹${statsData.totalMRR.toLocaleString()}` : '₹0.00',
+            trend: '+5.2%',
+            icon: TrendingUp
+        },
+        {
+            label: 'Active Tenants',
+            value: statsData ? statsData.activeTenants.toLocaleString() : '0',
+            trend: statsData ? statsData.tenantGrowth : '0%',
+            icon: Building2
+        },
+        {
+            label: 'System Load',
+            value: '4.2%',
+            trend: '-0.4%',
+            icon: Activity
+        },
+        {
+            label: 'Total Userbase',
+            value: statsData ? statsData.totalUsers.toLocaleString() : '0',
+            trend: '+8%',
+            icon: Users
+        },
     ];
 
     const recentTenants = tenants
@@ -75,20 +88,7 @@ export const SuperAdminDashboard: React.FC = () => {
             date: t.createdAt ? new Date(t.createdAt).toLocaleDateString() : 'Recent'
         }));
 
-    const growthData = useMemo(() => {
-        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        const counts = months.map(m => ({ name: m, tenants: 0, active: 0 }));
-
-        tenants.forEach(t => {
-            const date = new Date(t.createdAt || 0);
-            if (date.getFullYear() === 2026 || date.getFullYear() === 2025) { // Show recent growth
-                const mIdx = date.getMonth();
-                counts[mIdx].tenants++;
-                if (t.status === 'Active') counts[mIdx].active++;
-            }
-        });
-        return counts;
-    }, [tenants]);
+    const growthData = statsData?.growth || [];
 
     if (loading) {
         return (
@@ -111,7 +111,7 @@ export const SuperAdminDashboard: React.FC = () => {
                     <button className="px-4 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 text-sm font-bold hover:bg-slate-50 transition-all">
                         <Download size={16} /> Export
                     </button>
-                    <button className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 transition-all">
+                    <button className="px-4 py-2 bg-[var(--color-primary)] text-white rounded-lg text-sm font-bold hover:opacity-90 transition-all">
                         Distribution
                     </button>
                 </div>
@@ -161,7 +161,7 @@ export const SuperAdminDashboard: React.FC = () => {
                                 <Tooltip
                                     contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '4px', fontSize: '11px' }}
                                 />
-                                <Area type="monotone" dataKey="tenants" stroke="#2563eb" strokeWidth={2} fill="#3b82f6" fillOpacity={0.1} />
+                                <Area type="monotone" dataKey="tenants" stroke="var(--color-primary)" strokeWidth={2} fill="var(--color-primary)" fillOpacity={0.1} />
                             </AreaChart>
                         </ResponsiveContainer>
                     </div>
@@ -212,7 +212,7 @@ export const SuperAdminDashboard: React.FC = () => {
                             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                             <XAxis dataKey="name" hide />
                             <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '4px', border: '1px solid #e2e8f0', fontSize: '11px' }} />
-                            <Bar dataKey="active" fill="#3b82f6" radius={[2, 2, 0, 0]} barSize={24} />
+                            <Bar dataKey="active" fill="var(--color-primary)" radius={[2, 2, 0, 0]} barSize={24} />
                             <Bar dataKey="tenants" fill="#cbd5e1" radius={[2, 2, 0, 0]} barSize={24} />
                         </BarChart>
                     </ResponsiveContainer>

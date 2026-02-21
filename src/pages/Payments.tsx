@@ -88,10 +88,12 @@ export const Payments: React.FC = () => {
         };
     }, []);
 
-    const filtered = payments.filter(p =>
-        p.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.paymentId.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filtered = (payments || []).filter(p => {
+        const name = (p.customerName || '').toLowerCase();
+        const id = (p.paymentId || '').toLowerCase();
+        const search = searchTerm.toLowerCase();
+        return name.includes(search) || id.includes(search);
+    });
 
     const stats = useMemo(() => {
         const total = payments.reduce((sum, p) => sum + p.amount, 0);
@@ -411,7 +413,10 @@ const DashboardStatCard = ({ title, value, icon: Icon, iconBg, percentage, trend
             </div>
         </div>
         <div className="mt-4 flex items-center gap-2">
-            <span className={`text-xs font-bold ${percentage >= 0 ? 'text-success' : 'text-error'}`}>{percentage >= 0 ? `+${percentage}%` : `${percentage}%`}</span>
+            <span className={`text-xs font-bold ${String(percentage).startsWith('+') || parseFloat(percentage) >= 0 ? 'text-success' : 'text-error'}`}>
+                {String(percentage).startsWith('+') || String(percentage).startsWith('-') ? percentage : (parseFloat(percentage) >= 0 ? `+${percentage}` : percentage)}
+                {!String(percentage).includes('%') && '%'}
+            </span>
             <span className="text-[11px] font-bold text-slate-400 lowercase">{trend}</span>
         </div>
     </div>

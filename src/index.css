@@ -14,6 +14,26 @@
 @theme {
   --font-sans: sans-serif;
   --font-serif: serif;
+
+  /* Dynamically override standard colors to follow branding */
+  --color-blue-50: color-mix(in srgb, var(--color-primary), white 95%);
+  --color-blue-100: color-mix(in srgb, var(--color-primary), white 90%);
+  --color-blue-200: color-mix(in srgb, var(--color-primary), white 80%);
+  --color-blue-300: color-mix(in srgb, var(--color-primary), white 60%);
+  --color-blue-400: color-mix(in srgb, var(--color-primary), white 40%);
+  --color-blue-500: var(--color-primary);
+  --color-blue-600: var(--color-primary);
+  --color-blue-700: color-mix(in srgb, var(--color-primary), black 10%);
+  --color-blue-800: color-mix(in srgb, var(--color-primary), black 20%);
+  --color-blue-900: color-mix(in srgb, var(--color-primary), black 30%);
+
+  --color-indigo-50: color-mix(in srgb, var(--color-primary), white 95%);
+  --color-indigo-100: color-mix(in srgb, var(--color-primary), white 90%);
+  --color-indigo-500: var(--color-primary);
+  --color-indigo-600: var(--color-primary);
+  --color-indigo-700: color-mix(in srgb, var(--color-primary), black 10%);
+  --color-indigo-800: color-mix(in srgb, var(--color-primary), black 20%);
+  --color-indigo-900: color-mix(in srgb, var(--color-primary), black 30%);
 }
 
 :root {
@@ -56,10 +76,10 @@
 
   /* Primary Colors */
   --color-primary: #2563eb;
-  --color-primary-hover: #1d4ed8;
-  --color-primary-light: #eff6ff;
-  --color-primary-dark: #1e40af;
-  --color-primary-gradient: #2563eb;
+  --color-primary-hover: color-mix(in srgb, var(--color-primary), black 10%);
+  --color-primary-light: color-mix(in srgb, var(--color-primary), white 95%);
+  --color-primary-dark: color-mix(in srgb, var(--color-primary), black 20%);
+  --color-primary-gradient: var(--color-primary);
   /* Solid fallback */
 
   /* Neutral Palette */

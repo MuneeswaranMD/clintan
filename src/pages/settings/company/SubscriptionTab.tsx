@@ -1,6 +1,8 @@
-import React from 'react';
-import { Zap, Calendar, CreditCard, History, ArrowUpCircle, CheckCircle2, Circle, Loader2, BarChart3, Clock, Download } from 'lucide-react';
-import { Tenant } from '../../../types';
+import React, { useState, useEffect } from 'react';
+import { Zap, Calendar, CreditCard, History, ArrowUpCircle, CheckCircle2, Circle, Loader2, BarChart3, Clock, Download, ShieldCheck, AlertCircle } from 'lucide-react';
+import { Tenant, SubscriptionPlan } from '../../../types';
+import { subscriptionService, STANDARD_PLANS } from '../../../services/subscriptionService';
+import { SimulatedPaymentGateway } from '../../../components/shop/SimulatedPaymentGateway';
 
 interface SubscriptionTabProps {
     tenant: Tenant;
@@ -10,57 +12,107 @@ interface SubscriptionTabProps {
 }
 
 export const SubscriptionTab: React.FC<SubscriptionTabProps> = ({ tenant, onUpdate, saving, canEdit }) => {
-    const currentPlan = tenant.plan || 'Pro';
+    const currentPlan = tenant.plan || 'Starter';
+    const subConfig = tenant.config?.subscription;
 
-    const plans = [
-        {
-            id: 'Basic',
-            price: '₹999',
-            features: ['Up to 50 Invoices/mo', '3 User Seats', 'Standard Templates', 'Email Support'],
-            active: currentPlan === 'Basic'
-        },
-        {
-            id: 'Pro',
-            price: '₹2,499',
-            features: ['Unlimited Invoices', '10 User Seats', 'Custom Branding', 'WhatsApp API', 'Priority Support'],
-            active: currentPlan === 'Pro' || currentPlan === 'Enterprise' // Enterprise includes Pro features
-        },
-        {
-            id: 'Enterprise',
-            price: 'Custom',
-            features: ['Multi-Branch Support', 'Advanced Analytics', 'Custom Domain', 'White-labeling', 'Dedicated Manager'],
-            active: currentPlan === 'Enterprise'
+    const [usage, setUsage] = useState({ invoicesCount: 0, usersCount: 0 });
+    const [loadingUsage, setLoadingUsage] = useState(true);
+    const [isGatewayOpen, setIsGatewayOpen] = useState(false);
+    const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
+
+    useEffect(() => {
+        const fetchUsage = async () => {
+            if (tenant.userId) {
+                const stats = await subscriptionService.getUsageStats(tenant.userId);
+                setUsage(stats);
+            }
+            setLoadingUsage(false);
+        };
+        fetchUsage();
+    }, [tenant.userId]);
+
+    const handlePlanSelect = (planId: string) => {
+        if (!canEdit) return;
+        setSelectedPlanId(planId);
+        setIsGatewayOpen(true);
+    };
+
+    const handlePaymentSuccess = async (paymentDetails: any) => {
+        if (!selectedPlanId) return;
+
+        setIsGatewayOpen(false);
+        try {
+            await subscriptionService.updatePlan(tenant.id, selectedPlanId, paymentDetails);
+            window.location.reload(); // Refresh to update config everywhere
+        } catch (error) {
+            console.error("Plan update failed:", error);
         }
+    };
+
+    const plans = STANDARD_PLANS.map(p => ({
+        ...p,
+        active: currentPlan.toLowerCase() === p.name.toLowerCase(),
+        priceLabel: `₹${p.price}`
+    }));
+
+    const expiryDate = subConfig?.expiresAt ? new Date(subConfig.expiresAt) : null;
+    const isExpired = expiryDate && expiryDate < new Date();
+
+    const stats = [
+        {
+            label: 'Invoices Issued',
+            current: usage.invoicesCount,
+            limit: subConfig?.limits?.invoicesPerMonth || 200,
+            percent: Math.min(100, (usage.invoicesCount / (subConfig?.limits?.invoicesPerMonth || 200)) * 100)
+        },
+        {
+            label: 'User Seats',
+            current: usage.usersCount,
+            limit: subConfig?.limits?.users || 2,
+            percent: Math.min(100, (usage.usersCount / (subConfig?.limits?.users || 2)) * 100)
+        },
+        {
+            label: 'Business Branches',
+            current: tenant.config?.branches?.length || 1,
+            limit: subConfig?.limits?.branches || 1,
+            percent: Math.min(100, ((tenant.config?.branches?.length || 1) / (subConfig?.limits?.branches || 1)) * 100)
+        },
     ];
 
     const billingHistory = [
-        { id: 'INV-001', date: '2026-02-01', amount: '₹2,499', status: 'Paid' },
-        { id: 'INV-002', date: '2026-01-01', amount: '₹2,499', status: 'Paid' },
-        { id: 'INV-003', date: '2025-12-01', amount: '₹2,499', status: 'Paid' },
-    ];
-
-    const stats = [
-        { label: 'Invoices Issued', current: 124, limit: '∞', percent: 40 },
-        { label: 'Cloud Storage', current: '1.2 GB', limit: '10 GB', percent: 12 },
-        { label: 'User Seats', current: 3, limit: 10, percent: 30 },
+        { id: 'SUB-' + Math.random().toString(36).substr(2, 9).toUpperCase(), date: new Date().toISOString(), amount: `₹${STANDARD_PLANS.find(p => p.name.toLowerCase() === currentPlan.toLowerCase())?.price || '499'}`, status: 'Paid' },
     ];
 
     return (
         <div className="space-y-10">
+            {/* Expiry Warning */}
+            {isExpired && (
+                <div className="bg-rose-50 border border-rose-200 p-4 rounded-2xl flex items-center gap-4 animate-pulse">
+                    <div className="w-10 h-10 bg-rose-100 text-rose-600 rounded-xl flex items-center justify-center">
+                        <AlertCircle size={20} />
+                    </div>
+                    <div>
+                        <p className="text-sm font-black text-rose-900 uppercase">Subscription Expired</p>
+                        <p className="text-xs font-bold text-rose-600">Your access to premium features has been restricted. Please renew to continue.</p>
+                    </div>
+                </div>
+            )}
+
             {/* Current Plan Overview */}
-            <div className="bg-gradient-to-br from-slate-900 to-indigo-950 p-10 rounded-[2.5rem] text-white relative overflow-hidden shadow-2xl">
+            <div className={`bg-gradient-to-br p-10 rounded-[2.5rem] text-white relative overflow-hidden shadow-2xl transition-all ${isExpired ? 'from-slate-900 to-slate-800 opacity-80' : 'from-slate-900 to-indigo-950'}`}>
                 <div className="absolute top-0 right-0 w-80 h-80 bg-blue-600 opacity-20 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl animate-pulse"></div>
-                <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-500 opacity-10 rounded-full translate-y-1/2 -translate-x-1/2 blur-3xl"></div>
 
                 <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-10">
                     <div className="space-y-6">
                         <div className="flex items-center gap-3">
                             <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-md border border-white/20">
-                                <Zap size={24} className="text-yellow-400 fill-yellow-400" />
+                                <Zap size={24} className={isExpired ? 'text-slate-400' : 'text-yellow-400 fill-yellow-400'} />
                             </div>
                             <div>
                                 <h3 className="text-3xl font-bold tracking-tight">{currentPlan} Environment</h3>
-                                <p className="text-blue-200 text-xs font-bold uppercase tracking-wide mt-1">Status: Active Service Node</p>
+                                <p className={`text-xs font-bold uppercase tracking-wide mt-1 ${isExpired ? 'text-rose-400' : 'text-blue-200'}`}>
+                                    Status: {isExpired ? 'Suspended' : 'Active Service Node'}
+                                </p>
                             </div>
                         </div>
 
@@ -69,31 +121,36 @@ export const SubscriptionTab: React.FC<SubscriptionTabProps> = ({ tenant, onUpda
                                 <p className="text-[10px] font-bold text-white/40 uppercase tracking-wide mb-1 flex items-center gap-2">
                                     <Calendar size={12} /> Next Renewal
                                 </p>
-                                <p className="text-sm font-bold">March 01, 2026</p>
+                                <p className="text-sm font-bold text-blue-100">{expiryDate ? expiryDate.toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Action Required'}</p>
                             </div>
                             <div>
                                 <p className="text-[10px] font-bold text-white/40 uppercase tracking-wide mb-1 flex items-center gap-2">
                                     <CreditCard size={12} /> Billing Cycle
                                 </p>
-                                <p className="text-sm font-bold">Monthly Auto-pay</p>
+                                <p className="text-sm font-bold text-blue-100">Monthly Auto-pay</p>
                             </div>
                             <div>
                                 <p className="text-[10px] font-bold text-white/40 uppercase tracking-wide mb-1 flex items-center gap-2">
                                     <Clock size={12} /> Service Since
                                 </p>
-                                <p className="text-sm font-bold">{tenant.createdAt ? new Date(tenant.createdAt).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : 'Aug 2025'}</p>
+                                <p className="text-sm font-bold text-blue-100">{tenant.createdAt ? new Date(tenant.createdAt).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : '---'}</p>
                             </div>
                             <div>
                                 <p className="text-[10px] font-bold text-white/40 uppercase tracking-wide mb-1 flex items-center gap-2">
-                                    <History size={12} /> Status
+                                    <ShieldCheck size={12} /> Verification
                                 </p>
-                                <p className="text-sm font-bold text-emerald-400">Verified</p>
+                                <p className={`text-sm font-bold ${tenant.config?.verification?.status === 'Verified' ? 'text-emerald-400' : 'text-amber-400'}`}>
+                                    {tenant.config?.verification?.status || 'Pending'}
+                                </p>
                             </div>
                         </div>
                     </div>
 
                     {canEdit && (
-                        <button className="bg-white text-slate-900 px-8 py-4 rounded-2xl font-bold uppercase tracking-wide text-xs shadow-xl shadow-blue-500/10 hover:scale-105 active:scale-95 transition-all flex items-center gap-3 self-end md:self-auto">
+                        <button
+                            onClick={() => handlePlanSelect('enterprise')}
+                            className="bg-white text-slate-900 px-8 py-4 rounded-2xl font-bold uppercase tracking-wide text-xs shadow-xl shadow-blue-500/10 hover:scale-105 active:scale-95 transition-all flex items-center gap-3 self-end md:self-auto"
+                        >
                             <ArrowUpCircle size={18} /> Upgrade Scalability
                         </button>
                     )}
@@ -102,23 +159,27 @@ export const SubscriptionTab: React.FC<SubscriptionTabProps> = ({ tenant, onUpda
 
             {/* Usage Analytics */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {stats.map((stat, index) => (
-                    <div key={index} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
-                        <div className="flex items-center justify-between">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">{stat.label}</p>
-                            <BarChart3 size={16} className="text-blue-600" />
-                        </div>
-                        <div>
-                            <p className="text-2xl font-bold text-slate-800">{stat.current} <span className="text-sm text-slate-300">/ {stat.limit}</span></p>
-                            <div className="h-1.5 w-full bg-slate-50 rounded-full mt-3 overflow-hidden border border-slate-100">
-                                <div
-                                    className="h-full bg-gradient-to-r from-blue-500 to-indigo-600"
-                                    style={{ width: `${stat.percent}%` }}
-                                ></div>
+                {loadingUsage ? (
+                    [1, 2, 3].map(i => <div key={i} className="h-32 bg-slate-50 rounded-3xl animate-pulse" />)
+                ) : (
+                    stats.map((stat, index) => (
+                        <div key={index} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
+                            <div className="flex items-center justify-between">
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">{stat.label}</p>
+                                <BarChart3 size={16} className="text-blue-600" />
+                            </div>
+                            <div>
+                                <p className="text-2xl font-bold text-slate-800">{stat.current} <span className="text-sm text-slate-300">/ {stat.limit}</span></p>
+                                <div className="h-1.5 w-full bg-slate-50 rounded-full mt-3 overflow-hidden border border-slate-100">
+                                    <div
+                                        className={`h-full transition-all duration-1000 ${stat.percent > 90 ? 'bg-rose-500' : 'bg-gradient-to-r from-blue-500 to-indigo-600'}`}
+                                        style={{ width: `${stat.percent}%` }}
+                                    ></div>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                ))}
+                    ))
+                )}
             </div>
 
             {/* Plan Selection */}
@@ -137,26 +198,28 @@ export const SubscriptionTab: React.FC<SubscriptionTabProps> = ({ tenant, onUpda
                             )}
 
                             <div className="text-center space-y-4 mb-8">
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">{plan.id}</p>
-                                <p className="text-4xl font-bold text-slate-800 tracking-tighter">{plan.price}<span className="text-xs text-slate-300 font-bold">/mo</span></p>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">{plan.name}</p>
+                                <p className="text-4xl font-bold text-slate-800 tracking-tighter">{plan.priceLabel}<span className="text-xs text-slate-300 font-bold">/mo</span></p>
                             </div>
 
                             <div className="space-y-4 mb-10">
-                                {plan.features.map((feature, fIdx) => (
-                                    <div key={fIdx} className="flex items-start gap-3">
-                                        <CheckCircle2 size={14} className="text-blue-600 mt-0.5 flex-shrink-0" />
-                                        <span className="text-xs font-bold text-slate-600 leading-tight">{feature}</span>
-                                    </div>
-                                ))}
+                                <FeatureItem text={`${plan.limits.users} Global Users`} />
+                                <FeatureItem text={`${plan.limits.invoicesPerMonth} Monthly Invoices`} />
+                                <FeatureItem text={`${plan.limits.branches} Logical Branches`} />
+                                {plan.id === 'starter' && <FeatureItem text="Email Support" />}
+                                {plan.id === 'growth' && <FeatureItem text="WhatsApp Automation" />}
+                                {plan.id === 'enterprise' && <FeatureItem text="Custom Domain Node" />}
+                                {plan.id === 'enterprise' && <FeatureItem text="Advanced Analytics" />}
                             </div>
 
                             {canEdit && (
                                 <button
                                     disabled={plan.active}
-                                    className={`w-full py-4 rounded-2xl font-bold uppercase tracking-wide text-[10px] transition-all ${plan.active ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-slate-900 text-white hover:bg-black shadow-xl shadow-slate-200'
+                                    onClick={() => handlePlanSelect(plan.id)}
+                                    className={`w-full py-4 rounded-2xl font-bold uppercase tracking-wide text-[10px] transition-all shadow-xl ${plan.active ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-slate-900 text-white hover:bg-black shadow-slate-200 active:scale-95'
                                         }`}
                                 >
-                                    {plan.active ? 'Active' : `Switch to ${plan.id}`}
+                                    {plan.active ? 'Active' : `Deploy ${plan.name}`}
                                 </button>
                             )}
                         </div>
@@ -202,6 +265,25 @@ export const SubscriptionTab: React.FC<SubscriptionTabProps> = ({ tenant, onUpda
                     </table>
                 </div>
             </div>
+
+            {/* Payment Gateway Modal */}
+            <SimulatedPaymentGateway
+                isOpen={isGatewayOpen}
+                onClose={() => setIsGatewayOpen(false)}
+                onSuccess={handlePaymentSuccess}
+                amount={STANDARD_PLANS.find(p => p.id === selectedPlanId)?.price || 0}
+                currency="₹"
+                companyName="Averqon SaaS Subscription"
+                customerName={tenant.companyName}
+            />
         </div>
     );
 };
+
+const FeatureItem = ({ text }: { text: string }) => (
+    <div className="flex items-start gap-3">
+        <CheckCircle2 size={14} className="text-blue-600 mt-0.5 flex-shrink-0" />
+        <span className="text-xs font-bold text-slate-600 leading-tight">{text}</span>
+    </div>
+);
+

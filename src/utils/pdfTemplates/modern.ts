@@ -9,16 +9,17 @@ export const modernTemplate = (invoice: Invoice, config: {
     logoUrl?: string,
     taxRate: number,
     formatDate: (date: string) => string,
-    documentType: string
+    documentType: string,
+    brandingColor?: string
 }) => {
-    const { companyName, companyPhone, companyAddress, companyEmail, website, logoUrl, taxRate, formatDate, documentType } = config;
+    const { companyName, companyPhone, companyAddress, companyEmail, website, logoUrl, taxRate, formatDate, documentType, brandingColor = '#2563eb' } = config;
 
     return `
         <!-- Header -->
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #2563eb; padding-bottom: 20px; margin-bottom: 25px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid ${brandingColor}; padding-bottom: 20px; margin-bottom: 25px;">
             <div style="display: flex; flex-direction: column; gap: 12px;">
                 ${logoUrl ? `<img src="${logoUrl}" alt="Logo" style="height: 50px; width: auto; object-fit: contain;" />` : `
-                <div style="height: 50px; width: 50px; background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%); display: flex; align-items: center; justify-content: center; color: #ffffff; font-weight: bold; font-size: 22px; border-radius: 8px; shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+                <div style="height: 50px; width: 50px; background: linear-gradient(135deg, ${brandingColor} 0%, ${brandingColor} 100%); display: flex; align-items: center; justify-content: center; color: #ffffff; font-weight: bold; font-size: 22px; border-radius: 8px; shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
                     ${companyName.charAt(0)}
                 </div>`}
                 
@@ -26,13 +27,13 @@ export const modernTemplate = (invoice: Invoice, config: {
                     <h1 style="font-size: 18px; font-weight: bold; color: #1e293b; margin: 0;">${companyName}</h1>
                     <p style="font-size: 11px; color: #64748b; max-width: 300px; line-height: 1.5; margin-top: 4px;">
                         ${companyAddress}<br/>
-                        <span style="color: #2563eb; font-weight: 500;">${companyPhone}</span> | ${companyEmail}<br/>
+                        <span style="color: ${brandingColor}; font-weight: 500;">${companyPhone}</span> | ${companyEmail}<br/>
                         ${website}
                     </p>
                 </div>
             </div>
             <div style="text-align: right;">
-                <h1 style="font-size: 32px; font-weight: 800; color: #2563eb; text-transform: uppercase; letter-spacing: -0.02em; margin: 0;">${documentType}</h1>
+                <h1 style="font-size: 32px; font-weight: 800; color: ${brandingColor}; text-transform: uppercase; letter-spacing: -0.02em; margin: 0;">${documentType}</h1>
                 <div style="margin-top: 10px; display: inline-block; background-color: #eff6ff; padding: 4px 12px; border-radius: 6px; border: 1px solid #bfdbfe;">
                     <span style="font-size: 14px; font-weight: bold; color: #1e40af;">#${invoice.invoiceNumber}</span>
                 </div>
@@ -65,7 +66,7 @@ export const modernTemplate = (invoice: Invoice, config: {
         <div style="margin-bottom: 30px;">
             <table style="width: 100%; border-collapse: separate; border-spacing: 0;">
                 <thead>
-                    <tr style="background-color: #2563eb; color: #ffffff;">
+                    <tr style="background-color: ${brandingColor}; color: #ffffff;">
                         <th style="padding: 12px 15px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; border-radius: 8px 0 0 0;">Item Description</th>
                         <th style="padding: 12px 15px; text-align: center; font-size: 11px; font-weight: 700; text-transform: uppercase; width: 60px;">Qty</th>
                         <th style="padding: 12px 15px; text-align: right; font-size: 11px; font-weight: 700; text-transform: uppercase; width: 100px;">Rate</th>
@@ -100,7 +101,7 @@ export const modernTemplate = (invoice: Invoice, config: {
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <span style="font-size: 16px; font-weight: 800; color: #1e293b;">Total Amount</span>
-                    <span style="font-size: 24px; font-weight: 800; color: #2563eb;">₹${invoice.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    <span style="font-size: 24px; font-weight: 800; color: ${brandingColor};">₹${invoice.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                 </div>
             </div>
         </div>

@@ -26,7 +26,7 @@ export const SuperAdminLogs: React.FC = () => {
 
     const logs = [
         { id: 'AUD-9921', event: 'Registry update', actor: 'muneeswaran@averqon.in', timestamp: '2026-02-16 04:45', status: 'Success', severity: 'Medium', origin: 'WEB-CLI' },
-        { id: 'AUD-9920', event: 'Global broadcast', actor: 'clintan@averqon.in', timestamp: '2026-02-16 04:32', status: 'Success', severity: 'High', origin: 'AUTH-GATE' },
+        { id: 'AUD-9920', event: 'Global broadcast', actor: 'whatnew.live@gmail.com', timestamp: '2026-02-16 04:32', status: 'Success', severity: 'High', origin: 'AUTH-GATE' },
         { id: 'AUD-9919', event: 'Brute force attempt', actor: 'unknown@intruder.com', timestamp: '2026-02-16 03:15', status: 'Blocked', severity: 'Critical', origin: 'IP: 142.12.9.1' }
     ];
 

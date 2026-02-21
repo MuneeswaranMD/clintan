@@ -9,7 +9,7 @@ interface SuperAdminGuardProps {
 
 export const SuperAdminGuard: React.FC<SuperAdminGuardProps> = ({ user, children }) => {
     // Platform Owner Email - In a real app, this would be a 'role' field in Firestore
-    const SUPER_ADMIN_EMAILS = ['muneeswaran@averqon.in', 'clintan@averqon.in'];
+    const SUPER_ADMIN_EMAILS = ['muneeswaran@averqon.in', 'whatnew.live@gmail.com'];
 
     if (!user) {
         return <Navigate to="/login" replace />;

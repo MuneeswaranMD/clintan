@@ -13,6 +13,7 @@ export const CompanyInfoTab: React.FC<CompanyInfoTabProps> = ({ tenant, onUpdate
     const [formData, setFormData] = useState({
         companyName: tenant.companyName || '',
         companyLegalName: tenant.config?.companyLegalName || '',
+        companyAddress: tenant.config?.companyAddress || '',
         industry: tenant.industry || 'Retail',
         businessType: tenant.config?.businessType || 'Pvt Ltd',
         gstin: tenant.config?.taxConfig?.gstin || '',
@@ -36,6 +37,7 @@ export const CompanyInfoTab: React.FC<CompanyInfoTabProps> = ({ tenant, onUpdate
             config: {
                 ...tenant.config,
                 companyLegalName: formData.companyLegalName,
+                companyAddress: formData.companyAddress,
                 businessType: formData.businessType,
                 cin: formData.cin,
                 registrationDate: formData.registrationDate,
@@ -78,6 +80,15 @@ export const CompanyInfoTab: React.FC<CompanyInfoTabProps> = ({ tenant, onUpdate
                                 className="w-full bg-slate-50 border border-slate-100 p-3 rounded-xl text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-bold"
                                 value={formData.companyLegalName}
                                 onChange={e => setFormData({ ...formData, companyLegalName: e.target.value })}
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide ml-1">Company Registered Address</label>
+                            <textarea
+                                className="w-full bg-slate-50 border border-slate-100 p-3 rounded-xl text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-bold min-h-[80px]"
+                                value={formData.companyAddress}
+                                onChange={e => setFormData({ ...formData, companyAddress: e.target.value })}
+                                placeholder="Plot No 1, Main Street, Business District..."
                             />
                         </div>
                     </div>
@@ -157,6 +168,33 @@ export const CompanyInfoTab: React.FC<CompanyInfoTabProps> = ({ tenant, onUpdate
                                 className="w-full bg-slate-50 border border-slate-100 p-3 rounded-xl text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all font-bold"
                                 value={formData.cin}
                                 onChange={e => setFormData({ ...formData, cin: e.target.value.toUpperCase() })}
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Internal Metadata */}
+                <div className="space-y-4 md:col-span-2 bg-slate-50/50 p-6 rounded-3xl border border-slate-100">
+                    <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wide flex items-center gap-2">
+                        Internal Meta & Ownership
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide ml-1">Account Owner Email</label>
+                            <input
+                                type="text"
+                                readOnly
+                                className="w-full bg-transparent border-none p-0 text-slate-500 outline-none font-bold text-sm"
+                                value={tenant.ownerEmail}
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide ml-1">Unique Tenant ID</label>
+                            <input
+                                type="text"
+                                readOnly
+                                className="w-full bg-transparent border-none p-0 text-slate-500 outline-none font-mono font-bold text-xs"
+                                value={tenant.id}
                             />
                         </div>
                     </div>

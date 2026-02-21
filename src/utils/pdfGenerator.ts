@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Invoice } from '../types';
+import { invoiceService, tenantService } from '../services/firebaseService';
 import { settingsService } from '../services/settingsService';
 import { pdfTemplates, TemplateId } from './pdfTemplates';
 
@@ -24,16 +25,18 @@ export const generateInvoicePDF = async (
 
     // Fetch full settings for detailed info
     const settings = invoice.userId ? await settingsService.getSettings(invoice.userId) : null;
+    const tenant = invoice.userId ? await tenantService.getTenantByUserId(invoice.userId) : null;
 
     // Configuration
     const config = {
-        companyName: settings?.companyName || companyNameArg || 'Your Company',
-        companyPhone: settings?.companyPhone || companyPhoneArg || '',
-        companyAddress: settings?.companyAddress || 'Address not configured',
-        companyEmail: settings?.companyEmail || '',
-        website: settings?.website || '',
-        logoUrl: settings?.logoUrl || logoUrlArg,
+        companyName: tenant?.companyName || settings?.companyName || companyNameArg || 'Your Company',
+        companyPhone: tenant?.phone || settings?.companyPhone || companyPhoneArg || '',
+        companyAddress: tenant?.config?.companyAddress || settings?.companyAddress || 'Address not configured',
+        companyEmail: tenant?.config?.contactEmail || settings?.companyEmail || '',
+        website: tenant?.config?.website || settings?.website || '',
+        logoUrl: tenant?.logoUrl || settings?.logoUrl || logoUrlArg,
         taxRate: settings?.defaultTaxPercentage || scannerTax(invoice),
+        brandingColor: tenant?.config?.branding?.primaryColor || '#2563eb',
         formatDate,
         documentType
     };
