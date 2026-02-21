@@ -189,6 +189,13 @@ export const Invoices: React.FC = () => {
           onSelect={handleCustomerSelect}
         />
 
+        <ProductSearchModal
+          isOpen={showProductSearch}
+          onClose={() => setShowProductSearch(false)}
+          products={products}
+          onSelect={(p) => addItem(p.id)}
+        />
+
         <div className="flex items-center justify-between bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
           <div>
             <h1 className="text-2xl font-bold text-slate-900 uppercase tracking-tight">{formData.id ? 'Modify Invoice' : 'New Invoice'}</h1>
@@ -377,7 +384,7 @@ export const Invoices: React.FC = () => {
                 <span className="text-slate-700">₹{formData.subtotal?.toLocaleString()}</span>
               </div>
               <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                <span>Tax Component (18%)</span>
+                <span>Tax Component</span>
                 <span className="text-slate-700">₹{formData.tax?.toLocaleString()}</span>
               </div>
               <div className="pt-4 border-t border-slate-100 flex justify-between items-center">
@@ -715,12 +722,6 @@ export const Invoices: React.FC = () => {
           )}
         </div>
       )}
-      <ProductSearchModal
-        isOpen={showProductSearch}
-        onClose={() => setShowProductSearch(false)}
-        products={products}
-        onSelect={(p) => addItem(p.id)}
-      />
     </div>
   );
 };

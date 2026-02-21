@@ -158,6 +158,15 @@ export const Estimates: React.FC = () => {
         }
     };
 
+    const updateSummary = (items: InvoiceItem[]) => {
+        const subtotal = items.reduce((sum, i) => sum + i.total, 0);
+        const taxTotal = items.reduce((sum, item) => {
+            const prod = products.find(p => p.id === item.productId);
+            return sum + (item.total * ((prod?.pricing?.taxPercentage || 0) / 100));
+        }, 0);
+        setFormData({ ...formData, items, tax: taxTotal, amount: subtotal + taxTotal });
+    };
+
     const addItem = (productId: string) => {
         const product = products.find(p => p.id === productId);
         if (!product) return;
@@ -170,8 +179,7 @@ export const Estimates: React.FC = () => {
             total: product.pricing?.sellingPrice || 0
         };
         const newItems = [...(formData.items || []), newItem];
-        const newAmount = newItems.reduce((sum, i) => sum + i.total, 0);
-        setFormData({ ...formData, items: newItems, amount: newAmount });
+        updateSummary(newItems);
     };
 
     useEffect(() => {
@@ -380,6 +388,13 @@ export const Estimates: React.FC = () => {
                     onSelect={handleCustomerSelect}
                 />
 
+                <ProductSearchModal
+                    isOpen={showProductSearch}
+                    onClose={() => setShowProductSearch(false)}
+                    products={products}
+                    onSelect={(p) => addItem(p.id)}
+                />
+
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-2xl font-bold text-white tracking-tight leading-tight uppercase">
@@ -455,7 +470,31 @@ export const Estimates: React.FC = () => {
                                                         <p className="font-bold text-slate-800 text-sm">{item.productName}</p>
                                                     </td>
                                                     <td className="px-7 py-4 text-center">
-                                                        <span className="bg-slate-50 px-3 py-1 rounded-lg text-xs font-black">x{item.quantity}</span>
+                                                        <div className="flex items-center justify-center gap-2">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    const newItems = [...(formData.items || [])];
+                                                                    if (newItems[idx].quantity > 1) {
+                                                                        newItems[idx].quantity -= 1;
+                                                                        newItems[idx].total = newItems[idx].quantity * newItems[idx].price;
+                                                                        updateSummary(newItems);
+                                                                    }
+                                                                }}
+                                                                className="w-6 h-6 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-all font-bold"
+                                                            >-</button>
+                                                            <span className="font-black text-xs text-slate-700 w-6 text-center">{item.quantity}</span>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    const newItems = [...(formData.items || [])];
+                                                                    newItems[idx].quantity += 1;
+                                                                    newItems[idx].total = newItems[idx].quantity * newItems[idx].price;
+                                                                    updateSummary(newItems);
+                                                                }}
+                                                                className="w-6 h-6 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-all font-bold"
+                                                            >+</button>
+                                                        </div>
                                                     </td>
                                                     <td className="px-7 py-4 text-right">
                                                         <span className="font-black text-slate-900">₹{item.total.toLocaleString()}</span>
@@ -466,8 +505,7 @@ export const Estimates: React.FC = () => {
                                                             onClick={() => {
                                                                 const newItems = [...(formData.items || [])];
                                                                 newItems.splice(idx, 1);
-                                                                const newAmount = newItems.reduce((sum, i) => sum + i.total, 0);
-                                                                setFormData({ ...formData, items: newItems, amount: newAmount });
+                                                                updateSummary(newItems);
                                                             }}
                                                             className="text-slate-300 hover:text-error transition-all"
                                                         >
@@ -527,9 +565,19 @@ export const Estimates: React.FC = () => {
                                     />
                                 </div>
 
-                                <div className="pt-4 border-t border-slate-50 flex justify-between items-center">
-                                    <span className="text-sm font-black text-slate-400 uppercase tracking-tighter">Gross Value</span>
-                                    <h3 className="text-2xl font-black text-primary">₹{(formData.amount || 0).toLocaleString()}</h3>
+                                <div className="pt-4 border-t border-slate-50 space-y-3">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Gross Value</span>
+                                        <span className="text-sm font-black text-slate-600">₹{(formData.items?.reduce((sum, i) => sum + i.total, 0) || 0).toLocaleString()}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Tax Component</span>
+                                        <span className="text-sm font-black text-slate-600">₹{(formData.tax || 0).toLocaleString()}</span>
+                                    </div>
+                                    <div className="pt-2 border-t border-slate-50 flex justify-between items-center">
+                                        <span className="text-sm font-black text-slate-400 uppercase tracking-tighter">Total Payable</span>
+                                        <h3 className="text-2xl font-black text-primary">₹{(formData.amount || 0).toLocaleString()}</h3>
+                                    </div>
                                 </div>
 
                                 <button type="submit" className="w-full bg-gradient-primary text-white py-4 rounded-xl font-black text-xs uppercase tracking-[0.2em] shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all">
