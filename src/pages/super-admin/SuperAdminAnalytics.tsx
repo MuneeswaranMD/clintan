@@ -31,24 +31,16 @@ import {
     Cell
 } from 'recharts';
 
-const data = [
-    { name: 'Mon', usage: 4000, active: 2400 },
-    { name: 'Tue', usage: 3000, active: 1398 },
-    { name: 'Wed', usage: 2000, active: 9800 },
-    { name: 'Thu', usage: 2780, active: 3908 },
-    { name: 'Fri', usage: 1890, active: 4800 },
-    { name: 'Sat', usage: 2390, active: 3800 },
-    { name: 'Sun', usage: 3490, active: 4300 },
-];
+const data: any[] = [];
 
 export const SuperAdminAnalytics: React.FC = () => {
     useEffect(() => { document.title = 'Super Admin | Platform Analytics'; }, []);
 
     const stats = [
-        { label: 'Bandwidth', val: '82%', change: '+5%', icon: Activity, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-        { label: 'Sessions', val: '1,240', change: '+12%', icon: Users, color: 'text-purple-600', bg: 'bg-purple-50' },
-        { label: 'Uptime', val: '99.9%', change: '+0.1%', icon: Zap, color: 'text-blue-600', bg: 'bg-blue-50' },
-        { label: 'Node Traffic', val: '412', change: '+24', icon: Building2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+        { label: 'Bandwidth', val: '0%', change: '0%', icon: Activity, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+        { label: 'Sessions', val: '0', change: '0%', icon: Users, color: 'text-purple-600', bg: 'bg-purple-50' },
+        { label: 'Uptime', val: '100%', change: '0%', icon: Zap, color: 'text-blue-600', bg: 'bg-blue-50' },
+        { label: 'Node Traffic', val: '0', change: '0', icon: Building2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
     ];
 
     return (
@@ -104,7 +96,7 @@ export const SuperAdminAnalytics: React.FC = () => {
                     </div>
 
                     <div className="h-[350px] w-full min-h-[350px]">
-                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={350} debounce={50}>
+                        <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={350} debounce={50}>
                             <AreaChart data={data}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                                 <XAxis dataKey="name" stroke="#94a3b8" fontSize={10} fontWeight={700} axisLine={false} tickLine={false} tickMargin={10} />
@@ -161,7 +153,7 @@ export const SuperAdminAnalytics: React.FC = () => {
                 </div>
 
                 <div className="h-[250px] w-full min-h-[250px]">
-                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={250} debounce={50}>
+                    <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={250} debounce={50}>
                         <BarChart data={data}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                             <XAxis dataKey="name" hide />

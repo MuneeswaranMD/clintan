@@ -22,11 +22,7 @@ import {
 export const SuperAdminNotifications: React.FC = () => {
     useEffect(() => { document.title = 'Super Admin | Notifications'; }, []);
 
-    const logs = [
-        { id: 'TX-8822', title: 'Platform Version 4.2.1 Hotfix', type: 'Critical', sentAt: '2h ago', reach: '1,240 Nodes', status: 'Delivered' },
-        { id: 'TX-8821', title: 'Scheduled Database Optimization', type: 'System', sentAt: '6h ago', reach: 'All Tenants', status: 'Scheduled' },
-        { id: 'TX-8820', title: 'New Industry Preset: Healthcare', type: 'Update', sentAt: '1d ago', reach: 'Active Admins', status: 'Draft' },
-    ];
+    const logs: any[] = [];
 
     return (
         <div className="p-8 space-y-8 animate-fade-in">

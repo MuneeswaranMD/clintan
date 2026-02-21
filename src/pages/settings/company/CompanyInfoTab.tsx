@@ -45,7 +45,7 @@ export const CompanyInfoTab: React.FC<CompanyInfoTabProps> = ({ tenant, onUpdate
                 companySealUrl: formData.companySealUrl,
                 taxConfig: {
                     ...tenant.config?.taxConfig,
-                    gstin: formData.gstin || tenant.config?.taxConfig?.gstin,
+                    gstin: formData.gstin,
                 }
             }
         };

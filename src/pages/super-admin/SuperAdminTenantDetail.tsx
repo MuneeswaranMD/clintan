@@ -54,7 +54,7 @@ const MODULE_TO_FEATURE_MAP: Record<string, string> = {
     'customers': 'enableCustomers',
     'analytics': 'enableAnalytics',
     'advanced-analytics': 'enableAdvancedAnalytics',
-    'products': 'enableInventory',
+    'products': 'enableProducts',
     'inventory': 'enableInventory',
     'suppliers': 'enableSuppliers',
     'purchase-orders': 'enablePurchaseManagement',

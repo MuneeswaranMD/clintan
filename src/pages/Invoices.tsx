@@ -16,6 +16,7 @@ import { generateInvoicePDF } from '../utils/pdfGenerator';
 import { sendInvoiceEmail } from '../services/mailService';
 import { ViewToggle } from '../components/ViewToggle';
 import { CustomerSearchModal } from '../components/CustomerSearchModal';
+import { ProductSearchModal } from '../components/ProductSearchModal';
 import { useDialog } from '../context/DialogContext';
 import { useTenant } from '../context/TenantContext';
 import { ModernTemplate, ClassicTemplate, MinimalTemplate, CorporateTemplate } from '../components/PdfTemplates';
@@ -34,6 +35,7 @@ export const Invoices: React.FC = () => {
   const [previewTemplate, setPreviewTemplate] = useState('modern');
   const [searchTerm, setSearchTerm] = useState('');
   const [showCustomerSearch, setShowCustomerSearch] = useState(false);
+  const [showProductSearch, setShowProductSearch] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState<Partial<Invoice>>({
@@ -288,14 +290,13 @@ export const Invoices: React.FC = () => {
               <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
                 <div className="p-4 flex justify-between items-center bg-slate-50 border-b border-slate-200">
                   <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Line Items</h3>
-                  <select
-                    className="bg-slate-900 text-white px-3 py-1.5 rounded text-[9px] font-bold uppercase tracking-widest hover:bg-black transition-all appearance-none cursor-pointer"
-                    onChange={(e) => addItem(e.target.value)}
-                    value=""
+                  <button
+                    type="button"
+                    onClick={() => setShowProductSearch(true)}
+                    className="bg-slate-900 text-white px-4 py-2 rounded text-[10px] font-bold uppercase tracking-widest hover:bg-black transition-all flex items-center gap-2"
                   >
-                    <option value="">+ ADD LINE ITEM</option>
-                    {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                  </select>
+                    <Plus size={14} /> Link Node
+                  </button>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left">
@@ -714,6 +715,12 @@ export const Invoices: React.FC = () => {
           )}
         </div>
       )}
+      <ProductSearchModal
+        isOpen={showProductSearch}
+        onClose={() => setShowProductSearch(false)}
+        products={products}
+        onSelect={(p) => addItem(p.id)}
+      />
     </div>
   );
 };

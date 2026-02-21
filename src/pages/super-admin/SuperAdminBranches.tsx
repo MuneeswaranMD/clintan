@@ -20,12 +20,7 @@ import {
 export const SuperAdminBranches: React.FC = () => {
     useEffect(() => { document.title = 'Super Admin | Branch Monitoring'; }, []);
 
-    const branches = [
-        { id: 'BR-01', name: 'Downtown Center', company: 'Global Retail Corp', location: 'New York, US', status: 'Online', load: 'Normal', latency: '12ms' },
-        { id: 'BR-02', name: 'Westside Medical', company: 'Modern Clinics', location: 'California, US', status: 'Online', load: 'Optimized', latency: '24ms' },
-        { id: 'BR-03', name: 'Highway Hub', company: 'Nexus Logistics', location: 'London, UK', status: 'Syncing', load: 'Peak', latency: '82ms' },
-        { id: 'BR-04', name: 'Metro Plaza', company: 'Averqon Solutions', location: 'Texas, US', status: 'Online', load: 'Normal', latency: '18ms' }
-    ];
+    const branches: any[] = [];
 
     return (
         <div className="p-8 space-y-8 animate-fade-in">
@@ -49,10 +44,10 @@ export const SuperAdminBranches: React.FC = () => {
             {/* Terminal Stats */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 {[
-                    { label: 'Active Terminals', val: '8,421', icon: Building2, color: 'text-blue-600', bg: 'bg-blue-50' },
-                    { label: 'System Latency', val: '12ms', icon: Signal, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-                    { label: 'Geo-Nodes', val: '14', icon: Server, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-                    { label: 'Platform Health', val: '99.9%', icon: ShieldCheck, color: 'text-rose-600', bg: 'bg-rose-50' },
+                    { label: 'Active Terminals', val: '0', icon: Building2, color: 'text-blue-600', bg: 'bg-blue-50' },
+                    { label: 'System Latency', val: '0ms', icon: Signal, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+                    { label: 'Geo-Nodes', val: '0', icon: Server, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+                    { label: 'Platform Health', val: '100%', icon: ShieldCheck, color: 'text-rose-600', bg: 'bg-rose-50' },
                 ].map((stat, i) => (
                     <div key={i} className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all group flex items-start gap-4">
                         <div className={`w-10 h-10 rounded-lg ${stat.bg} ${stat.color} flex items-center justify-center transition-all group-hover:bg-blue-600 group-hover:text-white`}>

@@ -23,6 +23,8 @@ const DEFAULT_CONFIG: BusinessConfig = {
         // Conditional Modules (Retail defaults)
         enableEstimates: true,
         enableInventory: true,
+        enableProducts: true,
+
         enableSuppliers: true,
         enablePurchaseManagement: true,
         enableDispatch: true,
@@ -157,39 +159,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
                                 console.log('⚠️ Sync: No detailed config, using root-level or industry defaults', { industry, modules: enabledModules });
                             }
                         } else {
-                            console.warn('⚠️ No tenant document found. Attempting to create default...');
-
-                            try {
-                                const subdomain = (user.displayName || 'company').toLowerCase().replace(/[^a-z0-9]/g, '') || 'company-' + Date.now();
-                                const defaultIndustry = 'Retail';
-                                const defaultModules = getDefaultModulesForIndustry(defaultIndustry);
-
-                                const newTenant = {
-                                    userId: user.uid,
-                                    companyName: user.displayName || 'My Company',
-                                    ownerEmail: user.email,
-                                    subdomain: subdomain,
-                                    createdAt: serverTimestamp(),
-                                    status: 'Active',
-                                    plan: 'Pro Business',
-                                    industry: defaultIndustry,
-                                    enabledModules: defaultModules,
-                                    isDomainVerified: false,
-                                    usersCount: 1,
-                                    mrr: '0',
-                                    config: {
-                                        ...DEFAULT_CONFIG,
-                                        userId: user.uid,
-                                        companyName: user.displayName || 'My Company',
-                                        industry: defaultIndustry
-                                    }
-                                };
-
-                                await addDoc(tenantsRef, newTenant);
-                                console.log('✅ Success: Default tenant created successfully');
-                            } catch (createError) {
-                                console.error('❌ Error: Failed to create default tenant:', createError);
-                            }
+                            console.warn('⚠️ No tenant document found for this user.');
                         }
                     }, (error) => {
                         console.error('❌ Firestore sync error:', error);

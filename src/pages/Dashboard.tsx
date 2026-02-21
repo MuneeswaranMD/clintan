@@ -122,7 +122,7 @@ export const Dashboard: React.FC = () => {
             </div>
           </div>
           <div className="h-[350px] w-full min-h-[350px]">
-            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={350} debounce={50}>
+            <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={350} debounce={50}>
               <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 600 }} dy={10} />
@@ -202,7 +202,7 @@ export const Dashboard: React.FC = () => {
                   <td className="py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded bg-slate-100 flex items-center justify-center font-bold text-slate-400 text-[10px] border border-slate-200 uppercase">
-                        {inv.customerName.charAt(0)}
+                        {(inv.customerName || '?').charAt(0)}
                       </div>
                       <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">{inv.customerName}</span>
                     </div>

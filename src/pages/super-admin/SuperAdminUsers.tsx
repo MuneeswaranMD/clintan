@@ -34,12 +34,7 @@ export const SuperAdminUsers: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-    const admins: AdminUser[] = [
-        { id: 'ADM-101', name: 'Muneeswaran', email: 'muneeswaran@averqon.in', role: 'Platform Owner', lastLogin: '12m ago', status: 'Active' },
-        { id: 'ADM-102', name: 'Clintan', email: 'clintan@averqon.in', role: 'Operation Admin', lastLogin: '2h ago', status: 'Active' },
-        { id: 'ADM-103', name: 'Support Ops', email: 'team@averqon.in', role: 'Support Agent', lastLogin: '1d ago', status: 'Active' },
-        { id: 'ADM-104', name: 'Billing Node', email: 'fees@averqon.in', role: 'Billing Manager', lastLogin: 'Never', status: 'Inactive' }
-    ];
+    const admins: AdminUser[] = [];
 
     const getRoleStyles = (role: string) => {
         switch (role) {

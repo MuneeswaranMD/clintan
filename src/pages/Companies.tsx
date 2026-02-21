@@ -272,9 +272,9 @@ export const Companies: React.FC = () => {
             {/* Platform Metrics */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {[
-                    { label: 'Total Instances', val: companies.length, sub: 'Active Across All Verticals', icon: Globe },
-                    { label: 'System Health', val: '99.9%', sub: 'Node Connectivity Optimized', icon: Activity },
-                    { label: 'Active Sessions', val: '842', sub: 'Calculated across all nodes', icon: ShieldCheck },
+                    { label: 'Total Instances', val: companies.length.toLocaleString(), sub: 'Active Across All Verticals', icon: Globe },
+                    { label: 'Verified Nodes', val: companies.filter(c => c.config?.verification?.status === 'Verified').length.toLocaleString(), sub: 'Compliance Verified Entities', icon: ShieldCheck },
+                    { label: 'Total Userbase', val: companies.reduce((acc, c) => acc + (c.usersCount || 0), 0).toLocaleString(), sub: 'Calculated across all nodes', icon: Users },
                 ].map((stat, i) => (
                     <div key={i} className="bg-white p-5 rounded-lg border border-slate-200 shadow-sm flex items-center gap-4 group hover:translate-y-[-2px] transition-all">
                         <div className="w-12 h-12 rounded bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-all">

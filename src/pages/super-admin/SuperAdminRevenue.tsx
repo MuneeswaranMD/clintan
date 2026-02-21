@@ -2,32 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { DollarSign, TrendingUp, Users, ArrowUp, ArrowDown, Activity, CreditCard, Calendar, Download, MoreHorizontal, ChevronRight, Share2, Sparkles, Filter, Search } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
-const chartData = [
-    { name: 'Jan', revenue: 420000, active: 1100 },
-    { name: 'Feb', revenue: 480000, active: 1150 },
-    { name: 'Mar', revenue: 510000, active: 1180 },
-    { name: 'Apr', revenue: 590000, active: 1210 },
-    { name: 'May', revenue: 680000, active: 1230 },
-    { name: 'Jun', revenue: 790000, active: 1240 },
-    { name: 'Jul', revenue: 842000, active: 1240 },
-];
+const chartData: any[] = [];
 
 export const SuperAdminRevenue: React.FC = () => {
     useEffect(() => { document.title = 'Super Admin | Revenue & Billing'; }, []);
 
     const stats = [
-        { label: 'MRN', value: '₹8.42L', change: '+12.5%', trend: 'up', icon: TrendingUp, color: 'text-blue-600', bg: 'bg-blue-50' },
-        { label: 'ARR', value: '₹1.01Cr', change: '+8.2%', trend: 'up', icon: DollarSign, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-        { label: 'Active Subscriptions', value: '1,240', change: '+156', trend: 'up', icon: Users, color: 'text-purple-600', bg: 'bg-purple-50' },
-        { label: 'Monthly Churn', value: '2.4%', change: '-0.3%', trend: 'down', icon: Activity, color: 'text-rose-600', bg: 'bg-rose-50' }
+        { label: 'MRN', value: '₹0.00', change: '0%', trend: 'up', icon: TrendingUp, color: 'text-blue-600', bg: 'bg-blue-50' },
+        { label: 'ARR', value: '₹0.00', change: '0%', trend: 'up', icon: DollarSign, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+        { label: 'Active Subscriptions', value: '0', change: '0', trend: 'up', icon: Users, color: 'text-purple-600', bg: 'bg-purple-50' },
+        { label: 'Monthly Churn', value: '0%', change: '0%', trend: 'down', icon: Activity, color: 'text-rose-600', bg: 'bg-rose-50' }
     ];
 
-    const recentPayments = [
-        { id: 'PAY-9921', company: 'TechSolutions Inc', amount: 4999, plan: 'Enterprise', date: '2026-02-16 04:45', status: 'Success' },
-        { id: 'PAY-9920', company: 'Global Retail', amount: 1499, plan: 'Pro', date: '2026-02-16 03:22', status: 'Success' },
-        { id: 'PAY-9919', company: 'Modern Clinics', amount: 1499, plan: 'Pro', date: '2026-02-15 11:45', status: 'Failed' },
-        { id: 'PAY-9918', company: 'Creative Agency', amount: 499, plan: 'Basic', date: '2026-02-15 09:12', status: 'Success' },
-    ];
+    const recentPayments: any[] = [];
 
     return (
         <div className="space-y-6">
@@ -84,7 +71,7 @@ export const SuperAdminRevenue: React.FC = () => {
                     </div>
 
                     <div className="h-[300px] w-full min-h-[300px]">
-                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={300} debounce={50}>
+                        <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={300} debounce={50}>
                             <AreaChart data={chartData}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                                 <XAxis dataKey="name" stroke="#94a3b8" fontSize={10} fontWeight={700} axisLine={false} tickLine={false} tickMargin={10} />
@@ -103,11 +90,7 @@ export const SuperAdminRevenue: React.FC = () => {
                     <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
                         <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-6">Upcoming Settlements</h3>
                         <div className="space-y-4">
-                            {[
-                                { label: 'Meta Ads Payout', amount: '₹12.4L', status: 'Pending', icon: TrendingUp },
-                                { label: 'Cloud Hosting Fees', amount: '₹4.2L', status: 'Processing', icon: Activity },
-                                { label: 'Partner Dividends', amount: '₹8.6L', status: 'Scheduled', icon: Users },
-                            ].map((node, i) => (
+                            {[].map((node: any, i) => (
                                 <div key={i} className="flex items-center gap-4 p-3 hover:bg-slate-50 rounded-lg border border-slate-100 transition-all">
                                     <div className="w-10 h-10 rounded bg-slate-100 flex items-center justify-center text-slate-400">
                                         <node.icon size={18} />

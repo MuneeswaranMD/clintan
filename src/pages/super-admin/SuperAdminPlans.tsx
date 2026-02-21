@@ -45,6 +45,7 @@ export const SuperAdminPlans: React.FC = () => {
         enableSettings: true,
         enableEstimates: false,
         enableInventory: false,
+        enableProducts: false,
         enableSuppliers: false,
         enablePurchaseManagement: false,
         enableDispatch: false,

@@ -10,7 +10,7 @@ interface TaxComplianceTabProps {
 }
 
 export const TaxComplianceTab: React.FC<TaxComplianceTabProps> = ({ tenant, onUpdate, saving, canEdit }) => {
-    const [taxConfig, setTaxConfig] = useState<TaxConfig>(tenant.config?.taxConfig || {
+    const [taxConfig, setTaxConfig] = useState<TaxConfig>({
         taxType: 'GST',
         taxMode: 'Exclusive',
         defaultTaxPercentage: 18,
@@ -24,6 +24,7 @@ export const TaxComplianceTab: React.FC<TaxComplianceTabProps> = ({ tenant, onUp
         enableHSN: true,
         reverseCharge: false,
         einvoiceEnabled: false,
+        ...(tenant.config?.taxConfig || {})
     });
 
     const [newSlab, setNewSlab] = useState({ name: '', percentage: 0 });

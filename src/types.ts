@@ -446,6 +446,8 @@ export interface FeatureToggles {
   // Conditional Modules (Industry-Specific)
   enableEstimates: boolean; // Construction, Agency, Wholesale
   enableInventory: boolean; // Retail, Manufacturing, Wholesale
+  enableProducts: boolean; // Product catalog management
+
   enableSuppliers: boolean; // Retail, Manufacturing, Wholesale
   enablePurchaseManagement: boolean; // Manufacturing, Retail
   enableDispatch: boolean; // Retail, Wholesale

@@ -23,6 +23,7 @@ const BASE_FEATURES: FeatureToggles = {
     // Conditional Modules
     enableEstimates: false,
     enableInventory: false,
+    enableProducts: false,
     enableSuppliers: false,
     enablePurchaseManagement: false,
     enableDispatch: false,
@@ -354,6 +355,7 @@ export const getEnabledModules = (features: FeatureToggles): string[] => {
         modules.push('products');
         modules.push('inventory');
     }
+    if (features.enableProducts) modules.push('products');
     if (features.enableSuppliers) modules.push('suppliers');
     if (features.enablePurchaseManagement) modules.push('purchase-orders');
     if (features.enableCustomers) modules.push('customers');

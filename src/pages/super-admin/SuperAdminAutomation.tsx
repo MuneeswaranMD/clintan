@@ -24,12 +24,7 @@ import {
 export const SuperAdminAutomation: React.FC = () => {
     useEffect(() => { document.title = 'Super Admin | Global Automation'; }, []);
 
-    const rules = [
-        { name: 'Auto-Suspend Overdue', target: 'Billing Engine', trigger: 'Payments', status: 'Enabled', execCount: '12.4K' },
-        { name: 'Snapshot Multi-Region', target: 'Database', trigger: '6h Timer', status: 'Running', execCount: '842' },
-        { name: 'Anomaly Lockout', target: 'Security', trigger: 'Failed Auth > 10', status: 'Active', execCount: '24' },
-        { name: 'Load Balancing', target: 'Clusters', trigger: 'Traffic', status: 'Optimal', execCount: '1.2M' }
-    ];
+    const rules: any[] = [];
 
     return (
         <div className="space-y-6">
@@ -52,9 +47,9 @@ export const SuperAdminAutomation: React.FC = () => {
             {/* Automation Metrics */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 {[
-                    { label: 'Active Flows', val: '124', icon: Play, color: 'text-blue-600', bg: 'bg-blue-50' },
-                    { label: 'Total Jobs', val: '8.2M', icon: Zap, color: 'text-amber-600', bg: 'bg-amber-50' },
-                    { label: 'Optimization', val: '40%', icon: Cpu, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+                    { label: 'Active Flows', val: '0', icon: Play, color: 'text-blue-600', bg: 'bg-blue-50' },
+                    { label: 'Total Jobs', val: '0', icon: Zap, color: 'text-amber-600', bg: 'bg-amber-50' },
+                    { label: 'Optimization', val: '0%', icon: Cpu, color: 'text-indigo-600', bg: 'bg-indigo-50' },
                     { label: 'Security Gates', val: '0 Fail', icon: Shield, color: 'text-emerald-600', bg: 'bg-emerald-50' },
                 ].map((stat, i) => (
                     <div key={i} className="bg-white p-5 rounded-lg border border-slate-200 shadow-sm">

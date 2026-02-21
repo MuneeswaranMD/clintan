@@ -23,11 +23,7 @@ import {
 export const SuperAdminGrowth: React.FC = () => {
     useEffect(() => { document.title = 'Super Admin | Growth Tools'; }, []);
 
-    const activePromos = [
-        { name: 'ENTLAUNCH', type: 'Coupon', usage: '124', discount: '30%', status: 'Active', trend: '+12%' },
-        { name: 'PARTNER_SYNC', type: 'Referral', usage: '89', discount: '2mo Free', status: 'Active', trend: '+5%' },
-        { name: 'EARLYADOPT', type: 'Code', usage: '412', discount: 'Flat ₹500', status: 'Active', trend: '+28%' },
-    ];
+    const activePromos: any[] = [];
 
     return (
         <div className="space-y-6">
@@ -50,9 +46,9 @@ export const SuperAdminGrowth: React.FC = () => {
             {/* Growth Metrics */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {[
-                    { label: 'Conversion', val: '4.2%', icon: Target, color: 'text-blue-600', bg: 'bg-blue-50' },
-                    { label: 'Affiliates', val: '128', icon: Users, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-                    { label: 'Growth', val: '+12.5%', icon: Zap, color: 'text-amber-600', bg: 'bg-amber-50' },
+                    { label: 'Conversion', val: '0%', icon: Target, color: 'text-blue-600', bg: 'bg-blue-50' },
+                    { label: 'Affiliates', val: '0', icon: Users, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+                    { label: 'Growth', val: '0%', icon: Zap, color: 'text-amber-600', bg: 'bg-amber-50' },
                 ].map((stat, i) => (
                     <div key={i} className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm flex items-center gap-5">
                         <div className={`w-12 h-12 rounded-lg ${stat.bg} ${stat.color} flex items-center justify-center`}>

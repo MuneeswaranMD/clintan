@@ -88,8 +88,10 @@ export const SuperAdminVerification: React.FC = () => {
     };
 
     const filteredTenants = tenants.filter(t => {
-        const matchesSearch = t.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            t.ownerEmail.toLowerCase().includes(searchTerm.toLowerCase());
+        if (!t) return false;
+        const search = String(searchTerm || '').toLowerCase();
+        const matchesSearch = String(t.companyName || '').toLowerCase().includes(search) ||
+            String(t.ownerEmail || '').toLowerCase().includes(search);
         const status = t.config?.verification?.status || 'Pending';
         const matchesFilter = filterStatus === 'All' || status === filterStatus;
         return matchesSearch && matchesFilter;
@@ -180,8 +182,8 @@ export const SuperAdminVerification: React.FC = () => {
                                     <tr key={t.id} className="hover:bg-slate-50 transition-colors">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 bg-slate-100 rounded flex items-center justify-center font-bold text-slate-400 text-xs text-center border border-slate-200">
-                                                    {t.companyName.charAt(0)}
+                                                <div className="w-8 h-8 bg-slate-100 rounded flex items-center justify-center font-bold text-slate-400 text-xs text-center border border-slate-200 uppercase">
+                                                    {String(t.companyName || '?').charAt(0)}
                                                 </div>
                                                 <div>
                                                     <p className="font-bold text-slate-800 text-sm uppercase tracking-wider">{t.companyName}</p>

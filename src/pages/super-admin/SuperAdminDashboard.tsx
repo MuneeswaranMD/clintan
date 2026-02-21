@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
     Activity,
@@ -19,6 +19,8 @@ import {
     LayoutDashboard
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { tenantService } from '../../services/firebaseService';
+import { Tenant } from '../../types';
 
 const data = [
     { name: 'Jan', value: 4000, active: 2400 },
@@ -31,22 +33,71 @@ const data = [
 ];
 
 export const SuperAdminDashboard: React.FC = () => {
-    useEffect(() => { document.title = 'Super Admin | Dashboard'; }, []);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [tenants, setTenants] = useState<Tenant[]>([]);
+
+    useEffect(() => {
+        document.title = 'Super Admin | Dashboard';
+        fetchData();
+    }, []);
+
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            const data = await tenantService.getAllTenants();
+            setTenants(data);
+        } catch (error) {
+            console.error("Failed to fetch dashboard data", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const activeTenantsCount = tenants.filter(t => t.status === 'Active').length;
+    const totalUsers = tenants.reduce((acc, t) => acc + (t.usersCount || 0), 0);
 
     const stats = [
-        { label: 'Total Revenue', value: '₹84.2L', trend: '+12.5%', icon: TrendingUp },
-        { label: 'Active Tenants', value: '1,240', trend: '+18.2%', icon: Building2 },
-        { label: 'System Load', value: '42%', trend: '-2.4%', icon: Activity },
-        { label: 'Growth Rate', value: '15.8%', trend: '+4.1%', icon: Users },
+        { label: 'Total Revenue', value: '₹0.00', trend: '0%', icon: TrendingUp },
+        { label: 'Active Tenants', value: activeTenantsCount.toLocaleString(), trend: '+0%', icon: Building2 },
+        { label: 'System Load', value: '12%', trend: '-0.4%', icon: Activity },
+        { label: 'Total Userbase', value: totalUsers.toLocaleString(), trend: '+0%', icon: Users },
     ];
 
-    const recentTenants = [
-        { name: 'TechSolutions Inc', email: 'admin@techsol.com', plan: 'Enterprise', status: 'Active', date: '2 hours ago' },
-        { name: 'Global Retail', email: 'billing@global.com', plan: 'Pro', status: 'Active', date: '5 hours ago' },
-        { name: 'Creative Agency', email: 'hi@creative.io', plan: 'Basic', status: 'Pending', date: '1 day ago' },
-        { name: 'Modern Clinics', email: 'dr@modern.med', plan: 'Pro', status: 'Active', date: '2 days ago' },
-    ];
+    const recentTenants = tenants
+        .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
+        .slice(0, 5)
+        .map(t => ({
+            id: t.id,
+            name: t.companyName || 'Unnamed Entity',
+            email: t.ownerEmail || 'No Email',
+            plan: t.plan || 'Pro',
+            status: t.status || 'Active',
+            date: t.createdAt ? new Date(t.createdAt).toLocaleDateString() : 'Recent'
+        }));
+
+    const growthData = useMemo(() => {
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const counts = months.map(m => ({ name: m, tenants: 0, active: 0 }));
+
+        tenants.forEach(t => {
+            const date = new Date(t.createdAt || 0);
+            if (date.getFullYear() === 2026 || date.getFullYear() === 2025) { // Show recent growth
+                const mIdx = date.getMonth();
+                counts[mIdx].tenants++;
+                if (t.status === 'Active') counts[mIdx].active++;
+            }
+        });
+        return counts;
+    }, [tenants]);
+
+    if (loading) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+                <div className="w-12 h-12 border-4 border-slate-100 border-t-blue-600 rounded-full animate-spin"></div>
+                <p className="text-slate-400 font-black uppercase tracking-[0.3em] text-[10px] animate-pulse">Syncing Platform Data...</p>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">
@@ -101,16 +152,16 @@ export const SuperAdminDashboard: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="h-[350px] w-full min-h-[350px]">
-                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={350} debounce={50}>
-                            <AreaChart data={data}>
+                    <div className="h-[350px] w-full min-h-[350px] relative">
+                        <ResponsiveContainer id="main-growth-chart" width="100%" height="100%" minWidth={1} minHeight={350} debounce={50}>
+                            <AreaChart data={growthData}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                                 <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} axisLine={false} tickLine={false} tickMargin={10} />
                                 <YAxis stroke="#94a3b8" fontSize={11} axisLine={false} tickLine={false} tickMargin={10} />
                                 <Tooltip
                                     contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '4px', fontSize: '11px' }}
                                 />
-                                <Area type="monotone" dataKey="value" stroke="#2563eb" strokeWidth={2} fill="#3b82f6" fillOpacity={0.1} />
+                                <Area type="monotone" dataKey="tenants" stroke="#2563eb" strokeWidth={2} fill="#3b82f6" fillOpacity={0.1} />
                             </AreaChart>
                         </ResponsiveContainer>
                     </div>
@@ -123,18 +174,18 @@ export const SuperAdminDashboard: React.FC = () => {
                         <div className="divide-y divide-slate-100">
                             {recentTenants.map((t, i) => (
                                 <div key={i} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-                                    <div className="w-8 h-8 rounded bg-slate-100 flex items-center justify-center font-bold text-slate-400 text-xs">
-                                        {t.name.charAt(0)}
+                                    <div className="w-8 h-8 rounded bg-slate-100 flex items-center justify-center font-bold text-slate-400 text-xs uppercase">
+                                        {(t.name || '?').charAt(0)}
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <h4 className="font-bold text-slate-800 text-xs truncate">{t.name}</h4>
-                                        <p className="text-[10px] text-slate-500 font-semibold">{t.date}</p>
+                                        <p className="text-[10px] text-slate-500 font-semibold">{t.date} • {t.plan}</p>
                                     </div>
                                     <ChevronRight size={14} className="text-slate-300" />
                                 </div>
                             ))}
                         </div>
-                        <button className="w-full py-2 text-xs font-bold text-blue-600 border border-blue-100 rounded-lg hover:bg-blue-50 transition-all uppercase tracking-wider">View All Tenants</button>
+                        <Link to="/super/tenants" className="block w-full py-2 text-center text-xs font-bold text-blue-600 border border-blue-100 rounded-lg hover:bg-blue-50 transition-all uppercase tracking-wider">View All Tenants</Link>
                     </div>
 
                     <div className="bg-slate-900 p-6 rounded-lg text-white space-y-4">
@@ -155,14 +206,14 @@ export const SuperAdminDashboard: React.FC = () => {
             {/* Bottom Section */}
             <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm space-y-6">
                 <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Platform Growth</h3>
-                <div className="h-[200px] w-full min-h-[200px]">
-                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={200} debounce={50}>
-                        <BarChart data={data}>
+                <div className="h-[200px] w-full min-h-[200px] relative">
+                    <ResponsiveContainer id="platform-growth-chart" width="100%" height="100%" minWidth={1} minHeight={200} debounce={50}>
+                        <BarChart data={growthData}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                             <XAxis dataKey="name" hide />
                             <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '4px', border: '1px solid #e2e8f0', fontSize: '11px' }} />
                             <Bar dataKey="active" fill="#3b82f6" radius={[2, 2, 0, 0]} barSize={24} />
-                            <Bar dataKey="value" fill="#cbd5e1" radius={[2, 2, 0, 0]} barSize={24} />
+                            <Bar dataKey="tenants" fill="#cbd5e1" radius={[2, 2, 0, 0]} barSize={24} />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>

@@ -154,11 +154,36 @@ export const SuperAdminTenants: React.FC = () => {
         }
     };
 
-    const filteredTenants = tenants.filter(t =>
-        t.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        t.subdomain.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        t.customDomain?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const handleWipeData = async () => {
+        const confirmed = await confirm('Wipe all tenant/company data from Firebase? This CANNOT be undone.', {
+            title: 'DATA WIPE',
+            confirmText: 'YES, WIPE ALL',
+            variant: 'danger'
+        });
+        if (!confirmed) return;
+
+        try {
+            setLoading(true);
+            const tenantsDocs = await tenantService.getAllTenants();
+            for (const t of tenantsDocs) {
+                await tenantService.deleteTenant(t.id);
+            }
+            await alert('All tenant and company data has been removed from Firebase.');
+            fetchTenants();
+        } catch (e: any) {
+            await alert('Failed: ' + e.message, { variant: 'danger' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const filteredTenants = tenants.filter(t => {
+        if (!t) return false;
+        const search = String(searchTerm || '').toLowerCase();
+        return String(t.companyName || '').toLowerCase().includes(search) ||
+            String(t.subdomain || '').toLowerCase().includes(search) ||
+            String(t.customDomain || '').toLowerCase().includes(search);
+    });
 
     const metrics = [
         { label: 'Total Instances', val: tenants.length.toLocaleString(), icon: Globe, color: 'text-blue-600 bg-blue-50' },
@@ -175,6 +200,12 @@ export const SuperAdminTenants: React.FC = () => {
                     <p className="text-slate-500 text-sm mt-1">Manage platform instances and domain configurations.</p>
                 </div>
                 <div className="flex gap-2">
+                    <button
+                        onClick={handleWipeData}
+                        className="px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg text-sm font-bold hover:bg-red-100 transition-all uppercase tracking-widest text-[10px]"
+                    >
+                        <Trash2 size={14} className="mr-2 inline" /> Wipe All Data
+                    </button>
                     <button className="px-4 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 text-sm font-bold hover:bg-slate-50 transition-all">
                         <Download size={14} className="mr-2 inline" /> Export
                     </button>
@@ -261,8 +292,8 @@ export const SuperAdminTenants: React.FC = () => {
                                     <tr key={t.id} className="hover:bg-slate-50/50 transition-colors group">
                                         <td className="px-6 py-5">
                                             <div className="flex items-center gap-4">
-                                                <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center font-black text-slate-400 text-sm shadow-inner group-hover:bg-blue-600 group-hover:text-white transition-all">
-                                                    {t.logoUrl ? <img src={t.logoUrl} className="w-full h-full object-contain p-1" /> : t.companyName.charAt(0)}
+                                                <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center font-black text-slate-400 text-sm shadow-inner group-hover:bg-blue-600 group-hover:text-white transition-all uppercase">
+                                                    {t.logoUrl ? <img src={t.logoUrl} className="w-full h-full object-contain p-1" /> : (t.companyName || '?').charAt(0)}
                                                 </div>
                                                 <div>
                                                     <p className="font-bold text-slate-900 text-sm tracking-tight">{t.companyName}</p>

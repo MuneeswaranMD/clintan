@@ -15,6 +15,7 @@ import { generateInvoicePDF } from '../utils/pdfGenerator';
 import { sendInvoiceEmail } from '../services/mailService';
 import { ViewToggle } from '../components/ViewToggle';
 import { CustomerSearchModal } from '../components/CustomerSearchModal';
+import { ProductSearchModal } from '../components/ProductSearchModal';
 import { useDialog } from '../context/DialogContext';
 import { DashboardStatCard } from '../components/DashboardStatCard';
 import { useShop } from '../context/ShopContext';
@@ -33,6 +34,7 @@ export const Estimates: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedEstimate, setSelectedEstimate] = useState<Estimate | null>(null);
     const [showCustomerSearch, setShowCustomerSearch] = useState(false);
+    const [showProductSearch, setShowProductSearch] = useState(false);
     const [previewTemplate, setPreviewTemplate] = useState('modern');
 
     // Form State
@@ -427,14 +429,13 @@ export const Estimates: React.FC = () => {
                             <div className="bg-white rounded-2xl shadow-premium overflow-hidden">
                                 <div className="p-7 flex justify-between items-center bg-slate-50/50">
                                     <h3 className="font-bold text-slate-800">Bill of Materials</h3>
-                                    <select
-                                        className="bg-primary text-white font-black text-[10px] uppercase tracking-widest rounded-xl px-4 py-2 border-none outline-none cursor-pointer hover:bg-primary-hover transition-all shadow-lg shadow-primary/20"
-                                        onChange={(e) => { if (e.target.value) addItem(e.target.value); e.target.value = ""; }}
-                                        value=""
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowProductSearch(true)}
+                                        className="bg-primary text-white font-black text-[10px] uppercase tracking-widest rounded-xl px-4 py-2 hover:bg-primary-hover transition-all shadow-lg shadow-primary/20 flex items-center gap-2"
                                     >
-                                        <option value="">+ Add Asset</option>
-                                        {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                                    </select>
+                                        <Plus size={14} /> Link Asset
+                                    </button>
                                 </div>
 
                                 <div className="p-0">

@@ -24,11 +24,7 @@ import {
 export const SuperAdminComms: React.FC = () => {
     useEffect(() => { document.title = 'Super Admin | Communication'; }, []);
 
-    const channels = [
-        { name: 'WhatsApp API', status: 'Online', latency: '4ms', load: 'Low', color: 'text-emerald-600', bg: 'bg-emerald-50' },
-        { name: 'SMTP Relay', status: 'Optimal', latency: '24ms', load: 'Normal', color: 'text-blue-600', bg: 'bg-blue-50' },
-        { name: 'Push Gateway', status: 'Healthy', latency: '8ms', load: 'Optimized', color: 'text-indigo-600', bg: 'bg-indigo-50' }
-    ];
+    const channels: any[] = [];
 
     return (
         <div className="space-y-6">
@@ -93,12 +89,8 @@ export const SuperAdminComms: React.FC = () => {
                     </div>
 
                     <div className="space-y-2 font-mono">
-                        {[
-                            { time: '05:12:44', msg: 'WhatsApp Webhook processed for Tenant: GlobalRetail', status: 'OK', type: 'WEBHOOK' },
-                            { time: '05:12:42', msg: 'SMTP Relay successfully dispatched invoice INV-001', status: 'OK', type: 'RELAY' },
-                            { time: '05:12:39', msg: 'Push notification triggered for overdue payment alert', status: 'OK', type: 'TRIGGER' },
-                            { time: '05:12:35', msg: 'Template binding successful for node: CLUSTER-4', status: 'OK', type: 'BND' },
-                        ].map((log, i) => (
+                        {/* Transmission Stream logs cleared */}
+                        {[].map((log: any, i) => (
                             <div key={i} className="flex flex-col md:flex-row gap-4 p-3 bg-slate-50 border border-slate-100 rounded hover:border-blue-200 transition-all">
                                 <div className="flex items-center gap-3 md:w-40 shrink-0">
                                     <span className="text-[9px] text-slate-400 font-bold">{log.time}</span>

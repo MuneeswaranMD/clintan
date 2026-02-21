@@ -163,7 +163,7 @@ export const UNIVERSAL_NAV_ITEMS: NavItem[] = [
         label: 'Products',
         path: '/products',
         icon: Package,
-        requiredFeature: 'enableInventory',
+        requiredFeature: 'enableProducts',
         description: 'Product catalog',
         category: 'inventory'
     },

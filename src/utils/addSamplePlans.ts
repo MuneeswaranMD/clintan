@@ -27,6 +27,7 @@ const baseFeatures = {
     enableSettings: true,
     enableEstimates: false,
     enableInventory: false,
+    enableProducts: false,
     enableSuppliers: false,
     enablePurchaseManagement: false,
     enableDispatch: false,
