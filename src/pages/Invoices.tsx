@@ -524,7 +524,7 @@ export const Invoices: React.FC = () => {
             <div className="h-6 w-px bg-slate-200" />
 
             <div className="flex gap-2">
-              <button onClick={() => window.print()} className="bg-white text-slate-700 px-4 py-2 rounded border border-slate-200 font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-slate-50 transition-all">
+              <button onClick={() => setTimeout(() => window.print(), 100)} className="bg-white text-slate-700 px-4 py-2 rounded border border-slate-200 font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-slate-50 transition-all">
                 <Printer size={14} /> Print
               </button>
               <button onClick={() => generatePDF()} className="bg-blue-600 text-white px-4 py-2 rounded font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-blue-700 transition-all shadow-sm">
